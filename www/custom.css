@@ -1,0 +1,18 @@
+
+
+.main-header .logo {
+  font-family: "Ubuntu", Times, "Times New Roman", serif;
+  font-weight: bold;
+  font-size: 14px;
+  text-align: center;
+}
+
+.box.box-solid.box-primary>.box-header {
+  color:#fff;
+  background:light-blue                    }
+
+.box-primary>.box-header {
+  color:#fff;
+  background:black
+                    }
+
