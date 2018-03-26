@@ -67,9 +67,7 @@ ui <- dashboardPage(skin = 'blue',
                             collapsed = FALSE,
                             
                             column(3,
-                                   plotlyOutput('demo_plot_pie'),
-                                   fluidRow(column(12,
-                                                   plotlyOutput('demo_plot_bar')))),
+                                   plotOutput('demo_plot_pie')),
                             column(6,
                                    DT::dataTableOutput('demo_table'))
                             
@@ -198,44 +196,28 @@ server <- function(input, output) {
   
   
   # demo_plot_pie
-  demo_plot_pie <- renderPlotly({
+  output$demo_plot_pie <- renderPlot({
 
-    temp <- get_demo_data()
+    temp_data <- get_demo_data()
     location <- input$location
-    f <- list(
-      family = "Courier New, monospace",
-      size = 18,
-      color = "#7f7f7f"
-    )
+    x = c(1,2,3,4,5,6,7,8,45,32,6)
+    y = c(1,6,3,4,1,6,3,8,44,32,6)
     
-    plot_ly(temp, labels = ~`Age group`, values = ~`Population` ,type ='pie',
-            textposition = 'outside',
-            textinfo = 'label+percent',
-            insidetextfont = f,
-            hoverinfo = 'text+value',
-            text = ~paste('Total population for age group'),
-            marker = list(colors = colors,
-                          line = list(color = '#FFFFFF', width = 3))) %>%
-
-      layout(title = "",  
-             showlegend = F,
-             xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-             yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE), title = paste0('Population of youth in ', 
-                                                                                                      location)) 
+    plot(x, y)
     
 
   })
  
-  demo_plot_bar <- renderPlot({
+  output$demo_plot_bar <- renderPlot({
     
     temp <- get_demo_data
     
   })
   
   
-  demo_table <- renderDataTable({
+  output$demo_table <- renderDataTable({
     
-    temp <- get_demo_data
+    temp <- get_demo_data()
     temp <- spread(temp, key = `Age group`, value = Population)
     datatable(temp)
     
