@@ -66,8 +66,8 @@ ui <- dashboardPage(skin = 'blue',
                             collapsible = TRUE,
                             collapsed = FALSE,
                             
-                            column(3,
-                                   plotOutput('demo_plot_pie')),
+                            column(6,
+                                   plotlyOutput('demo_plot_pie')),
                             column(6,
                                    DT::dataTableOutput('demo_table'))
                             
@@ -179,10 +179,10 @@ server <- function(input, output) {
     
     demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
     x <- census[ , demo_vars]
-    # location = 'Toronto'
-    # years = c(2001, 2006, 2011, 2016)
+    location = 'Toronto'
+    years = c(2001, 2006, 2011, 2016)
     
-   
+    
     temp <- x %>% filter(Geography %in% location) %>% 
       filter(year %in% years) %>% filter(!grepl('Total',`Age group`)) %>%
       filter(grepl('Total',`Sex`)) %>% filter(grepl('Total',`Place of Birth`)) %>%
@@ -196,30 +196,30 @@ server <- function(input, output) {
   
   
   # demo_plot_pie
-  output$demo_plot_pie <- renderPlot({
-
-    temp_data <- get_demo_data()
+  output$demo_plot_pie <- renderPlotly({
+    
+    temp <- get_demo_data()
     location <- input$location
-    x = c(1,2,3,4,5,6,7,8,45,32,6)
-    y = c(1,6,3,4,1,6,3,8,44,32,6)
-    
-    plot(x, y)
-    
+     
+    get_plotly_pie(temp, 'Age group', 'Population', location = location)
 
+    
+    
+    
   })
- 
+  
   output$demo_plot_bar <- renderPlot({
     
-    temp <- get_demo_data
+    # temp <- get_demo_data
     
   })
   
   
   output$demo_table <- renderDataTable({
     
-    temp <- get_demo_data()
-    temp <- spread(temp, key = `Age group`, value = Population)
-    datatable(temp)
+    # temp <- get_demo_data()
+    # temp <- spread(temp, key = `Age group`, value = Population)
+    # datatable(temp)
     
     
   })

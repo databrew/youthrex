@@ -16,6 +16,24 @@ library(sas7bdat)
 library(memisc)
 library(stringdist)
 
+
+# function for nice ggplot
+ggpie <- function (dat, by, totals) {
+ gg <- 
+    ggplot(dat, aes_string(x=factor(1), y=totals, fill=by)) +
+    geom_bar(stat='identity', color='black') +
+    guides(fill = FALSE) + # removes black borders from legend
+    coord_polar(theta='y') +
+    theme(axis.ticks=element_blank(),
+          axis.text.y=element_blank(),
+          axis.text.x=element_text(colour='black'),
+          axis.title=element_blank()) +
+    scale_y_continuous(breaks=cumsum(dat[[totals]]) - dat[[totals]] / 2, labels=dat[[by]])
+  
+ 
+  return(gg)
+}
+
 # Function for map
 ontario_map <- function(x){
   require(dplyr)
@@ -82,18 +100,18 @@ leaf <- function(x,
     mutate(geography = CCA_2) %>%
     left_join(right,
               by = 'geography')
-
+  
   # Create a color palette
   # pal <- colorQuantile("Blues", NULL, n = 9)
   # bins <- round(c(quantile(shp@data$value, na.rm = TRUE), Inf))
   bins <- unique(round(c(quantile(shp@data$value, na.rm = TRUE, c(seq(0, 1, 0.15), 1)))))
   pal <- colorBin(palette, domain = shp@data$value, bins = bins,
                   na.color = NA)
-
+  
   # Create a popup
   popper <- paste0(shp@data$NAME_2, ': ',
                    round(shp@data$value, 2))
-
+  
   # Create map
   l <- leaf_basic(shp = shp)
   # l <- leaflet(data = shp) %>%
@@ -180,10 +198,10 @@ prettify <- function (the_table, remove_underscores_columns = TRUE, cap_columns 
                                               text = "Download"))), rownames = FALSE, extensions = "Buttons")
       } else {
         the_table <- DT::datatable(the_table, options = list(pageLength = nrows,
-          # scrollY = '300px', paging = FALSE,
-          dom = "Bfrtip", buttons = list("copy", "print",
-                                         list(extend = "collection", buttons = "csv",
-                                              text = "Download"))), rownames = FALSE, extensions = "Buttons")
+                                                             # scrollY = '300px', paging = FALSE,
+                                                             dom = "Bfrtip", buttons = list("copy", "print",
+                                                                                            list(extend = "collection", buttons = "csv",
+                                                                                                 text = "Download"))), rownames = FALSE, extensions = "Buttons")
       }
       
     }
@@ -191,8 +209,8 @@ prettify <- function (the_table, remove_underscores_columns = TRUE, cap_columns 
       if(no_scroll){
         the_table <- DT::datatable(the_table, options = list(#pageLength = nrows,
           scrollY = '300px', paging = FALSE,
-                                                             columnDefs = list(list(className = "dt-right",
-                                                                                    targets = 0:(ncol(the_table) - 1)))), rownames = FALSE)
+          columnDefs = list(list(className = "dt-right",
+                                 targets = 0:(ncol(the_table) - 1)))), rownames = FALSE)
       } else {
         the_table <- DT::datatable(the_table, options = list(pageLength = nrows,
                                                              columnDefs = list(list(className = "dt-right",
@@ -206,10 +224,10 @@ prettify <- function (the_table, remove_underscores_columns = TRUE, cap_columns 
 
 # Define function for printing nice html tables
 prettify_scroll <- function (the_table, remove_underscores_columns = TRUE, cap_columns = TRUE,
-                      cap_characters = TRUE, comma_numbers = TRUE, date_format = "%B %d, %Y",
-                      round_digits = 2, remove_row_names = TRUE, remove_line_breaks = TRUE,
-                      data_table = TRUE, nrows = 5, download_options = FALSE, no_scroll = TRUE,
-                      scroll_x = TRUE){
+                             cap_characters = TRUE, comma_numbers = TRUE, date_format = "%B %d, %Y",
+                             round_digits = 2, remove_row_names = TRUE, remove_line_breaks = TRUE,
+                             data_table = TRUE, nrows = 5, download_options = FALSE, no_scroll = TRUE,
+                             scroll_x = TRUE){
   column_names <- names(the_table)
   the_table <- data.frame(the_table)
   names(the_table) <- column_names
@@ -289,16 +307,16 @@ prettify_scroll <- function (the_table, remove_underscores_columns = TRUE, cap_c
 
 # Define function for subsetting tables
 subset_table <- function(data = census_all,
-                        geo_code = NULL,
-                        year = NULL,
-                        age = NULL,
-                        sex = NULL,
-                        pob = NULL,
-                        vm = NULL,
-                        si = NULL){
+                         geo_code = NULL,
+                         year = NULL,
+                         age = NULL,
+                         sex = NULL,
+                         pob = NULL,
+                         vm = NULL,
+                         si = NULL){
   # Create data
   sub_data <- data
-
+  
   # Modify param names
   the_geo_code = geo_code
   the_year = year
@@ -307,10 +325,10 @@ subset_table <- function(data = census_all,
   the_pob = pob
   the_vm = vm
   the_si = si
-
+  
   # Empty vector of groupers
   groupers <- c()
-
+  
   if(!is.null(geo_code)){
     sub_data <- sub_data %>% dplyr::filter(geo_code == the_geo_code)
   } else {
@@ -346,7 +364,7 @@ subset_table <- function(data = census_all,
   } else {
     groupers <- c(groupers, 'si')
   }
-
+  
   # Apply groupers
   if(length(groupers) > 0){
     sub_data <-
@@ -354,7 +372,7 @@ subset_table <- function(data = census_all,
       group_by_(groupers) %>%
       summarise(value = sum(value))
   }
-
+  
   return(sub_data)
 }
 
@@ -484,14 +502,14 @@ censify <- function(df = census,
         
         if(percent == 'Percentage'){
           for(j in ni) {
-              df[,j] <- (df[, j]/denom)*100
+            df[,j] <- (df[, j]/denom)*100
           }
         } else if(percent == 'Both'){
           for(j in ni) {
-              n <- df[,j]
-              p <- (df[, j]/denom)*100
-              df[,j] <- paste0(prettyNum(n, big.mark = ','), ' (',
-                               round(p, 2), '%)')
+            n <- df[,j]
+            p <- (df[, j]/denom)*100
+            df[,j] <- paste0(prettyNum(n, big.mark = ','), ' (',
+                             round(p, 2), '%)')
           }
         }
         
@@ -531,7 +549,7 @@ plotter <- function(df, variable = NULL, show_labels = TRUE){
              theme_databrew() +
              labs(title = the_title))
   } else {
-
+    
     one_year <- FALSE
     if ('year' %in% names(df)) {
       df$year <- as.factor(df$year)
@@ -674,5 +692,62 @@ plotter <- function(df, variable = NULL, show_labels = TRUE){
   }
 }
 
+# var1 <- "Age group"
+# var2 <- "Population"
+# temp_dat <- temp
+get_plotly_pie <- 
+  function(temp_dat, 
+           var1, 
+           var2, 
+           title,
+           location) {
+  
+  f <- list(
+    family = "Ubuntu",
+    size = 15,
+    color = "white"
+  )
+  
+  plot_ly(labels = temp_dat[[var1]], values =temp_dat[[var2]] ,type ='pie',
+          domain = list(x = c(0, 0.4), y = c(0.4, 1)),
+          textposition = 'inside',
+          textinfo = 'percent',
+          insidetextfont = f,
+          hoverinfo = 'label+value',
+          marker = list(colors = colors,
+                        line = list(color = '#FFFFFF', width = 1.5))) %>%
+    add_pie(labels = temp_dat[[var1]], values =temp_dat[[var2]] ,type ='pie',
+            domain = list(x = c(0.6, 1), y = c(0.4, 1))) %>%
+    
+    layout(title = title,
+           showlegend = F,
+           xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+           yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+           title = paste0('Population of youth in ', location)) 
+  
+  
+  
+}
+
+
+
+
+# plotly_plot <-  plot_ly(temp, labels = ~`Age group`, values = ~`Population` ,type ='pie',
+#          textposition = 'outside',
+#          textinfo = 'percent',
+#          insidetextfont = f,
+#          hoverinfo = 'label+value',
+#          text = ~paste('Total population for age group'),
+#          marker = list(colors = colors,
+#                        line = list(color = '#FFFFFF', width = 1.5))) %>%
+#    
+#    layout(title = "",  
+#           showlegend = F,
+#           xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+#           yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE), 
+#           title = paste0('Population of youth in ', location)) %>%
+#   
+#  ggplotly(plotly_plot, width = 10) 
+#  
 
 
