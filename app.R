@@ -173,14 +173,18 @@ ui <- dashboardPage(skin = 'blue',
 server <- function(input, output) {
   
   get_demo_data <- reactive({
+    
+    
+    # subset data by inputs 
+    location <- input$location
+    years <- input$years
+    
     demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
     x <- census[ , demo_vars]
     # location = 'Toronto'
     # years = c(2001, 2006, 2011, 2016)
     
-    # subset data by inputs 
-    location <- input$location
-    years <- input$years
+   
     temp <- x %>% filter(Geography %in% location) %>% 
       filter(year %in% years) %>% filter(!grepl('Total',`Age group`)) %>%
       filter(grepl('Total',`Sex`)) %>% filter(grepl('Total',`Place of Birth`)) %>%
@@ -221,14 +225,7 @@ server <- function(input, output) {
     
 
   })
-  
-  lib  = .libPaths()[1]
-  
-  install.packages( 
-    lib = lib,
-    pkgs = as.data.frame(installed.packages(lib), stringsAsFactors=FALSE)$Package,
-    type = 'source'
-  )
+ 
   demo_plot_bar <- renderPlot({
     
     temp <- get_demo_data
