@@ -692,39 +692,133 @@ plotter <- function(df, variable = NULL, show_labels = TRUE){
   }
 }
 
-# var1 <- "Age group"
-# var2 <- "Population"
-# temp_dat <- temp
+
+
 get_plotly_pie <- 
   function(temp_dat, 
            var1, 
            var2, 
-           title,
            location) {
   
+  # get font list
   f <- list(
     family = "Ubuntu",
     size = 15,
     color = "white"
   )
   
-  plot_ly(labels = temp_dat[[var1]], values =temp_dat[[var2]] ,type ='pie',
-          domain = list(x = c(0, 0.4), y = c(0.4, 1)),
-          textposition = 'inside',
-          textinfo = 'percent',
-          insidetextfont = f,
-          hoverinfo = 'label+value',
-          marker = list(colors = colors,
-                        line = list(color = '#FFFFFF', width = 1.5))) %>%
-    add_pie(labels = temp_dat[[var1]], values =temp_dat[[var2]] ,type ='pie',
-            domain = list(x = c(0.6, 1), y = c(0.4, 1))) %>%
-    
-    layout(title = title,
-           showlegend = F,
-           xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-           yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-           title = paste0('Population of youth in ', location)) 
+  # get year number and vector of all years
+  all_years <- as.character(sort(unique(temp_dat$year)))
+  num_years <- length(all_years)
   
+  # year conditionals 
+  if(num_years == 1) {
+    
+    p <-  plot_ly(labels = temp_dat[[var1]], values =temp_dat[[var2]] ,type ='pie',
+                  textposition = 'inside',
+                  textinfo = 'percent',
+                  insidetextfont = f,
+                  hoverinfo = 'label+value',
+                  marker = list(colors = colors,
+                                line = list(color = '#FFFFFF', width = 1.5)))  %>%
+      layout(title = all_years,
+             showlegend = F,
+             xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+             yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+             title = paste0('Population of youth in ', location)) 
+  }
+  
+  if(num_years == 2) {
+    
+    # get year data sets
+    temp_1 <- temp_dat[temp_dat$year == all_years[1], ]
+    temp_2 <- temp_dat[temp_dat$year == all_years[2], ]
+   
+    
+    p <-  plot_ly(labels = temp_1[[var1]], values =temp_1[[var2]] ,type ='pie',
+                  domain = list(x = c(0, 0.4), y = c(0.4, 1)),
+                  textposition = 'inside',
+                  textinfo = 'percent',
+                  insidetextfont = f,
+                  hoverinfo = 'label+value',
+                  marker = list(colors = colors,
+                                line = list(color = '#FFFFFF', width = 1.5))) %>%
+      add_pie(labels = temp_2[[var1]], values =temp_2[[var2]] ,type ='pie',
+              domain = list(x = c(0.6, 1), y = c(0.4, 1))) %>%
+      
+      layout(showlegend = F, 
+             annotations = list(
+        list(x = 0.12 , y = 1, text = all_years[1], showarrow = F), 
+        list(x = 0.88 , y = 1, text = all_years[2], showarrow = F)),
+        font = list(color = '#264E86',
+                    family = 'sans serif',
+                    size = 20))
+      
+  }
+  
+  if(num_years == 3) {
+    # get year data sets
+    temp_1 <- temp_dat[temp_dat$year == all_years[1], ]
+    temp_2 <- temp_dat[temp_dat$year == all_years[2], ]
+    temp_3 <- temp_dat[temp_dat$year == all_years[3], ]
+    
+    p <-  plot_ly(labels = temp_1[[var1]], values =temp_1[[var2]] ,type ='pie',
+                  domain = list(x = c(0, 0.4), y = c(0.4, 1)),
+                  textposition = 'inside',
+                  textinfo = 'percent',
+                  insidetextfont = f,
+                  hoverinfo = 'label+value',
+                  marker = list(colors = colors,
+                                line = list(color = '#FFFFFF', width = 1.5))) %>%
+      add_pie(labels = temp_2[[var1]], values =temp_2[[var2]] ,
+              domain = list(x = c(0.6, 1), y = c(0.4, 1))) %>%
+      add_pie(labels = temp_3[[var1]], values =temp_3[[var2]] ,
+              domain = list(x = c(0, 0.4), y = c(0, 0.4))) %>%
+      
+      layout(showlegend = F, 
+             annotations = list(
+               list(x = 0.12 , y = 1, text = all_years[1], showarrow = F), 
+               list(x = 0.88 , y = 1, text = all_years[2], showarrow = F),
+               list(x = 0.12 , y = 0.45, text = all_years[3], showarrow = F)),
+             font = list(color = '#264E86',
+                         family = 'sans serif',
+                         size = 20))
+  }
+  
+  if(num_years == 4) {
+    # get year data sets
+    temp_1 <- temp_dat[temp_dat$year == all_years[1], ]
+    temp_2 <- temp_dat[temp_dat$year == all_years[2], ]
+    temp_3 <- temp_dat[temp_dat$year == all_years[3], ]
+    temp_4 <- temp_dat[temp_dat$year == all_years[4], ]
+    
+    
+    p <-  plot_ly(labels = temp_1[[var1]], values =temp_1[[var2]] ,type ='pie',
+                  domain = list(x = c(0, 0.4), y = c(0.4, 1)),
+                  textposition = 'inside',
+                  textinfo = 'percent',
+                  insidetextfont = f,
+                  hoverinfo = 'label+value',
+                  marker = list(colors = colors,
+                                line = list(color = '#FFFFFF', width = 1.5))) %>%
+      add_pie(labels = temp_2[[var1]], values =temp_2[[var2]] ,
+              domain = list(x = c(0.6, 1), y = c(0.4, 1))) %>%
+      add_pie(labels = temp_3[[var1]], values =temp_3[[var2]] ,
+              domain = list(x = c(0, 0.4), y = c(0, 0.4))) %>%
+      add_pie(labels = temp_4[[var1]], values =temp_4[[var2]] ,
+              domain = list(x = c(0.6, 1), y = c(0, 0.4))) %>%
+      
+      layout(showlegend = F, 
+             annotations = list(
+               list(x = 0.12 , y = 1, text = all_years[1], showarrow = F), 
+               list(x = 0.88 , y = 1, text = all_years[2], showarrow = F),
+               list(x = 0.12 , y = 0.45, text = all_years[3], showarrow = F),
+               list(x = 0.88 , y = 0.45, text = all_years[4], showarrow = F)),
+             font = list(color = '#264E86',
+                         family = 'sans serif',
+                         size = 20))
+  } 
+  return(p)
   
   
 }

@@ -170,47 +170,72 @@ ui <- dashboardPage(skin = 'blue',
 # Define server 
 server <- function(input, output) {
   
-  get_demo_data <- reactive({
-    
-    
-    # subset data by inputs 
-    location <- input$location
-    years <- input$years
-    
-    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
-    x <- census[ , demo_vars]
-    location = 'Toronto'
-    years = c(2001, 2006, 2011, 2016)
-    
-    
-    temp <- x %>% filter(Geography %in% location) %>% 
-      filter(year %in% years) %>% filter(!grepl('Total',`Age group`)) %>%
-      filter(grepl('Total',`Sex`)) %>% filter(grepl('Total',`Place of Birth`)) %>%
-      filter(grepl('Total',`Visible minority`)) %>% filter(grepl('Total',`Aboriginal identity`)) 
-    
-    # keep only age group, year, and population
-    temp <- temp[, c('year','Age group','Population')]
-    
-    return(temp)
-  })
-  
+ 
   
   # demo_plot_pie
   output$demo_plot_pie <- renderPlotly({
     
-    temp <- get_demo_data()
-    location <- input$location
-     
-    get_plotly_pie(temp, 'Age group', 'Population', location = location)
-
     
-    
-    
+    if (is.null(input$years)) {
+      return(NULL) 
+    } else {
+      # subset data by inputs 
+      location <- input$location
+      years <- input$years
+      
+      
+      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
+      new_census <- census[ , demo_vars]
+      
+      temp <- new_census %>% filter(Geography %in% location) %>% 
+        filter(year %in% years) %>% filter(!grepl('Total',`Age group`)) %>%
+        filter(grepl('Total',`Sex`)) %>% filter(grepl('Total',`Place of Birth`)) %>%
+        filter(grepl('Total',`Visible minority`)) %>% filter(grepl('Total',`Aboriginal identity`)) 
+      
+      location <- input$location
+      
+      # keep only age group, year, and population
+      temp <- temp[, c('year','Age group','Population')]
+      
+      # apply function to data
+      get_plotly_pie(temp_dat = temp, 
+                     var1 = 'Age group', 
+                     var2 = 'Population', 
+                     location = location)
+    }
+      
+ 
   })
   
   output$demo_plot_bar <- renderPlot({
     
-    # temp <- get_demo_data
+    if (is.null(input$years)) {
+      return(NULL)
+    } else {
+      # subset data by inputs 
+      location <- input$location
+      years <- input$years
+      
+      
+      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
+      new_census <- census[ , demo_vars]
+      
+      temp <- new_census %>% filter(Geography %in% location) %>% 
+        filter(year %in% years) %>% filter(!grepl('Total',`Age group`)) %>%
+        filter(grepl('Total',`Sex`)) %>% filter(grepl('Total',`Place of Birth`)) %>%
+        filter(grepl('Total',`Visible minority`)) %>% filter(grepl('Total',`Aboriginal identity`)) 
+      
+      location <- input$location
+      
+      # keep only age group, year, and population
+      temp <- temp[, c('year','Age group','Population')]
+      
+      # apply function to data
+      get_plotly_pie(temp_dat = temp, 
+                     var1 = 'Age group', 
+                     var2 = 'Population', 
+                     location = location)
+    }
     
   })
   
