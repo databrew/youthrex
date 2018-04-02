@@ -68,9 +68,10 @@ ui <- dashboardPage(skin = 'blue',
                             collapsed = FALSE,
                             
                             fluidRow(column(6,
-                                             htmlOutput('demo_plot_pie', height = 'auto', width = 'auto', align = 'left')),
+                                            uiOutput("location_header"),
+                                            htmlOutput('demo_plot_pie')),
                                      column(6,
-                                            selectInput('demo_var',
+                                            selectInput('demo_variable',
                                                         'Exampine by ',
                                                         choices =  c('Sex', 'Place of Birth', 'Visible minority',
                                                                      'Aboriginal identity'),
@@ -78,10 +79,9 @@ ui <- dashboardPage(skin = 'blue',
                                                         multiple = FALSE))),
                             fluidRow(
                               column(6,
-                                     DT::dataTableOutput('pie_table')
-                                    ),
+                                     DT::dataTableOutput('pie_table')),
                               column(6,
-                                     DT::dataTableOutput('demo_table'))
+                                     htmlOutput('demo_charts'))
                             )
 
                           )
@@ -184,8 +184,7 @@ ui <- dashboardPage(skin = 'blue',
 server <- function(input, output) {
   
  
-  output$text1 <- renderText({ paste("hello input is","<font color=\"#FF0000\"><b>", input$n, "</b></font>") })
-  
+
   output$pie_text <- renderText({
 
       if(input$location == 'Ontario') {
@@ -253,8 +252,8 @@ server <- function(input, output) {
         chart_title <- paste0('Youth population ',year_value)
         gvisPieChart(temp, 
                      options=list(title=chart_title,
-                                  fontSize = 15,
-                                  width=600,
+                                  fontSize = 17,
+                                  width=530,
                                   height=400,
                                   legend= 'yes',
                                   pieSliceText = 'value'))
@@ -262,7 +261,6 @@ server <- function(input, output) {
   
     }
       
- 
   })
   
   
@@ -293,7 +291,12 @@ server <- function(input, output) {
       temp <- temp[, c('year','Age group','Population')]
       temp <- spread(temp, key = year, value = Population)
       
-      datatable(temp,options = list(dom = 't'))
+
+      datatable(temp, fillContainer = F, rownames = FALSE, options = list(dom = 't', ordering = FALSE)) %>%  
+        formatStyle(
+        'Age group',
+        target = 'row',
+        backgroundColor = styleEqual(c('15 to 19 years', '20 to 24 years', '25 to 29 years'), c('white', 'white', 'white')))
       
      
       
@@ -302,39 +305,81 @@ server <- function(input, output) {
     
   })
   
-  # output$demo_plot_bar <- renderPlot({
-  #   
-  #   if (is.null(input$years)) {
-  #     return(NULL)
-  #   } else {
-  #     # subset data by inputs 
-  #     location <- input$location
-  #     years <- input$years
-  #     
-  #     
-  #     demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 'Population')
-  #     new_census <- census[ , demo_vars]
-  #     
-  #     temp <- new_census %>% filter(Geography %in% location) %>% 
-  #       filter(year %in% years) %>% filter(grepl('Total',`Age group`))
-  #     location <- input$location
-  #     
-  #   }
-  #   
-  # })
-  # 
-  # 
-  # 
-  # 
-  # output$demo_table <- renderDataTable({
-  #   
-    # temp <- get_demo_data()
-    # temp <- spread(temp, key = `Age group`, value = Population)
-    # datatable(temp)
+  # 'Sex', 'Place of Birth', 'Visible minority',
+  # 'Aboriginal identity'
+  output$demo_charts <- renderGvis({
 
-  #   
-  # })
-  # 
+    if (is.null(input$years)) {
+      return(NULL)
+    } else {
+      # subset data by inputs
+      location <- 'Ontario'
+      years <- c(2001, 2006, 2011, 2016)
+      demo_variable <- 'Sex'
+      location <- input$location
+      years <- input$years
+      demo_variable <- input$demo_variable
+      
+    
+      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
+      new_census <- census[ , demo_vars]
+      
+      new_census <- new_census %>% filter(Geography %in% location) %>% 
+        filter(year %in% years) %>% filter(grepl('Total',`Age group`)) 
+       
+        if(demo_variable == 'Sex') {
+          # get data
+          temp <- new_census %>% 
+            filter(!grepl('Total', `Sex`)) %>% 
+            filter(grepl('Total', `Place of Birth`)) %>% 
+            filter(grepl('Total', `Visible minority`)) %>%
+            filter(grepl('Total', `Aboriginal identity`)) 
+        }
+      
+        if(demo_variable == 'Place of Birth') {
+          # get data
+          temp <- new_census %>% 
+            filter(!grepl('Total', `Place of Birth`)) %>% 
+            filter(grepl('Total', `Sex`)) %>% 
+            filter(grepl('Total', `Visible minority`)) %>%
+            filter(grepl('Total', `Aboriginal identity`)) 
+        }
+      
+        if(demo_variable == 'Visible minority') {
+          # get data
+          temp <- new_census %>% 
+            filter(!grepl('Total', demo_variable)) %>% 
+            filter(grepl('Total', `Place of Birth`)) %>% 
+            filter(grepl('Total', `Sex`)) %>%
+            filter(grepl('Total', `Aboriginal identity`)) 
+        }
+        
+        if(demo_variable == 'Aboriginal identity') {
+          # get data
+          temp <- new_census %>% 
+            filter(!grepl('Total', demo_variable)) %>% 
+            filter(grepl('Total', `Place of Birth`)) %>% 
+            filter(grepl('Total', `Sex`)) %>%
+            filter(grepl('Total', `Visible minority`)) 
+        }
+      
+
+      
+      
+      # remove age group
+      temp$`Age group` <- temp$Geography <- temp$geo_code <- NULL
+      
+      colnames(temp)[2] <- 'V2'
+  
+      # group by year and demo_variable 
+      temp <- temp %>% group_by(year, V2) %>%
+        summarise(mean_pop )
+      
+    }
+
+  })
+
+  
   
   
 }
