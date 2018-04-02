@@ -11,6 +11,7 @@ library(ggplot2)
 library(shinythemes)
 library(plotly)
 
+
 source('global.R')
 
 
@@ -66,11 +67,23 @@ ui <- dashboardPage(skin = 'blue',
                             collapsible = TRUE,
                             collapsed = FALSE,
                             
-                            column(6,
-                                   plotlyOutput('demo_plot_pie')),
-                            column(6,
-                                   DT::dataTableOutput('demo_table'))
-                            
+                            fluidRow(column(6,
+                                             htmlOutput('demo_plot_pie', height = 'auto', width = 'auto', align = 'left')),
+                                     column(6,
+                                            selectInput('demo_var',
+                                                        'Exampine by ',
+                                                        choices =  c('Sex', 'Place of Birth', 'Visible minority',
+                                                                     'Aboriginal identity'),
+                                                        selected = 'Sex',
+                                                        multiple = FALSE))),
+                            fluidRow(
+                              column(6,
+                                     DT::dataTableOutput('pie_table')
+                                    ),
+                              column(6,
+                                     DT::dataTableOutput('demo_table'))
+                            )
+
                           )
                         ),
                         
@@ -171,15 +184,31 @@ ui <- dashboardPage(skin = 'blue',
 server <- function(input, output) {
   
  
+  output$text1 <- renderText({ paste("hello input is","<font color=\"#FF0000\"><b>", input$n, "</b></font>") })
   
+  output$pie_text <- renderText({
+
+      if(input$location == 'Ontario') {
+        paste0('All youth (defined 15-29) in Ontario for ',input$years )
+      }
+
+      years <- input$years
+      location <- input$location
+      if(length(years == 1)) {
+        paste0('The youth (defined 15-29) in ', location, ' were a ', 'percent', '% of Onatrio')
+      }
+
+    })
   # demo_plot_pie
-  output$demo_plot_pie <- renderPlotly({
+  output$demo_plot_pie <- renderGvis({
     
     
     if (is.null(input$years)) {
       return(NULL) 
     } else {
       # subset data by inputs 
+      location <- 'Ontario'
+      years <- c(2001, 2006, 2011, 2016)
       location <- input$location
       years <- input$years
       
@@ -192,27 +221,61 @@ server <- function(input, output) {
         filter(grepl('Total',`Sex`)) %>% filter(grepl('Total',`Place of Birth`)) %>%
         filter(grepl('Total',`Visible minority`)) %>% filter(grepl('Total',`Aboriginal identity`)) 
       
-      location <- input$location
-      
+
       # keep only age group, year, and population
       temp <- temp[, c('year','Age group','Population')]
       
-      # apply function to data
-      get_plotly_pie(temp_dat = temp, 
-                     var1 = 'Age group', 
-                     var2 = 'Population', 
-                     location = location)
+      
+      year_value <- unique(temp$year)
+      temp$year <- NULL
+      
+      temp <- temp %>% group_by(`Age group`) %>%
+        summarise(`Population` = round(mean(Population)))
+      # year condition 
+      if(length(year_value) == 1) {
+        chart_title <- paste0('Avg population for ',year_value)
+        gvisPieChart(temp,
+                     options=list(title=year_value,
+                                  legend='none'))
+      } else {
+        if(length(year_value) == 2){
+          year_value <- paste0(year_value, collapse = ' and ')
+        }
+        if(length(year_value) == 3){
+          year_value2 <- paste0(year_value[1:2], collapse = ' , ')
+          year_value <- paste(year_value2, ' and ', year_value[3])
+        } 
+        if(length(year_value) == 4){
+          year_value3 <- paste0(year_value[1:3], collapse = ' , ')
+          year_value <- 'All years'
+        } 
+        
+        chart_title <- paste0('Youth population ',year_value)
+        gvisPieChart(temp, 
+                     options=list(title=chart_title,
+                                  fontSize = 15,
+                                  width=600,
+                                  height=400,
+                                  legend= 'yes',
+                                  pieSliceText = 'value'))
+      }
+  
     }
       
  
   })
   
-  output$demo_plot_bar <- renderPlot({
+  
+  # demo_plot_pie
+  output$pie_table <- renderDataTable({
+    
     
     if (is.null(input$years)) {
-      return(NULL)
+      return(NULL) 
     } else {
       # subset data by inputs 
+      location <- 'Ontario'
+      years <- c(2001, 2006, 2011, 2016)
       location <- input$location
       years <- input$years
       
@@ -225,30 +288,53 @@ server <- function(input, output) {
         filter(grepl('Total',`Sex`)) %>% filter(grepl('Total',`Place of Birth`)) %>%
         filter(grepl('Total',`Visible minority`)) %>% filter(grepl('Total',`Aboriginal identity`)) 
       
-      location <- input$location
       
       # keep only age group, year, and population
       temp <- temp[, c('year','Age group','Population')]
+      temp <- spread(temp, key = year, value = Population)
       
-      # apply function to data
-      get_plotly_pie(temp_dat = temp, 
-                     var1 = 'Age group', 
-                     var2 = 'Population', 
-                     location = location)
+      datatable(temp,options = list(dom = 't'))
+      
+     
+      
     }
+    
     
   })
   
-  
-  output$demo_table <- renderDataTable({
-    
+  # output$demo_plot_bar <- renderPlot({
+  #   
+  #   if (is.null(input$years)) {
+  #     return(NULL)
+  #   } else {
+  #     # subset data by inputs 
+  #     location <- input$location
+  #     years <- input$years
+  #     
+  #     
+  #     demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 'Population')
+  #     new_census <- census[ , demo_vars]
+  #     
+  #     temp <- new_census %>% filter(Geography %in% location) %>% 
+  #       filter(year %in% years) %>% filter(grepl('Total',`Age group`))
+  #     location <- input$location
+  #     
+  #   }
+  #   
+  # })
+  # 
+  # 
+  # 
+  # 
+  # output$demo_table <- renderDataTable({
+  #   
     # temp <- get_demo_data()
     # temp <- spread(temp, key = `Age group`, value = Population)
     # datatable(temp)
-    
-    
-  })
-  
+
+  #   
+  # })
+  # 
   
   
 }
