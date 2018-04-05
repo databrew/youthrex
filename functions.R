@@ -6,33 +6,14 @@ library(googledrive)
 library(yaml)
 library(stringr)
 library(readr)
-library(readxl)
 library(dplyr)
 library(tidyr)
-library(broom)
 library(feather)
-library(foreign)
-library(sas7bdat)
 library(memisc)
 library(stringdist)
+library(reshape2)
 
 
-# function for nice ggplot
-ggpie <- function (dat, by, totals) {
- gg <- 
-    ggplot(dat, aes_string(x=factor(1), y=totals, fill=by)) +
-    geom_bar(stat='identity', color='black') +
-    guides(fill = FALSE) + # removes black borders from legend
-    coord_polar(theta='y') +
-    theme(axis.ticks=element_blank(),
-          axis.text.y=element_blank(),
-          axis.text.x=element_text(colour='black'),
-          axis.title=element_blank()) +
-    scale_y_continuous(breaks=cumsum(dat[[totals]]) - dat[[totals]] / 2, labels=dat[[by]])
-  
- 
-  return(gg)
-}
 
 # Function for map
 ontario_map <- function(x){
@@ -193,27 +174,28 @@ prettify <- function (the_table, remove_underscores_columns = TRUE, cap_columns 
       if(no_scroll){
         the_table <- DT::datatable(the_table, options = list(#pageLength = nrows,
           scrollY = '300px', paging = FALSE,
-          dom = "Bfrtip", buttons = list("copy", "print",
-                                         list(extend = "collection", buttons = "csv",
+          dom = "Bfrtip", buttons = list("copy", 
+                                         list(extend = "collection", sDom  = '<"top">lrt<"bottom">ip',buttons = "csv",
                                               text = "Download"))), rownames = FALSE, extensions = "Buttons")
       } else {
         the_table <- DT::datatable(the_table, options = list(pageLength = nrows,
                                                              # scrollY = '300px', paging = FALSE,
-                                                             dom = "Bfrtip", buttons = list("copy", "print",
-                                                                                            list(extend = "collection", buttons = "csv",
-                                                                                                 text = "Download"))), rownames = FALSE, extensions = "Buttons")
+                                                             dom = "Bfrtip", 
+                                                             buttons = list("copy",
+list(extend = "collection",buttons = "csv",   text = "Download", sDom  = '<"top">lrt<"bottom">ip'))), rownames = FALSE, extensions = "Buttons")
       }
       
-    }
+    }  
+
     else {
       if(no_scroll){
-        the_table <- DT::datatable(the_table, options = list(#pageLength = nrows,
+        the_table <- DT::datatable(the_table, options = list(sDom  = '<"top">lrt<"bottom">ip',#pageLength = nrows,
           scrollY = '300px', paging = FALSE,
           columnDefs = list(list(className = "dt-right",
                                  targets = 0:(ncol(the_table) - 1)))), rownames = FALSE)
       } else {
         the_table <- DT::datatable(the_table, options = list(pageLength = nrows,
-                                                             columnDefs = list(list(className = "dt-right",
+                                                             columnDefs = list(list(className = "dt-right",sDom  = '<"top">lrt<"bottom">ip',
                                                                                     targets = 0:(ncol(the_table) - 1)))), rownames = FALSE)
       }
     }
@@ -274,14 +256,14 @@ prettify_scroll <- function (the_table, remove_underscores_columns = TRUE, cap_c
         the_table <- DT::datatable(the_table, options = list(#pageLength = nrows,
           scrollY = '300px', paging = FALSE,
           scrollX = scroll_x,
-          dom = "Bfrtip", buttons = list("copy", "print",
+          dom = "Bfrtip", buttons = list("copy", 
                                          list(extend = "collection", buttons = "csv",
                                               text = "Download"))), rownames = FALSE, extensions = "Buttons")
       } else {
         the_table <- DT::datatable(the_table, options = list(pageLength = nrows,
                                                              scrollX = scroll_x,
                                                              # scrollY = '300px', paging = FALSE,
-                                                             dom = "Bfrtip", buttons = list("copy", "print",
+                                                             dom = "Bfrtip", buttons = list("copy",
                                                                                             list(extend = "collection", buttons = "csv",
                                                                                                  text = "Download"))), rownames = FALSE, extensions = "Buttons")
       }
@@ -305,466 +287,183 @@ prettify_scroll <- function (the_table, remove_underscores_columns = TRUE, cap_c
   return(the_table)
 }
 
-# Define function for subsetting tables
-subset_table <- function(data = census_all,
-                         geo_code = NULL,
-                         year = NULL,
-                         age = NULL,
-                         sex = NULL,
-                         pob = NULL,
-                         vm = NULL,
-                         si = NULL){
-  # Create data
-  sub_data <- data
-  
-  # Modify param names
-  the_geo_code = geo_code
-  the_year = year
-  the_age = age
-  the_sex = sex
-  the_pob = pob
-  the_vm = vm
-  the_si = si
-  
-  # Empty vector of groupers
-  groupers <- c()
-  
-  if(!is.null(geo_code)){
-    sub_data <- sub_data %>% dplyr::filter(geo_code == the_geo_code)
-  } else {
-    groupers <- c(groupers, 'geo_code')
-  }
-  if(!is.null(year)){
-    sub_data <- sub_data %>% dplyr::filter(year == the_year)
-  } else {
-    groupers <- c(groupers, 'year')
-  }
-  if(!is.null(age)){
-    sub_data <- sub_data %>% dplyr::filter(age == the_age)
-  } else {
-    groupers <- c(groupers, 'age')
-  }
-  if(!is.null(sex)){
-    sub_data <- sub_data %>% dplyr::filter(sex == the_sex)
-  } else {
-    groupers <- c(groupers, 'sex')
-  }
-  if(!is.null(pob)){
-    sub_data <- sub_data %>% dplyr::filter(pob == the_pob)
-  } else {
-    groupers <- c(groupers, 'pob')
-  }
-  if(!is.null(vm)){
-    sub_data <- sub_data %>% dplyr::filter(vm == the_vm)
-  } else {
-    groupers <- c(groupers, 'vm')
-  }
-  if(!is.null(si)){
-    sub_data <- sub_data %>% dplyr::filter(si == the_si)
-  } else {
-    groupers <- c(groupers, 'si')
-  }
-  
-  # Apply groupers
-  if(length(groupers) > 0){
-    sub_data <-
-      sub_data %>%
-      group_by_(groupers) %>%
-      summarise(value = sum(value))
-  }
-  
-  return(sub_data)
-}
 
 
-# define function for filtering data by inputs
-# year Numeric vector of length 1 or 3. For example, c(2001, 2006) to keep data from both years
-censify <- function(df = census,
-                    dict = census_dict,
-                    age = FALSE, 
-                    sex = FALSE,
-                    pob = FALSE,
-                    vm = FALSE, 
-                    ai = FALSE,
-                    geo_code = FALSE,
-                    years = 2001,
-                    sc = NULL,
-                    percent = 'Percentage') { # one of Percentage, Raw Numbers, or Both
-  # category
-  if(!is.null(sc)) {
-    if(!sc %in% unique(dict$sub_category)) {
-      stop("sc must be one of ", paste0(unique(dict$sub_category), collapse = ", "))
-    }
-    # extract columns corresponding to category from census dict
-    keep_columns <- dict %>%
-      filter(sub_category %in% c('demographic', 'geo_code', 'year', sc)) %>%
-      .$variable
-    df <- df[, keep_columns]
-  }
+# barplot with ggplotly
+# temp_dat <- temp
+bar_plotly_demo <- function(temp_dat, no_legend){
+  # rename variable fo plotting 
+  colnames(temp_dat)[2] <- 'V2'
   
-  # age 
-  if(age) {
-    df <- df %>%
-      filter(!grepl('Total', `Age group`))
-  } else {
-    df <- df %>%
-      filter(grepl('Total', `Age group`))
-    df$`Age group` <- NULL
-  }
+  temp_dat <- as.data.frame(temp_dat)
   
-  # sex
-  if(sex){
-    df <- df %>%
-      filter(!grepl('Total', Sex))
-  } else {
-    df <- df %>%
-      filter(grepl('Total', Sex))
-    df$Sex <- NULL
-  }
+  temp_dat <- temp_dat %>%
+    group_by(year) %>%
+    mutate(tot_pop = sum(Population))  %>%
+    group_by(year, V2) %>%
+    mutate(pop_per =round((Population/tot_pop)*100,  2))
+  temp_dat$year <- as.factor(temp_dat$year)
   
-  # pob
-  if(pob){
-    df <- df %>%
-      filter(!grepl('Total', `Place of Birth`))
-  } else {
-    df <- df %>%
-      filter(grepl('Total', `Place of Birth`))
-    df$`Place of Birth` <- NULL
-  }
+  # plot data
+  cols <- colorRampPalette(brewer.pal(9, 'Spectral'))(length(unique(temp_dat$V2)))
+  g <- ggplot(data = temp_dat,
+              aes(x = year,
+                  y = pop_per,
+                  fill = V2, 
+                  text = paste('Population', Population,
+                               '<br>', V2,
+                               '<br>Year: ', as.factor(year)))) +
+    geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) +
+    theme(legend.position = 'bottom') +
+    # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
+    labs(x = '', y = '%') 
   
-  # vm
-  if(vm){
-    df <- df %>%
-      filter(!grepl('Total', `Visible minority`))
-  } else {
-    df <- df %>%
-      filter(grepl('Total',  `Visible minority`))
-    df$`Visible minority` <- NULL
-  }
-  
-  # ai
-  if(ai){
-    df <- df %>%
-      filter(!grepl('Total', `Aboriginal identity`))
-  } else {
-    df <- df %>%
-      filter(grepl('Total',  `Aboriginal identity`))
-    df$`Aboriginal identity` <- NULL
-  }
-  
-  # geo_code
-  if(geo_code){
-    df <- df %>%
-      filter(geo_code != '3500')
-  } else {
-    df <- df %>%
-      filter(geo_code == '3500')
-    df$geo_code <- NULL
-    df$Geography  <- NULL
-  }
-  
-  # filter for year
-  df <- df %>%
-    filter(year %in% years)
-  # if(length(years) == 1){
-  #   df$year <- NULL
-  # }
-  
-  # make percentages 
-  if(percent %in% c('Percentage', 'Both')) {
-    if(is.null(sc)) {
-      warning("Choose a sub category to generate percentages")
-    } else {
-      if(!sc %in% c('income', 'total population count')){
-        denom_column <- which(grepl('Total', names(df)))
-        denom <- df[, denom_column]
-        names(denom) <- 'x'
-        denom <- denom$x
-        
-        # identify indices of numerator columns
-        ni <- (denom_column + 1):ncol(df)
-        
-        # Only convert to percentage those columns which don't already
-        # have the words "ratio", "rate" or "%" in them
-        ni_names <- names(df)[ni]
-        already_percentage <- 
-          ni_names[
-            grepl('ratio', ni_names) |
-              grepl(' rate', ni_names) |
-              grepl('%', ni_names, fixed = TRUE)]
-        already_percentage <- which(names(df) %in% already_percentage)
-        ni <- ni[!ni %in% already_percentage]
-        
-        # make temp data frame 
-        col_names <- names(df)
-        
-        df <- as.data.frame(df)
-        
-        if(percent == 'Percentage'){
-          for(j in ni) {
-            df[,j] <- (df[, j]/denom)*100
-          }
-        } else if(percent == 'Both'){
-          for(j in ni) {
-            n <- df[,j]
-            p <- (df[, j]/denom)*100
-            df[,j] <- paste0(prettyNum(n, big.mark = ','), ' (',
-                             round(p, 2), '%)')
-          }
-        }
-        
-        colnames(df) <- col_names
-      }
-    }
-  }
-  total_columns <- grepl('Total', names(df))
-  if(length(which(total_columns)) == 1){
-    names(df)[total_columns] <- 'Total' 
-  }
-  return(df)
-}
-
-# Define function for plotting between 1 and 3 variables
-plotter <- function(df, variable = NULL, show_labels = TRUE){
-  # Skim down the columns to only keep the grouper ones and the plotting variable
-  df <- df[,names(df) %in% c(head_vector, variable)]
-  no_year <- FALSE
-  if(length(variable) != 1){
-    too_many_variables <- TRUE
-  } else {
-    too_many_variables <- FALSE
-  }
-  
-  all_nas <- FALSE
-  if(length(variable) == 1){
-    which_var <- which(names(df) == variable)
-    val <- df[, which_var]
-    if(all(is.na(val))){
-      all_nas <- TRUE
-    }
-  }
-  if(all_nas){
-    the_title <- paste0('There is no data available for ', variable, ' for the year(s) selected.')
-    return(ggplot() +
-             theme_databrew() +
-             labs(title = the_title))
-  } else {
+  if(!no_legend){
+    g <- g + scale_fill_manual(name = '',
+                               values = cols) + theme_bw(base_size = 16, base_family = 'Ubuntu') 
     
-    one_year <- FALSE
-    if ('year' %in% names(df)) {
-      df$year <- as.factor(df$year)
-      if(length(unique(df$year)) == 1){
-        one_year <- TRUE
-      }
-    } 
-    if(nrow(df) == 0){
-      no_year <- TRUE
-    }
-    df <- df[,names(df) != 'geo_code']
-    total_column <- which(grepl('Total', names(df)))[1]
-    df <- df[,-total_column]
-    # Identify the column to be plotted
-    plot_column <- ncol(df)#  total_column + 1
-    original_y <- names(df)[plot_column]
-    names(df)[plot_column] <- 'y'
-    # Only keep necessary columns
-    df <- df[,1:plot_column]
-    if(
-      (!one_year & ncol(df) > 4) |
-      (one_year & ncol(df) > 5) | 
-      no_year | 
-      too_many_variables){
-      st <- ''
-      if(no_year){
-        st <- 'You must select at least one year'
-      } else {
-        st <- 'Variables can be Age group, Sex, Place of Birth, Visible minority, Geography and Year(s)'
-      }
-      if(too_many_variables){
-        the_title <- 'Pick only one variable in the upper right to view a plot'
-      } else {
-        the_title <- 'Pick between 0 and 3 sub-groups to view a plot'
-      }
-      
-      return(ggplot() +
-               theme_databrew() +
-               labs(title = the_title,
-                    subtitle = st))
-    } else {
-      if(one_year & ncol(df) > 2){
-        df$year <- NULL
-        plot_column <- plot_column - 1
-      }
-      original_var_names <- names(df)[1:(plot_column - 1)]
-      # if('year' %in% original_var_names){
-      #   if(length(unique(df$year)) == 1){
-      #     df <- df[,names(df) != 'year']
-      #     original_var_names <- original_var_names[original_var_names != 'year']
-      #   }
-      # }
-      names(df)[1:(plot_column - 1)] <- paste0('var', 1:(plot_column - 1))
-      # Define how many plot variables there are
-      plot_variables <- plot_column - 1
-      # Make a plot 
-      g <- ggplot(data = df,
-                  aes(x = var1,
-                      y = y)) +
-        geom_bar(stat = 'identity',
-                 fill = 'darkorange',
-                 alpha = 0.6) 
-      if(show_labels){
-        g <- g +
-          geom_text(aes(label = round(y, digits = 2)), alpha = 0.4,
-                    position = position_dodge(width = 1), vjust = -0.5)
-      }
-      if(plot_variables == 2){
-        cols <- colorRampPalette(brewer.pal(n = 9, 'Spectral'))(length(unique(df$var2)))
-        if(length(cols) == 2){
-          cols <- c('darkorange', 'lightblue')
-        }
-        g <- ggplot(data = df,
-                    aes(x = var1,
-                        y = y, 
-                        group = var2,
-                        fill = var2)) +
-          geom_bar(stat = 'identity', position = 'dodge')  +
-          scale_fill_manual(name = '',
-                            values = cols) 
-        if(show_labels){
-          g <- g +
-            geom_text(aes(label = round(y, digits = 2)), alpha = 0.4,
-                      position = position_dodge(width = 1), vjust = -0.5)
-        }
-      }
-      if(plot_variables == 3){
-        cols <- colorRampPalette(brewer.pal(n = 9, 'Spectral'))(length(unique(df$var3)))
-        if(length(cols) == 2){
-          cols <- c('darkorange', 'lightblue')
-        }
-        g <- ggplot(data = df,
-                    aes(x = var1,
-                        y = y, 
-                        group = var3,
-                        fill = var3)) +
-          geom_bar(stat = 'identity', position = 'dodge') +
-          scale_fill_manual(name = '',
-                            values = cols) +
-          facet_wrap(~var2)
-        if(show_labels){
-          g <- g +
-            geom_text(aes(label = round(y, digits = 2)), alpha = 0.4,
-                      position = position_dodge(width = 1), vjust = -0.5)
-        }
-      }
-    }
-    g <- g +
-      theme_databrew() +
-      theme(axis.text.x = element_text(angle = 45,
-                                       hjust = 1)) 
-    title <- paste0(original_y, ' by ', original_var_names[1])
-    if(plot_variables == 2){
-      title <- paste0(title, ' and ', original_var_names[2])
-    }
-    if(plot_variables == 3) {
-      title <- paste0(title, ', ', original_var_names[2], ', and ', original_var_names[3])
-    }
-    
-    g <- g +
-      labs(x = '',
-           title = title, 
-           y = '')
-    if('Geography' %in% original_var_names){
-      which_geo <- which(grepl('eograph', original_var_names))
-      geo_var <- paste0('var', which_geo)
-      lots <- length(unique(df[,geo_var])) > 10
-      if(lots){
-        if(plot_variables == 3){
-          g <- 
-            g + theme(axis.text.x = element_text(size = 6))
-        } else {
-          g <- 
-            g + theme(axis.text.x = element_text(size = 8))
-        }
-        
-      }
-    }
-    return(g)
+    g_plotly <- plotly::ggplotly(g, tooltip = 'text') %>%
+      layout(legend = list(
+        orientation = "h",
+        y = -0.1
+      )
+      )
+  } else {
+    g <- g + theme(legend.position = 'none')
+    g_plotly <- plotly::ggplotly(g, tooltip = 'text')
   }
+    
+  
+  
+  return(g_plotly)
+  
+}
+pie_plotly_demo <- function(temp_dat){
+  # get font list
+  
+  
+  # rename variable fo plotting 
+  colnames(temp_dat)[2] <- 'V2'
+  
+   temp_dat <- temp_dat %>%
+    group_by(year) %>%
+    mutate(tot_pop = sum(Population))  %>%
+    group_by(year, V2) %>%
+    mutate(pop_per =round((Population/tot_pop)*100,  2))
+   
+   # get avg population and percentage
+   temp_dat <- temp_dat %>%
+     group_by(V2) %>%
+     summarise(mean_pop = mean(Population, na.rm = T),
+               mean_per = mean(pop_per, na.rm = T))
+   
+   
+  f <- list(
+    family = "Ubuntu",
+    size = 15,
+    color = "white"
+  )
+  
+  p1 <-  plot_ly(temp_dat,labels = ~V2, values = ~mean_pop ,
+                 type ='pie',
+                 hole = 0.5,
+                 textposition = 'inside',
+                 textinfo = 'percent',
+                 insidetextfont = f,
+                 hoverinfo = 'label+value')  %>%
+    
+    layout(title = 'Average Population', showlegend = F,
+           annotations = list(
+           font = list(color = '264E86',
+                       family = 'sans serif',
+                       size = 20)), 
+           xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+           yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+  
+  return(p1)
+
 }
 
 
 
 
-
-
-# get_plotly_pie <- 
-#   function(temp_dat, 
-#            var1, 
-#            var2, 
+# # get_plotly_pie <-
+#   function(temp_dat,
+#            var1,
+#            var2,
 #            location) {
-#   
+# 
 #   # get font list
 #   f <- list(
 #     family = "Ubuntu",
 #     size = 15,
 #     color = "white"
 #   )
-#   
+# 
 #   # get year number and vector of all years
 #   all_years <- as.character(sort(unique(temp_dat$year)))
 #   num_years <- length(all_years)
-#   
-#   # year conditionals 
+# 
+#   # year conditionals
 #   if(num_years == 1) {
-#     
-#     p <-  plot_ly(labels = temp_dat[[var1]], values =temp_dat[[var2]] ,type ='pie',
+# 
+#     p <-  plot_ly(labels = temp_dat[[V2]], values =temp_dat[[pop_per]] ,type ='pie',
 #                   textposition = 'inside',
 #                   textinfo = 'percent',
 #                   insidetextfont = f,
 #                   hoverinfo = 'label+value',
 #                   marker = list(colors = colors,
-#                                 line = list(color = '#FFFFFF', width = 1.5)))  %>%
-#       layout(title = all_years,
-#              showlegend = F,
-#              xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-#              yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-#              title = paste0('Population of youth in ', location)) 
+#                                 line = list(color = '#FFFFFF', width = 1.5))) 
+#      
 #   }
-#   
+# 
 #   if(num_years == 2) {
-#     
+# 
 #     # get year data sets
 #     temp_1 <- temp_dat[temp_dat$year == all_years[1], ]
 #     temp_2 <- temp_dat[temp_dat$year == all_years[2], ]
-#    
-#     
-#     p <-  plot_ly(labels = temp_1[[var1]], values =temp_1[[var2]] ,type ='pie',
-#                   domain = list(x = c(0, 0.4), y = c(0.4, 1)),
+# 
+# 
+#     p1 <-  plot_ly(temp_1,labels = ~V2, values = ~pop_per ,
+#                    type ='pie',
+#                    hole = 0.5,
 #                   textposition = 'inside',
 #                   textinfo = 'percent',
 #                   insidetextfont = f,
-#                   hoverinfo = 'label+value',
-#                   marker = list(colors = colors,
-#                                 line = list(color = '#FFFFFF', width = 1.5))) %>%
-#       add_pie(labels = temp_2[[var1]], values =temp_2[[var2]] ,type ='pie',
-#               domain = list(x = c(0.6, 1), y = c(0.4, 1))) %>%
-#       
-#       layout(showlegend = F, 
+#                   hoverinfo = 'label+value')  %>%
+# 
+#       layout(showlegend = F,
 #              annotations = list(
-#         list(x = 0.12 , y = 1, text = all_years[1], showarrow = F), 
-#         list(x = 0.88 , y = 1, text = all_years[2], showarrow = F)),
-#         font = list(color = '#264E86',
-#                     family = 'sans serif',
-#                     size = 20))
+#                list(text = all_years[1], showarrow = F)),
+#              font = list(color = '#264E86',
+#                          family = 'sans serif',
+#                          size = 20))
+#     
+#     p2 <-  plot_ly(temp_2, labels = ~V2, values = ~pop_per ,
+#                    type ='pie',
+#                    hole = 0.5,
+#                    textposition = 'inside',
+#                    textinfo = 'percent',
+#                    insidetextfont = f,
+#                    hoverinfo = 'label+value')  %>%
 #       
+#       layout(showlegend = F,
+#              annotations = list(
+#                list(text = all_years[2], showarrow = F)),
+#              font = list(color = '#264E86',
+#                          family = 'sans serif',
+#                          size = 20))
+#     
+#     subplot(p1,p2, nrows = 1, titleY = TRUE, shareX = TRUE)
+# 
 #   }
-#   
+# 
 #   if(num_years == 3) {
 #     # get year data sets
 #     temp_1 <- temp_dat[temp_dat$year == all_years[1], ]
 #     temp_2 <- temp_dat[temp_dat$year == all_years[2], ]
 #     temp_3 <- temp_dat[temp_dat$year == all_years[3], ]
-#     
+# 
 #     p <-  plot_ly(labels = temp_1[[var1]], values =temp_1[[var2]] ,type ='pie',
 #                   domain = list(x = c(0, 0.4), y = c(0.4, 1)),
 #                   textposition = 'inside',
@@ -777,25 +476,25 @@ plotter <- function(df, variable = NULL, show_labels = TRUE){
 #               domain = list(x = c(0.6, 1), y = c(0.4, 1))) %>%
 #       add_pie(labels = temp_3[[var1]], values =temp_3[[var2]] ,
 #               domain = list(x = c(0, 0.4), y = c(0, 0.4))) %>%
-#       
-#       layout(showlegend = F, 
+# 
+#       layout(showlegend = F,
 #              annotations = list(
-#                list(x = 0.12 , y = 1, text = all_years[1], showarrow = F), 
+#                list(x = 0.12 , y = 1, text = all_years[1], showarrow = F),
 #                list(x = 0.88 , y = 1, text = all_years[2], showarrow = F),
 #                list(x = 0.12 , y = 0.45, text = all_years[3], showarrow = F)),
 #              font = list(color = '#264E86',
 #                          family = 'sans serif',
 #                          size = 20))
 #   }
-#   
+# 
 #   if(num_years == 4) {
 #     # get year data sets
 #     temp_1 <- temp_dat[temp_dat$year == all_years[1], ]
 #     temp_2 <- temp_dat[temp_dat$year == all_years[2], ]
 #     temp_3 <- temp_dat[temp_dat$year == all_years[3], ]
 #     temp_4 <- temp_dat[temp_dat$year == all_years[4], ]
-#     
-#     
+# 
+# 
 #     p <-  plot_ly(labels = temp_1[[var1]], values =temp_1[[var2]] ,type ='pie',
 #                   domain = list(x = c(0, 0.4), y = c(0.4, 1)),
 #                   textposition = 'inside',
@@ -810,22 +509,22 @@ plotter <- function(df, variable = NULL, show_labels = TRUE){
 #               domain = list(x = c(0, 0.4), y = c(0, 0.6))) %>%
 #       add_pie(labels = temp_4[[var1]], values =temp_4[[var2]] ,
 #               domain = list(x = c(0.6, 1), y = c(0, 0.6))) %>%
-#       
-#       layout(showlegend = F, 
+# 
+#       layout(showlegend = F,
 #              annotations = list(
-#                list(x = 0.12 , y = 1, text = all_years[1], showarrow = F), 
+#                list(x = 0.12 , y = 1, text = all_years[1], showarrow = F),
 #                list(x = 0.88 , y = 1, text = all_years[2], showarrow = F),
 #                list(x = 0.12 , y = 0.45, text = all_years[3], showarrow = F),
 #                list(x = 0.88 , y = 0.45, text = all_years[4], showarrow = F)),
 #              font = list(color = '#264E86',
 #                          family = 'sans serif',
 #                          size = 20))
-#   } 
+#   }
 #   return(p)
-#   
-#   
-# }
 # 
+# 
+# }
+#
 # 
 # 
 # 

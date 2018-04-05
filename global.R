@@ -12,6 +12,7 @@ for (i in 1:length(db_files)){
 # Source helper functions
 source('functions.R')
 
+
 ##########
 # Get Canadian shapefile
 ##########
@@ -261,8 +262,10 @@ get_census_data <- function() {
   census$`Visible minority` <- ifelse(census$`Visible minority` == "Total visible minority population",
                                       'All visible minorities',
                                       census$`Visible minority`)
+  
   census$`Visible minority` <- ifelse(grepl('Total', census$`Visible minority`), 'Total - Population by visible minority', census$`Visible minority`)
   
+
   # fix geography
   geo_dictionary <- census %>% 
     dplyr::select(geo_code, Geography) %>% 
@@ -296,6 +299,8 @@ get_census_data <- function() {
   
   # Create a new total youth only for ages 15 to 29
   census <- census %>% filter(`Age group` != 'Total - 15 years and over')
+  
+  
   
   # This excludes age group AND percentage variables to get the grouped sum 
   total_rows_all <- census %>% dplyr::select(-c(`Age group`, `Average household income before tax $`, contains('%'))) %>% 
@@ -343,13 +348,16 @@ get_census_data <- function() {
     filter(`Visible minority` %in% c('Aboriginal identity',
                                      'Non-Aboriginal identity')) %>%
     dplyr::rename(`Aboriginal identity` = `Visible minority`) %>%
-    mutate(`Visible minority` = "Total - Population by visible minority") 
+    mutate(`Visible minority` = "Total - Population by visible minority_standin") 
+  
+  
   ordered_columns <- unique(c('Geography', 'geo_code',
                               'year', 'Age group',
                               'Sex', 'Place of Birth',
                               'Visible minority',
                               'Aboriginal identity',
                               names(new_rows)))
+  
   new_rows <- new_rows[,ordered_columns]
   old_rows <- census %>%
     filter(!`Visible minority` %in% c('Aboriginal identity',
@@ -362,11 +370,14 @@ get_census_data <- function() {
   census <- census %>%
     mutate(`Aboriginal identity` = 
              gsub(' identity', '', `Aboriginal identity`))
-
-  # Change "All others" in vm to "white"
-  census <- 
+  
+  # # Change "All others" in vm to "white"
+  census <-
     census %>%
-    mutate(`Visible minority` = ifelse(`Visible minority` == 'All others', 'Not visible minority', `Visible minority`))
+    mutate(`Visible minority` = ifelse(`Visible minority` == 'Not a visible minority', 'All others', `Visible minority`))
+  
+ 
+ 
   return(census)
 }
 
