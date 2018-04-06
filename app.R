@@ -121,7 +121,7 @@ ui <- dashboardPage(skin = 'blue',
                             solidHeader = TRUE,
                             width = 12,
                             collapsible = TRUE,
-                            collapsed = FALSE,
+                            collapsed = TRUE,
                             fluidRow(column(6,
                                             radioButtons('fam_type',
                                                          'Parental type',
@@ -130,9 +130,9 @@ ui <- dashboardPage(skin = 'blue',
                                                          inline = TRUE),
                                             uiOutput('fam_plot_parents')),
                                      column(6,
-                                            br(), br(), br(), br(),
+                                            br(), br(), 
                                             plotlyOutput('fam_plot_kids'))),
-                            br(),br(), 
+                            br(), 
                             fluidRow(column(6,
                                             selectInput('which_fam_type',
                                                         'Parental structure',
@@ -161,12 +161,48 @@ ui <- dashboardPage(skin = 'blue',
                             solidHeader = TRUE,
                             width = 12,
                             collapsible = TRUE,
-                            collapsed = TRUE,
+                            collapsed = FALSE,
                             
-                            column(6,
-                                   plotOutput('ed_plot')),
+                            fluidRow(
+                              column(4,
+                                     box(
+                                       title = '% of 20 to 24 year olds with high school degree',
+                                       status = 'success',
+                                       solidHeader = FALSE,
+                                       width = 12,
+                                       collapsible = FALSE,
+                                       collapsed = FALSE,
+                                       textOutput('ed_text_highschool'))
+                                     ),
+                              column(4,
+                                     box(
+                                       title = '% of 25 to 29 year olds with a 
+                                       college/university diploma',
+                                       status = 'warning',
+                                       solidHeader = FALSE,
+                                       width = 12,
+                                       collapsible = FALSE,
+                                       collapsed = FALSE,
+                                       textOutput('ed_text_college'))
+                                     ),
+                              
+                              column(4,
+                                     box(
+                                       title = '% of 20 to 29 year olds with high school degree',
+                                       status = 'info',
+                                       solidHeader = FALSE,
+                                       width = 12,
+                                       collapsible = FALSE,
+                                       collapsed = FALSE,
+                                       textOutput('ed_text_all'))
+                              )
+                              
+                            ),
+                          fluidRow(
                             column(6,
                                    DT::dataTableOutput('ed_table'))
+                          )  
+                           
                             
                           )
                         ),
@@ -650,24 +686,24 @@ server <- function(input, output) {
       line <- 
         gvisLineChart(temp, xvar="year", yvar=c(paste0('Total ', fam_type), 'Percent'),
                       options=list(title=paste0(fam_type, " (25-29 years old)"),
-                                   titleTextStyle="{color:'red',
+                                   titleTextStyle="{color:'black',
                              fontName:'Ubuntu',
                              fontSize:18}",
                                    curveType="function", 
-                                   pointSize=11,
+                                   pointSize=15,
                                    series="[{targetAxisIndex:0, 
-                                       color:'red'}, 
+                                       color:'#28B463'}, 
                                      {targetAxisIndex:1,
-                                      color:'blue'}]",
+                                      color:'#FF4C4C'}]",
                                    vAxes="[{title:'Population',
                              format:'##,###',
-                             titleTextStyle: {color: 'blue'},
-                             textStyle:{color: 'blue'},
+                             titleTextStyle: {color: 'green'},
+                             textStyle:{color: 'green'},
                              textPosition: 'out'}, 
                             {title:'Percent',
                              format:'#.##',
-                             titleTextStyle: {color: 'red'},  
-                             textStyle:{color: 'red'},
+                             titleTextStyle: {color: '#FF4C4C'},  
+                             textStyle:{color: '#FF4C4C'},
                              textPosition: 'out'}]",
                                    hAxes="[{title:'Year',
                              textPosition: 'out'}]",
@@ -803,11 +839,14 @@ server <- function(input, output) {
 
       # remove Arab/West Asian from data
       temp <- temp %>% filter(!`Visible minority` %in% 'Arab/West Asian')
-      temp_all <- as.data.frame(temp_all)
-      temp_vm <- as.data.frame(temp_vm)
+      
       # get two datasets: all other vs all vm, and only within vm.
       temp_all <- temp %>% filter(grepl('All', temp$`Visible minority`))
       temp_vm <- temp %>% filter(!grepl('All', temp$`Visible minority`))
+      
+      # make data frmae
+      temp_all <- as.data.frame(temp_all)
+      temp_vm <- as.data.frame(temp_vm)
       
       # get percentage 
       colnames(temp_all)[3] <- 'V2'
