@@ -166,8 +166,9 @@ ui <- dashboardPage(skin = 'blue',
                             fluidRow(
                               column(4,
                                      box(
-                                       title = '% of 20 to 24 year olds with high school degree',
+                                       title = 'Highschool',
                                        status = 'success',
+                                       background = 'green',                                  
                                        solidHeader = FALSE,
                                        width = 12,
                                        collapsible = FALSE,
@@ -176,10 +177,10 @@ ui <- dashboardPage(skin = 'blue',
                                      ),
                               column(4,
                                      box(
-                                       title = '% of 25 to 29 year olds with a 
-                                       college/university diploma',
+                                       title = 'Post-highschool',
                                        status = 'warning',
                                        solidHeader = FALSE,
+                                       background = 'orange',                                  
                                        width = 12,
                                        collapsible = FALSE,
                                        collapsed = FALSE,
@@ -188,9 +189,10 @@ ui <- dashboardPage(skin = 'blue',
                               
                               column(4,
                                      box(
-                                       title = '% of 20 to 29 year olds with high school degree',
+                                       title = "Bachelor's degree",
                                        status = 'info',
                                        solidHeader = FALSE,
+                                       background = 'light-blue',
                                        width = 12,
                                        collapsible = FALSE,
                                        collapsed = FALSE,
@@ -918,7 +920,8 @@ server <- function(input, output) {
       years <- input$years
       fam_chart_table_all_or_vm <- input$fam_chart_table_all_or_vm
       
-      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 
+      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                     "Place of Birth","Visible minority", "Aboriginal identity", 
                      which_fam_type,'Population')
       new_census <- census[ , demo_vars]
       
@@ -945,8 +948,8 @@ server <- function(input, output) {
       colnames(temp_all)[3] <- 'V2'
       colnames(temp_vm)[3] <- 'V2'
       
-      temp_all$per <- round((temp_all$V2/temp_all$Population)*100,2 )
-      temp_vm$per <- round((temp_vm$V2/temp_vm$Population)*100,2 )
+      temp_all$per <- round((temp_all$V2/temp_all$Population)*100, 2)
+      temp_vm$per <- round((temp_vm$V2/temp_vm$Population)*100, 2)
       
       # get percentage 
       colnames(temp_all)[3] <- which_fam_type
@@ -962,6 +965,65 @@ server <- function(input, output) {
     
   })
   
+  
+  #----------------------------------------------------------------------------------------------------------
+  #----------------------------------------------------------------------------------------------------------
+  # education 
+  # textOuput: ed_text_college (25-29), ed_text_highschool (20-24), ed_text_all (by gender) (20-29)
+  
+  
+  output$ed_text_highschool <- renderText({
+    # subset data by inputs
+    location <- 'Ontario'
+    years <- c(2001, 2006, 2011, 2016)
+    location <- input$location
+    years <- input$years
+
+    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                   "Place of Birth","Visible minority", "Aboriginal identity", 
+                   "High school or equivalent",'Population')
+    new_census <- census[ , demo_vars]
+    
+    temp <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% filter(grepl("20 to 24 years",`Age group`)) %>%
+      filter(grepl('Total', `Sex`)) %>%
+      filter(grepl('Total', `Place of Birth`)) %>%
+      filter(grepl('Total', `Visible minority`)) %>%
+      filter(grepl('Total', `Aboriginal identity`))
+    temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
+      temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
+      temp$`Visible minority` <- NULL
+    temp$per <- round((temp$`High school or equivalent`/temp$Population)*100, 2)
+    
+    if(length(years) == 1){
+      paste0('in ', years,' , ' , temp$per, '% of ', 'Youth aged 20-24 in ', location ,' had earned a highschool degree or equivalent')
+    } else {
+      first_year_per <- temp$per[temp$year == min(temp$year)]
+      last_year_per <- temp$per[temp$year == max(temp$year)]
+      
+      first_year <- temp$year[temp$year == min(temp$year)]
+      last_year <- temp$year[temp$year == max(temp$year)]
+      
+      if(first_year_per > last_year_per) {
+        increase_decrease  <- 'decreased'
+      } else if(first_year_per < last_year_per) {
+        increase_decrease  <- 'increased'
+      } else {
+        increase_decrease <- 'stayed the same'
+      }
+      
+      paste0('The % of youth aged 20-24, earning a HS degree or equivalent in ',location , ' has ', increase_decrease,' from ',first_year_per, '% in ', first_year,' to ', last_year_per, '% in ', last_year)
+  
+    }
+  })
+  
+  output$ed_text_college <- renderText({
+    
+  })
+  
+  output$ed_text_all <- renderText({
+    
+  })
 
   # 
   
