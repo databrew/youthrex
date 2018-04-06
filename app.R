@@ -132,10 +132,24 @@ ui <- dashboardPage(skin = 'blue',
                                      column(6,
                                             br(), br(), br(), br(),
                                             plotlyOutput('fam_plot_kids'))),
+                            br(),br(), 
                             fluidRow(column(6,
-                                            plotlyOutput('fam_plot_vismin')),
+                                            selectInput('which_fam_type',
+                                                        'Parental structure',
+                                                        choices = c('Spouses and common law partners', 'Lone parents'),
+                                                        selected = 'Lone parents',
+                                                        multiple = FALSE)),
                                      column(6,
-                                            DT::dataTableOutput('fam_table_vismin')))
+                                            checkboxInput('fam_chart_table',
+                                                         'View as table',
+                                                         value = FALSE),
+                                            checkboxInput('fam_chart_table_all_or_vm',
+                                                          'Compare with non visible minority population',
+                                                          value = FALSE))
+                                                         ),
+                            fluidRow(column(12,
+                                            uiOutput('fam_plot_table_vismin')) 
+                                     )
 
                           )
                         ),
@@ -746,6 +760,169 @@ server <- function(input, output) {
     
   })
 
+  
+  output$fam_plot_table_vismin <- renderUI({
+    if(input$fam_chart_table){
+      dataTableOutput('fam_table_vismin')
+    } else {
+      plotlyOutput('fam_plot_vismin')
+    }
+    
+  })
+  
+  
+  output$fam_plot_vismin <- renderPlotly({
+    if(is.null(input$years) | is.null(input$location) | is.null(input$fam_chart_table_all_or_vm)) {
+      return(NULL)
+    } else {
+      # subset data by inputs
+      location <- 'Ontario'
+      years <- c(2001, 2006, 2011, 2016)
+      which_fam_type <- 'Lone parents'
+      fam_chart_table_all_or_vm <- FALSE
+      which_fam_type <- input$which_fam_type
+      location <- input$location
+      years <- input$years
+      fam_chart_table_all_or_vm <- input$fam_chart_table_all_or_vm
+
+      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 
+                     which_fam_type,'Population')
+      new_census <- census[ , demo_vars]
+      
+      temp <- new_census %>% filter(Geography %in% location) %>%
+        filter(year %in% years) %>% filter(grepl("25 to 29 years",`Age group`)) %>%
+        filter(grepl('Total', `Sex`)) %>%
+        filter(grepl('Total', `Place of Birth`)) %>%
+        filter(!grepl('Total', `Visible minority`)) %>%
+        filter(grepl('Total', `Aboriginal identity`))
+      temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
+        temp$`Aboriginal identity` <- temp$`Place of Birth`  <-   NULL
+      
+      # make an "Other" column that makes up the rest between the addtion of our two variables and total population for 
+      # that age group.
+
+      # remove Arab/West Asian from data
+      temp <- temp %>% filter(!`Visible minority` %in% 'Arab/West Asian')
+      temp_all <- as.data.frame(temp_all)
+      temp_vm <- as.data.frame(temp_vm)
+      # get two datasets: all other vs all vm, and only within vm.
+      temp_all <- temp %>% filter(grepl('All', temp$`Visible minority`))
+      temp_vm <- temp %>% filter(!grepl('All', temp$`Visible minority`))
+      
+      # get percentage 
+      colnames(temp_all)[3] <- 'V2'
+      colnames(temp_vm)[3] <- 'V2'
+      
+      temp_all$per <- round((temp_all$V2/temp_all$Population)*100,2 )
+      temp_vm$per <- round((temp_vm$V2/temp_vm$Population)*100,2 )
+      
+      
+      if(fam_chart_table_all_or_vm){
+        # plot all vm
+        cols <- c('red', 'blue')
+        g <- ggplot(data = temp_all,
+                    aes(x = year,
+                        y = per,
+                        group = `Visible minority`,
+                        colour = `Visible minority`,
+                        text = paste('Total population of', `Visible minority`, ': ', Population,
+                                     '<br>', per , '%'))) +
+          geom_point(size = 6) + geom_line(size = 2, alpha = 0.6) + scale_color_manual(name = '',
+                                                                                       values = cols) + theme_bw(base_size = 16, base_family = 'Ubuntu')  +
+          
+          
+          labs(x = '', y = 'Percent') + ggtitle(paste0('Youth (25 to 29) who are ', which_fam_type))
+        g <- g  + theme_bw(base_size = 8, base_family = 'Ubuntu') 
+        
+        p1 <- plotly::ggplotly(g, tooltip = 'text') %>%
+          layout(height = 400)
+      } else {
+        # plot data
+        cols <- colorRampPalette(brewer.pal(9, 'RdBu'))(length(unique(temp_vm$`Visible minority`)))
+        g <- ggplot(data = temp_vm,
+                    aes(x = year,
+                        y = per,
+                        group = `Visible minority`,
+                        colour = `Visible minority`,
+                        text = paste('Total population of', `Visible minority`, ': ', Population,
+                                     '<br>', per , '%'))) +
+          geom_point(size = 6) + geom_line(size = 2, alpha = 0.6) + scale_color_manual(name = '',
+                                                                                       values = cols) + theme_bw(base_size = 16, base_family = 'Ubuntu')  +
+          
+          
+          labs(x = '', y = 'Percent') + ggtitle(paste0('Youth (25 to 29) who are ', which_fam_type))
+        g <- g  + theme_bw(base_size = 8, base_family = 'Ubuntu') 
+        
+        p1 <- plotly::ggplotly(g, tooltip = 'text') %>%
+          layout(height = 400)
+        
+      }
+      
+      return(p1)
+     
+    }
+    
+  })
+
+  
+  output$fam_table_vismin <- DT::renderDataTable({
+    if(is.null(input$years) | is.null(input$location) | is.null(input$fam_chart_table_all_or_vm)) {
+      return(NULL)
+    } else {
+      # subset data by inputs
+      location <- 'Ontario'
+      years <- c(2001, 2006, 2011, 2016)
+      which_fam_type <- 'Lone parents'
+      fam_chart_table_all_or_vm <- FALSE
+      which_fam_type <- input$which_fam_type
+      location <- input$location
+      years <- input$years
+      fam_chart_table_all_or_vm <- input$fam_chart_table_all_or_vm
+      
+      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 
+                     which_fam_type,'Population')
+      new_census <- census[ , demo_vars]
+      
+      temp <- new_census %>% filter(Geography %in% location) %>%
+        filter(year %in% years) %>% filter(grepl("25 to 29 years",`Age group`)) %>%
+        filter(grepl('Total', `Sex`)) %>%
+        filter(grepl('Total', `Place of Birth`)) %>%
+        filter(!grepl('Total', `Visible minority`)) %>%
+        filter(grepl('Total', `Aboriginal identity`))
+      temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
+        temp$`Aboriginal identity` <- temp$`Place of Birth`  <-   NULL
+      
+      # make an "Other" column that makes up the rest between the addtion of our two variables and total population for 
+      # that age group.
+      
+      # remove Arab/West Asian from data
+      temp <- temp %>% filter(!`Visible minority` %in% 'Arab/West Asian')
+      
+      # get two datasets: all other vs all vm, and only within vm.
+      temp_all <- temp %>% filter(grepl('All', temp$`Visible minority`))
+      temp_vm <- temp %>% filter(!grepl('All', temp$`Visible minority`))
+      
+      # get percentage 
+      colnames(temp_all)[3] <- 'V2'
+      colnames(temp_vm)[3] <- 'V2'
+      
+      temp_all$per <- round((temp_all$V2/temp_all$Population)*100,2 )
+      temp_vm$per <- round((temp_vm$V2/temp_vm$Population)*100,2 )
+      
+      # get percentage 
+      colnames(temp_all)[3] <- which_fam_type
+      colnames(temp_vm)[3] <- which_fam_type
+      
+      if(fam_chart_table_all_or_vm){
+        prettify(temp_all)
+      } else {
+        prettify(temp_vm)
+      }
+    
+    }
+    
+  })
+  
 
   # 
   
