@@ -161,7 +161,7 @@ ui <- dashboardPage(skin = 'blue',
                             solidHeader = TRUE,
                             width = 12,
                             collapsible = TRUE,
-                            collapsed = FALSE,
+                            collapsed = TRUE,
                             
                             fluidRow(
                               column(4,
@@ -177,10 +177,9 @@ ui <- dashboardPage(skin = 'blue',
                                      ),
                               column(4,
                                      box(
-                                       title = 'Post-highschool',
-                                       status = 'warning',
+                                       title = 'College certificate/diploma',
                                        solidHeader = FALSE,
-                                       background = 'orange',                                  
+                                       background = 'light-blue',                                  
                                        width = 12,
                                        collapsible = FALSE,
                                        collapsed = FALSE,
@@ -189,20 +188,25 @@ ui <- dashboardPage(skin = 'blue',
                               
                               column(4,
                                      box(
-                                       title = "Bachelor's degree",
+                                       title = "Univeristy degree/diploma",
                                        status = 'info',
                                        solidHeader = FALSE,
-                                       background = 'light-blue',
+                                       background = 'aqua',
                                        width = 12,
                                        collapsible = FALSE,
                                        collapsed = FALSE,
-                                       textOutput('ed_text_all'))
+                                       textOutput('ed_text_university'))
                               )
                               
                             ),
                           fluidRow(
-                            column(6,
-                                   DT::dataTableOutput('ed_table'))
+                            column(12,
+                                   h3('Highschool or equivalent', align = 'center'),
+                                   align = 'center',
+                                   checkboxInput('ed_plot_or_table',
+                                                'View as table', 
+                                                value = FALSE),
+                                   uiOutput('ed_plot_table'))
                           )  
                            
                             
@@ -216,13 +220,68 @@ ui <- dashboardPage(skin = 'blue',
                             solidHeader = TRUE,
                             width = 12,
                             collapsible = TRUE,
-                            collapsed = TRUE,
+                            collapsed = FALSE,
+                            fluidRow(
+                              column(12, 
+                                     align = 'center',
+                                     textOutput('emp_header'),
+                                     tags$head(tags$style("#emp_header{color: #424744;
+                                 font-size: 20px;
+                                 font-weight: bold;
+                                 }"
+                                     )
+                                     ))
+                            ),
                             
-                            column(6,
-                                   plotOutput('emp_plot')),
-                            column(6,
-                                   DT::dataTableOutput('emp_table'))
+                            br(),br(), br(),
+                            fluidRow(
+                              column(6,
+                                     align = 'center',
+                                     selectInput('emp_age_group',
+                                                 'Age group',
+                                                 choices = unique(census$`Age group`)[!grepl('Total', unique(census$`Age group`))],
+                                                 selected = "25 to 29 years"),
+                                     checkboxInput('emp_plot_or_table_age',
+                                                   'View as table', 
+                                                   value = FALSE),
+                                     uiOutput('emp_plot_table_age')),
+                      
+                              column(6,
+                                     align = 'center',
+                                     selectInput('emp_gen',
+                                                 'Sex',
+                                                 choices = c('Male', 'Female'),
+                                                 selected = "Female"),
+                                     checkboxInput('emp_plot_or_table_gen',
+                                                   'View as table', 
+                                                   value = FALSE),
+                                     uiOutput('emp_plot_table_gen'))
+                            ),
                             
+                            fluidRow(
+                              column(6,
+                                     box(
+                                       title = 'Aboriginal',
+                                       solidHeader = FALSE,
+                                       background = 'navy',                                  
+                                       width = 12,
+                                       collapsible = FALSE,
+                                       collapsed = FALSE,
+                                       textOutput('emp_ab'))
+                              ),
+                              
+                              column(6,
+                                     box(
+                                       title = "Non-Aboriginal",
+                                       solidHeader = FALSE,
+                                       background = 'teal',
+                                       width = 12,
+                                       collapsible = FALSE,
+                                       collapsed = FALSE,
+                                       textOutput('emp_non'))
+                              )
+                             
+                            )
                           )
                         ),
                         
@@ -1018,14 +1077,397 @@ server <- function(input, output) {
   })
   
   output$ed_text_college <- renderText({
+    # subset data by inputs
+    location <- 'Ontario'
+    years <- c(2001, 2006, 2011, 2016)
+    location <- input$location
+    years <- input$years
+    
+    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                   "Place of Birth","Visible minority", "Aboriginal identity", 
+                   "College, CEGEP or other non-university certificate or diploma" ,'Population')
+    new_census <- census[ , demo_vars]
+    
+    temp <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% filter(grepl("25 to 29 years",`Age group`)) %>%
+      filter(grepl('Total', `Sex`)) %>%
+      filter(grepl('Total', `Place of Birth`)) %>%
+      filter(grepl('Total', `Visible minority`)) %>%
+      filter(grepl('Total', `Aboriginal identity`))
+    temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
+      temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
+      temp$`Visible minority` <- NULL
+    temp$per <- round((temp$`College, CEGEP or other non-university certificate or diploma`/temp$Population)*100, 2)
+    
+    if(length(years) == 1){
+      paste0('in ', years,' , ' , temp$per, '% of ', 'Youth aged 25-29 in ', location ,' had earned a College, CEGEP or other non-university certificate or diploma')
+    } else {
+      first_year_per <- temp$per[temp$year == min(temp$year)]
+      last_year_per <- temp$per[temp$year == max(temp$year)]
+      
+      first_year <- temp$year[temp$year == min(temp$year)]
+      last_year <- temp$year[temp$year == max(temp$year)]
+      
+      if(first_year_per > last_year_per) {
+        increase_decrease  <- 'decreased'
+      } else if(first_year_per < last_year_per) {
+        increase_decrease  <- 'increased'
+      } else {
+        increase_decrease <- 'stayed the same'
+      }
+      
+      paste0('The % of youth aged 25-29, earning a College, CEGEP or other non-university certificate or diploma in ',location , ' has ', increase_decrease,' from ',first_year_per, '% in ', first_year,' to ', last_year_per, '% in ', last_year)
+      
+    }
     
   })
   
-  output$ed_text_all <- renderText({
+  output$ed_text_university <- renderText({
+    # subset data by inputs
+    location <- 'Ontario'
+    years <- c(2001, 2006, 2011, 2016)
+    location <- input$location
+    years <- input$years
+    
+    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                   "Place of Birth","Visible minority", "Aboriginal identity", 
+                   "University certificate, diploma or degree" ,'Population')
+    new_census <- census[ , demo_vars]
+    
+    temp <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% filter(grepl("25 to 29 years",`Age group`)) %>%
+      filter(grepl('Total', `Sex`)) %>%
+      filter(grepl('Total', `Place of Birth`)) %>%
+      filter(grepl('Total', `Visible minority`)) %>%
+      filter(grepl('Total', `Aboriginal identity`))
+    temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
+      temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
+      temp$`Visible minority` <- NULL
+    temp$per <- round((temp$`University certificate, diploma or degree`/temp$Population)*100, 2)
+    
+    if(length(years) == 1){
+      paste0('in ', years,' , ' , temp$per, '% of ', 'Youth aged 25-29 in ', location ,' had earned a University certificate, diploma or degree')
+    } else {
+      first_year_per <- temp$per[temp$year == min(temp$year)]
+      last_year_per <- temp$per[temp$year == max(temp$year)]
+      
+      first_year <- temp$year[temp$year == min(temp$year)]
+      last_year <- temp$year[temp$year == max(temp$year)]
+      
+      if(first_year_per > last_year_per) {
+        increase_decrease  <- 'decreased'
+      } else if(first_year_per < last_year_per) {
+        increase_decrease  <- 'increased'
+      } else {
+        increase_decrease <- 'stayed the same'
+      }
+      
+      paste0('The % of youth aged 25-29, earning a University certificate, diploma or degree in ',location , ' has ', increase_decrease,' from ',first_year_per, '% in ', first_year,' to ', last_year_per, '% in ', last_year)
+      
+    }
+  })
+
+
+  output$ed_plot_table <- renderUI({
+    if(!input$ed_plot_or_table){
+      plotlyOutput('ed_plot')
+      
+    } else {
+      DT::dataTableOutput('ed_table')
+    }
+    
+  })
+  
+  # plot of highschool 20-29, gender
+  output$ed_plot <- renderPlotly({
+    location <- 'Ontario'
+    years <- c(2001, 2006, 2011, 2016)
+    location <- input$location
+    years <- input$years
+    
+    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                   "Place of Birth","Visible minority", "Aboriginal identity", 
+                   "High school or equivalent" ,'Population')
+    new_census <- census[ , demo_vars]
+    
+    temp <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% filter(!grepl("15 to 19 years|Total",`Age group`)) %>%
+      filter(!grepl('Total', `Sex`)) %>%
+      filter(grepl('Total', `Place of Birth`)) %>%
+      filter(grepl('Total', `Visible minority`)) %>%
+      filter(grepl('Total', `Aboriginal identity`))
+   temp$Geography <- temp$geo_code  <-
+      temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
+      temp$`Visible minority` <- NULL
+    temp$per <- (temp$`High school or equivalent`/temp$Population)
+    
+    # bar plot with year by percent, grouped by age and gender
+    # plot data
+    cols <- colorRampPalette(brewer.pal(9, 'RdBu'))(length(unique(temp$Sex)))
+    g <- ggplot(data = temp,
+                aes(x = year,
+                    y = per,
+                    fill = Sex, 
+                    text = paste('Total population 15-19 year old: ', Population,
+                                 '<br>', round((per*100), 2) , '%', as.factor(Sex)))) +
+      geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.6) +
+      scale_fill_manual(name ='',
+                        values = c('green3', 'deepskyblue')) + scale_y_continuous(labels = scales::percent) +
+      # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
+      labs(x = '', y = 'Percent') 
+    g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') + facet_wrap(~`Age group`)
+    
+    plotly::ggplotly(g, tooltip = 'text') %>%
+      layout(width = 850, height = 400)
+    
+  })
+  
+  # table of highschool 20-29, gender
+  output$ed_table <- renderDataTable({
+    location <- 'Ontario'
+    years <- c(2001, 2006, 2011, 2016)
+    location <- input$location
+    years <- input$years
+    
+    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                   "Place of Birth","Visible minority", "Aboriginal identity", 
+                   "High school or equivalent" ,'Population')
+    new_census <- census[ , demo_vars]
+    
+    temp <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% filter(!grepl("15 to 19 years|Total",`Age group`)) %>%
+      filter(!grepl('Total', `Sex`)) %>%
+      filter(grepl('Total', `Place of Birth`)) %>%
+      filter(grepl('Total', `Visible minority`)) %>%
+      filter(grepl('Total', `Aboriginal identity`))
+    temp$Geography <- temp$geo_code  <-
+      temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
+      temp$`Visible minority` <- NULL
+    temp$per <- round((temp$`High school or equivalent`/temp$Population)*100,2)
+    
+    prettify(temp, download_options = TRUE, round_digits = TRUE)
+  })
+  
+  
+  
+  #------------------------------------------------------------------------------------------------------
+  #--------------------------------------------------------------------------------------------------------
+  #employment - em_plot_or_table_age - unemployment rate
+  output$emp_header <- renderText({
+    location <- input$location
+    years <- input$years
+    if(length(years) == 2) {
+      years_final <- paste0(years, collapse = ' & ')
+    } else if(length(years) == 3) {
+      years_2 <- paste0(years[1:2], collapse = ', ')
+      years_final <- paste0(years_2, ' & ', years[3])
+    } else if(length(years) == 4) {
+      years_3 <- paste0(years[1:3], collapse = ', ')
+      years_final <- paste0(years_3, ' & ', years[4])
+    } else {
+      years_final <- years
+    }
+    
+    paste0('Examine unemployment across age groups and gender in ', location, ' for ', years_final)
+  })
+  
+  ##########
+  # age 
+  output$emp_plot_table_age <- renderUI({
+    if(!input$emp_plot_or_table_age){
+      htmlOutput('emp_plot_age')
+
+    } else {
+      DT::dataTableOutput('emp_table_age')
+    }
+
+  })
+
+  
+  output$emp_plot_age <- renderGvis({
+    location <- 'Ontario'
+    years <- c(2001, 2006, 2011, 2016)
+    age_group <- '25 to 29 years'
+    age_group <- input$emp_age_group
+    location <- input$location
+    years <- input$years
+    
+    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                   "Place of Birth","Visible minority", "Aboriginal identity", 
+                   "Unemployment rate %" ,"Unemployed")
+    new_census <- census[ , demo_vars]
+    
+    temp <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% filter(!grepl("Total",`Age group`)) %>%
+      filter(grepl('Total', `Sex`)) %>%
+      filter(grepl('Total', `Place of Birth`)) %>%
+      filter(grepl('Total', `Visible minority`)) %>%
+      filter(grepl('Total', `Aboriginal identity`))
+    temp$Geography <- temp$geo_code  <- temp$Sex <- 
+      temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
+      temp$`Visible minority` <- NULL
+
+    temp <- temp %>% filter(`Age group` %in% age_group)
+    temp$year <- as.factor(temp$year)
+    # double axis chart
+    line <-
+      gvisLineChart(temp, xvar="year", yvar=c('Unemployed', 'Unemployment rate %'),
+                    options=list(title=paste0(age_group, ' years old'),
+                                 titleTextStyle="{color:'black',
+                             fontName:'Ubuntu',
+                             fontSize:18}",
+                                 curveType="function",
+                                 pointSize=15,
+                                 series="[{targetAxisIndex:0,
+                                       color:'#FFA500'},
+                                     {targetAxisIndex:1,
+                                      color:'#000080'}]",
+                                 vAxes="[{title:'Population',
+                             format:'##,###',
+                             titleTextStyle: {color: '#FFA500'},
+                             textStyle:{color: '#FFA500'},
+                             textPosition: 'out'},
+                            {title:'Percent',
+                             format:'#.##',
+                             titleTextStyle: {color: '#000080'},
+                             textStyle:{color: '#000080'},
+                             textPosition: 'out'}]",
+                                 hAxes="[{title:'Year',
+                             textPosition: 'out'}]",
+                                 width=475, height=550
+                    ),
+                    chartid="twoaxislinechart"
+      )
+    line
+    # 
+  })
+  
+  output$emp_table_age <- renderDataTable({
+    location <- 'Ontario'
+    years <- c(2001, 2006, 2011, 2016)
+    age_group <- '25 to 29 years'
+    location <- input$location
+    years <- input$years
+    
+    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                   "Place of Birth","Visible minority", "Aboriginal identity", 
+                   "Unemployment rate %" ,"Unemployed")
+    new_census <- census[ , demo_vars]
+    
+    temp <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% filter(!grepl("Total",`Age group`)) %>%
+      filter(grepl('Total', `Sex`)) %>%
+      filter(grepl('Total', `Place of Birth`)) %>%
+      filter(grepl('Total', `Visible minority`)) %>%
+      filter(grepl('Total', `Aboriginal identity`))
+    temp$Geography <- temp$geo_code  <- temp$Sex <- 
+      temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
+      temp$`Visible minority` <- NULL
+    temp <- temp %>% filter(`Age group` %in% age_group)
+    
+    prettify(temp, download_options = TRUE)
+  })
+  
+  #############
+  # gender
+  ##########
+  output$emp_plot_table_gen <- renderUI({
+    if(!input$emp_plot_or_table_gen){
+      htmlOutput('emp_plot_gen')
+    } else {
+      DT::dataTableOutput('emp_table_gen')
+    }
     
   })
 
-  # 
+  output$emp_plot_gen <- renderGvis({
+    location <- 'Ontario'
+    years <- c(2001, 2006, 2011, 2016)
+    gen_group <- 'Male'
+    gen_group <- input$emp_gen
+    location <- input$location
+    years <- input$years
+    
+    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                   "Place of Birth","Visible minority", "Aboriginal identity", 
+                   "Unemployment rate %" ,"Unemployed")
+    new_census <- census[ , demo_vars]
+    
+    temp <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% filter(grepl("Total",`Age group`)) %>%
+      filter(!grepl('Total', `Sex`)) %>%
+      filter(grepl('Total', `Place of Birth`)) %>%
+      filter(grepl('Total', `Visible minority`)) %>%
+      filter(grepl('Total', `Aboriginal identity`))
+    temp$Geography <- temp$geo_code   <- temp$`Age group` <-
+      temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
+      temp$`Visible minority` <- NULL
+    
+    temp <- temp %>% filter(Sex %in% gen_group)
+    temp$`Unemployment rate %` <- round(temp$`Unemployment rate %`, 2)
+    temp$year <- as.factor(temp$year)
+    # double axis chart
+    line_gen <-
+      gvisLineChart(temp, xvar="year", yvar=c('Unemployed', 'Unemployment rate %'),
+                    options=list(title=paste0(gen_group, "'s"),
+                                 titleTextStyle="{color:'black',
+                                 fontName:'Ubuntu',
+                                 fontSize:18}",
+                                 curveType="function",
+                                 pointSize=15,
+                                 series="[{targetAxisIndex:0,
+                                 color:'#008080'},
+                                 {targetAxisIndex:1,
+                                 color:'#A9A9A9'}]",
+                                 vAxes="[{title:'Population',
+                                 format:'##,###',
+                                 titleTextStyle: {color: '#008080'},
+                                 textStyle:{color: '#008080'},
+                                 textPosition: 'out'},
+                                 {title:'Percent',
+                                 format:'#.##',
+                                 titleTextStyle: {color: '#A9A9A9'},
+                                 textStyle:{color: '#A9A9A9'},
+                                 textPosition: 'out'}]",
+                                 hAxes="[{title:'Year',
+                                 textPosition: 'out'}]",
+                                 width=475, height=550
+                    ),
+                    chartid="twoaxislinechart_gen"
+      )
+    line_gen
+    # 
+  })
+  
+  output$emp_table_gen <- renderDataTable({
+    location <- 'Ontario'
+    years <- c(2001, 2006, 2011, 2016)
+    gen_group <- 'Male'
+    gen_group <- input$emp_gen
+    location <- input$location
+    years <- input$years
+    
+    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                   "Place of Birth","Visible minority", "Aboriginal identity", 
+                   "Unemployment rate %" ,"Unemployed")
+    new_census <- census[ , demo_vars]
+    
+    temp <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% filter(grepl("Total",`Age group`)) %>%
+      filter(!grepl('Total', `Sex`)) %>%
+      filter(grepl('Total', `Place of Birth`)) %>%
+      filter(grepl('Total', `Visible minority`)) %>%
+      filter(grepl('Total', `Aboriginal identity`))
+    temp$Geography <- temp$geo_code   <- temp$`Age group` <-
+      temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
+      temp$`Visible minority` <- NULL
+    
+    temp <- temp %>% filter(Sex %in% gen_group)
+    temp$`Unemployment rate %` <- round(temp$`Unemployment rate %`, 2)
+    
+    prettify(temp, download_options = TRUE, no_scroll = FALSE)
+  })
+  
   
   
 }

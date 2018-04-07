@@ -172,13 +172,13 @@ prettify <- function (the_table, remove_underscores_columns = TRUE, cap_columns 
   if (data_table) {
     if (download_options) {
       if(no_scroll){
-        the_table <- DT::datatable(the_table, options = list(#pageLength = nrows,
+        the_table <- DT::datatable(the_table, fillContainer = F, options = list(#pageLength = nrows,
           scrollY = '300px', paging = FALSE,
           dom = "Bfrtip", buttons = list("copy", 
                                          list(extend = "collection", sDom  = '<"top">lrt<"bottom">ip',buttons = "csv",
                                               text = "Download"))), rownames = FALSE, extensions = "Buttons")
       } else {
-        the_table <- DT::datatable(the_table, options = list(pageLength = nrows,
+        the_table <- DT::datatable(the_table, fillContainer = F,options = list(pageLength = nrows,
                                                              # scrollY = '300px', paging = FALSE,
                                                              dom = "Bfrtip", 
                                                              buttons = list("copy",
@@ -189,12 +189,12 @@ list(extend = "collection",buttons = "csv",   text = "Download", sDom  = '<"top"
 
     else {
       if(no_scroll){
-        the_table <- DT::datatable(the_table, options = list(sDom  = '<"top">lrt<"bottom">ip',#pageLength = nrows,
+        the_table <- DT::datatable(the_table, fillContainer = F,,options = list(sDom  = '<"top">lrt<"bottom">ip',#pageLength = nrows,
           scrollY = '300px', paging = FALSE,
           columnDefs = list(list(className = "dt-right",
                                  targets = 0:(ncol(the_table) - 1)))), rownames = FALSE)
       } else {
-        the_table <- DT::datatable(the_table, options = list(pageLength = nrows,
+        the_table <- DT::datatable(the_table, fillContainer = F,options = list(pageLength = nrows,
                                                              columnDefs = list(list(className = "dt-right",sDom  = '<"top">lrt<"bottom">ip',
                                                                                     targets = 0:(ncol(the_table) - 1)))), rownames = FALSE)
       }
