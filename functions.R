@@ -15,60 +15,14 @@ library(reshape2)
 
 
 
-# Function for map
-ontario_map <- function(x){
-  require(dplyr)
-  require(ggplot2)
-  # This function expects "x" to be a dataframe with a column named "geography"
-  # and another named "value"
-  # Keep only the numbered values
-  right <- x %>%
-    filter(!is.na(as.numeric(geography))) %>%
-    mutate(geography_name = geography) %>%
-    mutate(geography = substr(geography, 3,4))
-  # join to ont fortified
-  shp <- ont_fortified
-  shp <- shp %>%
-    left_join(right,
-              by = 'geography')
-  # Make a plot
-  g <-
-    ggplot(data = shp,
-           aes(x = long,
-               y = lat,
-               group = group,
-               fill = value)) +
-    geom_polygon() +
-    coord_map() +
-    theme_databrew() +
-    scale_fill_continuous(low = 'lightblue', high = 'darkorange', name = '', na.value = 'white') +
-    theme(legend.text = element_text(size = 7),
-          legend.position = 'right') +
-    labs(x = '',
-         y = '')
-  return(g)
-}
-# Define function for generating a leaflet plot
-
-# Create a basic leaflet with nothing else on it
-leaf_basic <- function(shp = ont2){
-  tile = 'OpenStreetMap.Mapnik'
-  palette = 'Purples'
-  l <- leaflet(data = shp) %>%
-    addPolylines(color = NA, opacity = 0.5, weight = 0.2) %>%
-    addProviderTiles(tile,
-                     options = providerTileOptions(minZoom = 4, maxZoom = 10)) 
-  return(l)
-}
 
 leaf <- function(x, 
-                 tile = 'OpenStreetMap.Mapnik', 
+                 tile = 'CartoDB.DarkMatterNoLabels', 
                  palette = 'Purples',
                  show_legend = TRUE,
+                 years,
                  title = NULL){
-  require(dplyr)
-  require(leaflet)
-  require(RColorBrewer)
+ 
   # This function expects "x" to be a dataframe with a column named "geo_code" (a 4 character string)
   # and another named "value"
   # Keep only the numbered values
@@ -85,13 +39,22 @@ leaf <- function(x,
   # Create a color palette
   # pal <- colorQuantile("Blues", NULL, n = 9)
   # bins <- round(c(quantile(shp@data$value, na.rm = TRUE), Inf))
-  bins <- unique(round(c(quantile(shp@data$value, na.rm = TRUE, c(seq(0, 1, 0.15), 1)))))
-  pal <- colorBin(palette, domain = shp@data$value, bins = bins,
+  bins <- unique(round(c(quantile(ceiling(shp@data$per_youth), 
+                                  na.rm = TRUE, c(seq(0, 1, 0.15), 1)))))
+  
+  pal <- colorBin(palette, domain = shp@data$per_youth, bins = bins,
                   na.color = NA)
   
-  # Create a popup
-  popper <- paste0(shp@data$NAME_2, ': ',
-                   round(shp@data$value, 2))
+  if(length(years) > 1){
+    # Create a popup
+    popper <- paste0(shp@data$NAME_2, ': ',
+                     round(shp@data$per_youth, 2),'% Youth (avg over years selected')
+  } else {
+    # Create a popup
+    popper <- paste0(shp@data$NAME_2, ': ',
+                     round(shp@data$per_youth, 2), '% Youth in ', years)
+  }
+  
   
   # Create map
   l <- leaf_basic(shp = shp)
@@ -99,30 +62,45 @@ leaf <- function(x,
   #   addProviderTiles(tile)
   if(show_legend){
     l <- l %>%
-      addLegend(pal = pal, values = ~value, opacity = 0.7, 
+      addLegend(pal = pal, values = ~per_youth, opacity = 0.7, 
                 position = "bottomleft",
-                title = title)
+                title = 'Percent youth (15-29)')
   }
   l <- l %>%
-    addPolygons(fillColor = ~pal(value),
+    addPolygons(fillColor = ~pal(per_youth),
                 fillOpacity = 0.8,
-                color = "#BDBDC3",
+                color = "black",
                 weight = 1,
                 # popup = popper,
                 highlight = highlightOptions(
                   weight = 5,
-                  color = "#666",
+                  color = "white",
                   dashArray = "",
                   fillOpacity = 0.7,
                   bringToFront = TRUE),
                 label = popper,
                 labelOptions = labelOptions(
                   style = list("font-weight" = "normal", 
-                               padding = "3px 8px"),
-                  textsize = "15px",
-                  direction = "auto"))
+                               padding = "5px 5px"),
+                  textsize = "10px",
+                  direction = "auto")) 
+  # %>% 
+  #   setView(lng = -84.3232, lat = 53.25, zoom = 6)
   return(l)
 }
+# Define function for generating a leaflet plot
+
+# Create a basic leaflet with nothing else on it
+leaf_basic <- function(shp = ont2){
+  tile = 'CartoDB.DarkMatterNoLabels'
+  palette = 'Purples'
+  l <- leaflet(data = shp) %>%
+    addPolylines(color = NA, opacity = 0.5, weight = 0.2) %>%
+    addProviderTiles(tile,
+                     options = providerTileOptions(minZoom = 4, maxZoom = 10)) 
+  return(l)
+}
+
 
 # Define function for printing nice html tables
 prettify <- function (the_table, remove_underscores_columns = TRUE, cap_columns = TRUE,
@@ -189,7 +167,7 @@ list(extend = "collection",buttons = "csv",   text = "Download", sDom  = '<"top"
 
     else {
       if(no_scroll){
-        the_table <- DT::datatable(the_table, fillContainer = F,,options = list(sDom  = '<"top">lrt<"bottom">ip',#pageLength = nrows,
+        the_table <- DT::datatable(the_table, fillContainer = F,options = list(sDom  = '<"top">lrt<"bottom">ip',#pageLength = nrows,
           scrollY = '300px', paging = FALSE,
           columnDefs = list(list(className = "dt-right",
                                  targets = 0:(ncol(the_table) - 1)))), rownames = FALSE)

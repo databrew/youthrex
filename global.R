@@ -297,6 +297,22 @@ get_census_data <- function() {
   census$`Population for the low income status variable` <- NULL
   census$`Standard error of average household income $` <- NULL
   
+  # before removing totoal 15 and over, get the population for each census track
+  census_pop <- census[ ,c('Geography', 'geo_code','year', 'Sex', 'Age group', 'Visible minority', 'Place of Birth',
+                           'Total - Population 15 years and over by Place of Residence 5 years ago')]
+  
+  # # get totals
+  # census_pop <- census_pop %>% filter(grepl('Total',`Age group`)) %>%
+  #   filter(grepl('Total',`Sex`)) %>% filter(grepl('Total',`Place of Birth`)) %>%
+  #   filter(grepl('Total',`Visible minority`))
+  # 
+  # # keep only non demo
+  # census_pop <- census_pop[ c('Geography', 'geo_code','year',
+  #                             'Total - Population 15 years and over by Place of Residence 5 years ago')]
+  # colnames(census_pop)[4] <- 'Total population'
+  # 
+  # saveRDS(census_pop, 'data/census_pop.rda')
+  
   # Create a new total youth only for ages 15 to 29
   census <- census %>% filter(`Age group` != 'Total - 15 years and over')
   
@@ -410,4 +426,19 @@ head_vector <- c('Geography', 'geo_code', 'year', 'Age group', 'Sex', 'Place of 
 names(census) <- gsub(' 15 and over', '', names(census))
 names(census) <- gsub(' 15 years and over', '', names(census))
 census_dict$variable <- names(census)
+
+census_pop <- readRDS('data/census_pop.rda')
+
+# recode the only variable that has two commas 
+census_pop$Geography <- ifelse(grepl('Dundas', census_pop$Geography) ,
+                           'Stormont Dundas and Glengarry, UC (3501)', 
+                           census_pop$Geography)
+
+# Clean up geography - only remove geo codes and keep everything else
+census_pop$Geography <- unlist(lapply(strsplit(census_pop$Geography, '(', fixed = TRUE), function(x){x[1]}))
+# now remove everything after comma
+census_pop$Geography <- unlist(lapply(strsplit(census_pop$Geography, ',', fixed = TRUE), function(x){x[1]}))
+# remove trailling and leading spaces 
+census_pop$Geography <- trimws(census_pop$Geography, 'both')
+
 

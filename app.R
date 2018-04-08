@@ -66,7 +66,8 @@ ui <- dashboardPage(skin = 'blue',
                                              multiple = TRUE)),
                           fluidRow(column(12,
                                           textOutput('map_text'),
-                                          leafletOutput('the_map')))
+                                          align = 'center',
+                                          leafletOutput('the_map', width = 650, height = 550)))
                         )
                         
                         ),
@@ -237,6 +238,11 @@ ui <- dashboardPage(skin = 'blue',
                             fluidRow(
                               column(6,
                                      align = 'center',
+                                     tags$head(tags$style("
+        #emp_age_group ~ .selectize-control.single .selectize-input {
+         border: 1px solid #000000; background-color: #D2DAE3;
+
+        }")),
                                      selectInput('emp_age_group',
                                                  'Age group',
                                                  choices = unique(census$`Age group`)[!grepl('Total', unique(census$`Age group`))],
@@ -248,6 +254,12 @@ ui <- dashboardPage(skin = 'blue',
                       
                               column(6,
                                      align = 'center',
+                                     tags$head(tags$style("
+        #emp_gen ~ .selectize-control.single .selectize-input {
+         border: 1px solid #000000; background-color: #D2DAE3;
+
+        }")),
+                                     
                                      selectInput('emp_gen',
                                                  'Sex',
                                                  choices = c('Male', 'Female'),
@@ -257,28 +269,28 @@ ui <- dashboardPage(skin = 'blue',
                                                    value = FALSE),
                                      uiOutput('emp_plot_table_gen'))
                             ),
-                            
+                            br(), br(),
                             fluidRow(
                               column(6,
                                      box(
-                                       title = 'Aboriginal',
+                                       title = 'Aboriginal unemployment rate: ',
                                        solidHeader = FALSE,
                                        background = 'navy',                                  
                                        width = 12,
                                        collapsible = FALSE,
                                        collapsed = FALSE,
-                                       textOutput('emp_ab'))
+                                       textOutput('emp_ab_text'))
                               ),
                               
                               column(6,
                                      box(
-                                       title = "Non-Aboriginal",
+                                       title = "Non-Aboriginal unemployment rate: ",
                                        solidHeader = FALSE,
                                        background = 'teal',
                                        width = 12,
                                        collapsible = FALSE,
                                        collapsed = FALSE,
-                                       textOutput('emp_non'))
+                                       textOutput('emp_non_text'))
                               )
                              
                             )
@@ -327,6 +339,95 @@ ui <- dashboardPage(skin = 'blue',
 
 # Define server 
 server <- function(input, output) {
+  
+  # -----------------------------------------------------------------------------
+  # reactive objects for map popper
+  sex_count <- reactive({
+    
+    # subset data by inputs 
+    location <- 'Ontario'
+    years <- c(2001, 2006, 2011, 2016)
+    location <- input$location
+    years <- input$years
+    
+    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                   "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
+    new_census <- census[ , demo_vars]
+    
+    temp <- new_census %>% filter(!Geography %in% 'Ontario') %>% 
+      filter(year %in% years) 
+    
+    temp <- temp %>% filter(grepl('Total',`Age group`)) %>%
+      filter(grepl('Total',`Sex`)) %>% filter(grepl('Total',`Place of Birth`)) %>%
+      filter(grepl('Total',`Visible minority`)) %>% filter(grepl('Total',`Aboriginal identity`)) 
+    
+    
+  })
+  
+  pob_count <- reactive({
+    
+  })
+  
+  vm_count <- reactive({
+    
+  })
+  
+  ab_count <- reactive({
+    
+  })
+  
+  
+  # -----------------------------------------------------------------------------
+  # Map
+  
+  # map of ontario
+  output$the_map <- renderLeaflet({
+    if (is.null(input$years)) {
+      return(NULL) 
+    } else {
+      
+      # subset data by inputs 
+      location <- 'Ontario'
+      years <- c(2001, 2006, 2011, 2016)
+      location <- input$location
+      years <- input$years
+      
+      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                     "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
+      new_census <- census[ , demo_vars]
+      
+      temp <- new_census %>% filter(!Geography %in% 'Ontario') %>% 
+        filter(year %in% years) 
+      
+      temp <- temp %>% filter(grepl('Total',`Age group`)) %>%
+        filter(grepl('Total',`Sex`)) %>% filter(grepl('Total',`Place of Birth`)) %>%
+        filter(grepl('Total',`Visible minority`)) %>% filter(grepl('Total',`Aboriginal identity`)) 
+      
+      # keep only age group, year, and population
+      temp <- temp[, c('Geography', 'geo_code','year','Population')]
+      
+      temp$year <- as.factor(temp$year)
+      census_pop$year <- as.factor(census_pop$year)
+
+      temp <- inner_join(temp, census_pop)
+      # make percentage youth variable 
+      temp$per_youth <- round((temp$Population/temp$`Total population`)*100, 2)
+      
+      # keep only geo code and per_youth
+      temp <- temp[, c('geo_code', 'per_youth')]
+      
+      if(length(years) > 1){
+        temp <- temp %>%
+          group_by(geo_code) %>%
+          summarise(per_youth = mean(per_youth, na.rm = T))
+      }
+      
+      leaf(temp, years = years)
+     
+    }
+    
+    
+  })
   
   
   # -----------------------------------------------------------------------------
@@ -770,7 +871,7 @@ server <- function(input, output) {
                              textPosition: 'out'}]",
                                    width=450, height=450
                       ),
-                      chartid="twoaxislinechart"
+                      chartid="twoaxislinechart_fam"
         )
       line
     }
@@ -1322,12 +1423,12 @@ server <- function(input, output) {
                                        color:'#FFA500'},
                                      {targetAxisIndex:1,
                                       color:'#000080'}]",
-                                 vAxes="[{title:'Population',
+                                 vAxes="[{title:'Total unemployed',
                              format:'##,###',
                              titleTextStyle: {color: '#FFA500'},
                              textStyle:{color: '#FFA500'},
                              textPosition: 'out'},
-                            {title:'Percent',
+                            {title:'Unemployment rate',
                              format:'#.##',
                              titleTextStyle: {color: '#000080'},
                              textStyle:{color: '#000080'},
@@ -1409,22 +1510,22 @@ server <- function(input, output) {
     # double axis chart
     line_gen <-
       gvisLineChart(temp, xvar="year", yvar=c('Unemployed', 'Unemployment rate %'),
-                    options=list(title=paste0(gen_group, "'s"),
+                    options=list(title=paste0(gen_group),
                                  titleTextStyle="{color:'black',
                                  fontName:'Ubuntu',
                                  fontSize:18}",
                                  curveType="function",
                                  pointSize=15,
                                  series="[{targetAxisIndex:0,
-                                 color:'#008080'},
+                                 color:'#1799B5'},
                                  {targetAxisIndex:1,
                                  color:'#A9A9A9'}]",
-                                 vAxes="[{title:'Population',
+                                 vAxes="[{title:'Total unemployed',
                                  format:'##,###',
-                                 titleTextStyle: {color: '#008080'},
-                                 textStyle:{color: '#008080'},
+                                 titleTextStyle: {color: '#1799B5'},
+                                 textStyle:{color: '#1799B5'},
                                  textPosition: 'out'},
-                                 {title:'Percent',
+                                 {title:'Unemployment rate',
                                  format:'#.##',
                                  titleTextStyle: {color: '#A9A9A9'},
                                  textStyle:{color: '#A9A9A9'},
@@ -1467,6 +1568,102 @@ server <- function(input, output) {
     
     prettify(temp, download_options = TRUE, no_scroll = FALSE)
   })
+  
+  
+  output$emp_ab_text <- renderText({
+    # subset data by inputs
+    location <- 'Ontario'
+    years <- c(2001, 2006, 2011, 2016)
+    location <- input$location
+    years <- input$years
+    
+    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                   "Place of Birth","Visible minority", "Aboriginal identity", 
+                   "Unemployment rate %")
+    new_census <- census[ , demo_vars]
+    
+    temp <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% filter(grepl("Total",`Age group`)) %>%
+      filter(grepl('Total', `Sex`)) %>%
+      filter(grepl('Total', `Place of Birth`)) %>%
+      filter(grepl('Total', `Visible minority`)) %>%
+      filter(!grepl('Total|Non', `Aboriginal identity`))
+    temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
+       temp$`Place of Birth`  <- temp$`Visible minority` <- NULL
+    
+    temp$`Unemployment rate %` <- round(temp$`Unemployment rate %`,2)
+
+    if(length(years) == 1){
+      paste0('Unemployment rate = ', temp$`Unemployment rate %`, '% in ', location, ' for ', years)
+    } else {
+      first_year_rate <- temp$`Unemployment rate %`[temp$year == min(temp$year)]
+      last_year_rate <- temp$`Unemployment rate %`[temp$year == max(temp$year)]
+      
+      first_year <- temp$year[temp$year == min(temp$year)]
+      last_year <- temp$year[temp$year == max(temp$year)]
+      
+      if(first_year_rate > last_year_rate) {
+        increase_decrease  <- 'decreased'
+      } else if(first_year_rate < last_year_rate) {
+        increase_decrease  <- 'increased'
+      } else {
+        increase_decrease <- 'stayed the same'
+      }
+      
+      paste0(increase_decrease,' in ',location, ' from ',first_year_rate, '% in ', first_year, 
+             ' to ', last_year_rate, '% in ', last_year)
+      
+    }
+    
+  })
+  
+  output$emp_non_text <- renderText({
+    location <- 'Ontario'
+    years <- c(2001, 2006, 2011, 2016)
+    location <- input$location
+    years <- input$years
+    
+    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                   "Place of Birth","Visible minority", "Aboriginal identity", 
+                   "Unemployment rate %")
+    new_census <- census[ , demo_vars]
+    
+    temp <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% filter(grepl("Total",`Age group`)) %>%
+      filter(grepl('Total', `Sex`)) %>%
+      filter(grepl('Total', `Place of Birth`)) %>%
+      filter(grepl('Total', `Visible minority`)) %>%
+      filter(grepl('Non', `Aboriginal identity`))
+    temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
+      temp$`Place of Birth`  <- temp$`Visible minority` <- NULL
+    
+    temp$`Unemployment rate %` <- round(temp$`Unemployment rate %`,2)
+    
+    if(length(years) == 1){
+      paste0('Unemployment rate = ', temp$`Unemployment rate %`, '% in ', location, ' for ', years)
+    } else {
+      first_year_rate <- temp$`Unemployment rate %`[temp$year == min(temp$year)]
+      last_year_rate <- temp$`Unemployment rate %`[temp$year == max(temp$year)]
+      
+      first_year <- temp$year[temp$year == min(temp$year)]
+      last_year <- temp$year[temp$year == max(temp$year)]
+      
+      if(first_year_rate > last_year_rate) {
+        increase_decrease  <- 'decreased'
+      } else if(first_year_rate < last_year_rate) {
+        increase_decrease  <- 'increased'
+      } else {
+        increase_decrease <- 'stayed the same'
+      }
+      
+      paste0(increase_decrease,' in ',location, ' from ',first_year_rate, '% in ', first_year, 
+             ' to ', last_year_rate, '% in ', last_year)
+      
+    }
+    
+  })
+  
+  
   
   
   
