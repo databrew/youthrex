@@ -345,9 +345,12 @@ ui <- dashboardPage(skin = 'blue',
                             collapsible = TRUE,
                             collapsed = FALSE,
                             column(6,
-                                   box(
+                                   box(solidHeader = TRUE,
                                      width = 12,
-                                     title = 'Owner occupied vs rented',
+                                     style = "border:20px;",
+                                     title = 'Owner occupied vs rented 
+                                     (Youth 15-29)',
+                                     background = 'red',
                                      tabsetPanel(tabPanel('Plot', 
                                                           selectInput('house_demo_variable',
                                                                       'Examine by:', 
@@ -358,6 +361,7 @@ ui <- dashboardPage(skin = 'blue',
                                                                                   'Aboriginal identity'),
                                                                                   selected = 'All youth',
                                                                                   multiple = FALSE),
+                                                          uiOutput('owner_plot_vm_filter'),
                                                           plotlyOutput('owner_plot')),
                                                  tabPanel('Table',
                                                           DT::dataTableOutput('owner_table')))
@@ -365,11 +369,21 @@ ui <- dashboardPage(skin = 'blue',
                                       )
                             ),
                             column(6,
-                                   box(
-                                     width = 12,
-                                     title = 'Subsidized housing',
+                                   box(solidHeader = TRUE,
+                                       width = 12,
+                                       title = 'Subsidized housing (youth 15-29)',
+                                       background = 'black',
                                      tabsetPanel(tabPanel('Plot', 
-                                                          br(), br(),
+                                                          selectInput('sub_demo_variable',
+                                                                      'Examine by:', 
+                                                                      choices = c('All youth', 
+                                                                                  'Sex', 
+                                                                                  'Place of Birth', 
+                                                                                  'Visible minority',
+                                                                                  'Aboriginal identity'),
+                                                                      selected = 'All youth',
+                                                                      multiple = FALSE),
+                                                          uiOutput('sub_plot_vm_filter'),
                                                           plotlyOutput('sub_plot', 
                                                                        height = '130%', width = '100%')),
                                                  tabPanel('Table',
@@ -1719,6 +1733,21 @@ server <- function(input, output) {
   # ownder occupied vs rented 
   # owner_rented_table_plot, sub_table_plot
   
+  output$owner_plot_vm_filter <- renderUI({
+    
+    if(input$house_demo_variable !='Visible minority' | is.null(input$house_demo_variable)){
+      NULL
+    } else {
+      choice_vm <- unique(census$`Visible minority`)
+      choice_vm <- choice_vm[!grepl('Arab/West|Total', choice_vm)]
+      selectInput('owner_plot_vm_filter',
+                  'Take a closer look',
+                  choices = choice_vm,
+                  selected = 'All visible minorities',
+                  multiple = TRUE)
+    }
+  })
+
   # by gender 
   output$owner_plot <- renderPlotly({
     
@@ -1726,236 +1755,251 @@ server <- function(input, output) {
     # subset data by inputs
     location <- 'Ontario'
     years <- c(2001, 2006, 2011, 2016)
-    house_demo_variable <- 'Sex'
+    house_demo_variable <- 'Visible minority'
     # avg_years <- TRUE
     
     location <- input$location
     years <- input$years
     house_demo_variable <- input$house_demo_variable
-    # avg_years <- input$demo_chart_avg
     
-    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex",
-                   "Place of Birth","Visible minority", "Aboriginal identity",
-                   "Living in owner occupied dwelling", "Living in rented dwelling", "Population")
-    new_census <- census[ , demo_vars]
-    
-    new_census <- new_census %>% filter(Geography %in% location) %>%
-      filter(year %in% years) %>% filter(grepl('Total',`Age group`))
-    # 
-    if(house_demo_variable == 'All youth'){
-      # get data
-      temp <- new_census %>%
-        filter(grepl('Total', `Sex`)) %>%
-        filter(grepl('Total', `Place of Birth`)) %>%
-        filter(grepl('Total', `Visible minority`)) %>%
-        filter(grepl('Total', `Aboriginal identity`))
-      temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
-        temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
+    if(is.null(input$house_demo_variable)){
+      NULL
+    } else {
+      # avg_years <- input$demo_chart_avg
       
-      temp$Other <- temp$Population - (temp$`Living in owner occupied dwelling` + temp$`Living in rented dwelling`)
-      temp$Population <- NULL
-
+      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex",
+                     "Place of Birth","Visible minority", "Aboriginal identity",
+                     "Living in owner occupied dwelling", "Living in rented dwelling", "Population")
+      new_census <- census[ , demo_vars]
       
-      temp_melt <- melt(temp, id.vars = 'year')
-
-      temp_melt$year <- as.factor(temp_melt$year)
-      temp_melt$value <- as.numeric(temp_melt$value)
+      new_census <- new_census %>% filter(Geography %in% location) %>%
+        filter(year %in% years) %>% filter(grepl('Total',`Age group`))
+      # 
+      if(house_demo_variable == 'All youth'){
+        # get data
+        temp <- new_census %>%
+          filter(grepl('Total', `Sex`)) %>%
+          filter(grepl('Total', `Place of Birth`)) %>%
+          filter(grepl('Total', `Visible minority`)) %>%
+          filter(grepl('Total', `Aboriginal identity`))
+        temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
+          temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
+        
+        temp$Other <- temp$Population - (temp$`Living in owner occupied dwelling` + temp$`Living in rented dwelling`)
+        temp$Population <- NULL
+        
+        
+        temp_melt <- melt(temp, id.vars = 'year')
+        
+        temp_melt$year <- as.factor(temp_melt$year)
+        temp_melt$value <- as.numeric(temp_melt$value)
+        
+        # group by and get population and percent for each year
+        temp_dat <- temp_melt %>%
+          group_by(year) %>%
+          mutate(tot_pop = sum(value))  %>%
+          group_by(year, variable) %>%
+          mutate(pop_per = round((value/tot_pop)*100,2))
+        
+        # plot data
+        cols <- colorRampPalette(brewer.pal(9, 'Reds'))(length(unique(temp_dat$variable)))
+        g <- ggplot(data = temp_dat,
+                    aes(x = year,
+                        y = pop_per,
+                        fill = variable,
+                        text = paste('Total population 15-29 year old: ', tot_pop,
+                                     '<br>', pop_per , '%', as.factor(variable)))) +
+          scale_fill_manual(name = '',
+                            values = cols) +
+          geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) + 
+          theme_bw(base_size = 13, base_family = 'Ubuntu') + labs(x = '', y = '')
+        
+        
+        final_plot <-  plotly::ggplotly(g, tooltip = 'text') %>%
+          layout( 
+            legend = list(
+              orientation = "l",
+              x = 0,
+              y = -0.5))
+      }
       
-      # group by and get population and percent for each year
-      temp_dat <- temp_melt %>%
-        group_by(year) %>%
-        mutate(tot_pop = sum(value))  %>%
-        group_by(year, variable) %>%
-        mutate(pop_per = round((value/tot_pop)*100,2))
+      if(house_demo_variable == 'Sex') {
+        # get data
+        temp <- new_census %>%
+          filter(!grepl('Total', `Sex`)) %>%
+          filter(grepl('Total', `Place of Birth`)) %>%
+          filter(grepl('Total', `Visible minority`)) %>%
+          filter(grepl('Total', `Aboriginal identity`))
+        temp$`Age group` <- temp$Geography <- temp$geo_code <-
+          temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
+        temp$Other <- temp$Population - (temp$`Living in owner occupied dwelling` + temp$`Living in rented dwelling`)
+        temp$Population <- NULL
+        
+        temp_melt <- melt(temp, id.vars = c('year', house_demo_variable))
+        
+        
+        temp_melt$year <- as.factor(temp_melt$year)
+        temp_melt$value <- as.numeric(temp_melt$value)
+        
+        
+        temp_demo_lab <- colnames(temp_melt)[2]
+        colnames(temp_melt)[2] <- 'V2'
+        # group by and get population and percent for each year
+        temp_dat <- temp_melt %>%
+          group_by(year, V2) %>%
+          mutate(tot_pop = sum(value))  %>%
+          group_by(year, V2, variable) %>%
+          mutate(pop_per = round((value/tot_pop)*100,2))
+        
+        
+        # plot data
+        cols <- colorRampPalette(brewer.pal(9, 'Reds'))(length(unique(temp_dat$variable)))
+        g <- ggplot(data = temp_dat,
+                    aes(x = year,
+                        y = pop_per,
+                        fill = variable,
+                        text = paste('Total population 15-29 year old: ', tot_pop,
+                                     '<br>', pop_per , '%', as.factor(variable)))) +
+          scale_fill_manual(name = '',
+                            values = cols) +
+          geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) + 
+          theme_bw(base_size = 13, base_family = 'Ubuntu') + labs(x = '', y = '')
+        
+        g <- g  + facet_wrap(~V2)
+        
+        
+        final_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
+          layout( 
+            legend = list(
+              orientation = "l",
+              x = 0,
+              y = -0.6))
+      }
       
-      # plot data
-      cols <- colorRampPalette(brewer.pal(9, 'Reds'))(length(unique(temp_dat$variable)))
-      g <- ggplot(data = temp_dat,
-                  aes(x = year,
-                      y = pop_per,
-                      fill = variable,
-                      text = paste('Total population 15-29 year old: ', tot_pop,
-                                   '<br>', pop_per , '%', as.factor(variable)))) +
-        scale_fill_manual(name = '',
-                          values = cols) +
-        geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) + 
-        theme_bw(base_size = 13, base_family = 'Ubuntu') + labs(x = '', y = '')
+      if(house_demo_variable == 'Place of Birth') {
+        
+        # get data
+        temp <- new_census %>%
+          filter(!grepl('Total', `Place of Birth`)) %>%
+          filter(grepl('Total', `Sex`)) %>%
+          filter(grepl('Total', `Visible minority`)) %>%
+          filter(grepl('Total', `Aboriginal identity`))
+        temp$`Age group` <- temp$Geography <- temp$geo_code <-
+          temp$`Aboriginal identity` <- temp$`Sex` <- temp$`Visible minority` <-   NULL
+        
+        temp$Other <- temp$Population - (temp$`Living in owner occupied dwelling` + temp$`Living in rented dwelling`)
+        temp$Population <- NULL
+        
+        temp_melt <- melt(temp, id.vars = c('year', house_demo_variable))
+        
+        
+        temp_melt$year <- as.factor(temp_melt$year)
+        temp_melt$value <- as.numeric(temp_melt$value)
+        
+        
+        temp_demo_lab <- colnames(temp_melt)[2]
+        colnames(temp_melt)[2] <- 'V2'
+        # group by and get population and percent for each year
+        temp_dat <- temp_melt %>%
+          group_by(year, V2) %>%
+          mutate(tot_pop = sum(value))  %>%
+          group_by(year, V2, variable) %>%
+          mutate(pop_per = round((value/tot_pop)*100,2))
+        
+        
+        # plot data
+        cols <- colorRampPalette(brewer.pal(9, 'Reds'))(length(unique(temp_dat$variable)))
+        g <- ggplot(data = temp_dat,
+                    aes(x = year,
+                        y = pop_per,
+                        fill = variable,
+                        text = paste('Total population 15-29 year old: ', tot_pop,
+                                     '<br>', pop_per , '%', as.factor(variable)))) +
+          scale_fill_manual(name = '',
+                            values = cols) +
+          geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) + 
+          theme_bw(base_size = 13, base_family = 'Ubuntu') + labs(x = '', y = '')
+        
+        g <- g  + facet_wrap(~V2)
+        
+        
+        final_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
+          layout( 
+            legend = list(
+              orientation = "l",
+              x = 0,
+              y = -0.6))
+        
+      }
       
+      if(house_demo_variable == 'Visible minority') {
+        
+        if(is.null(input$owner_plot_vm_filter)) {
+          return(NULL)
+        } else {
+          owner_plot_vm_filter <- input$owner_plot_vm_filter
+          # get data
+          temp <- new_census %>%
+            filter(!grepl('Total', `Visible minority`)) %>%
+            filter(grepl('Total', `Place of Birth`)) %>%
+            filter(grepl('Total', `Sex`)) %>%
+            filter(grepl('Total', `Aboriginal identity`))
+          
+          temp$`Age group` <- temp$Geography <- temp$geo_code <-
+            temp$`Place of Birth` <- temp$Sex <- temp$`Aboriginal identity` <-   NULL
+          
+          # remove Arab/West Asian
+          temp <- temp[temp$`Visible minority` != 'Arab/West Asian',]
+          temp$Other <- temp$Population - (temp$`Living in owner occupied dwelling` + temp$`Living in rented dwelling`)
+          temp$Population <- NULL
+          
+          temp_melt <- melt(temp, id.vars = c('year', house_demo_variable))
+          
+          
+          temp_melt$year <- as.factor(temp_melt$year)
+          temp_melt$value <- as.numeric(temp_melt$value)
+          
+          
+          temp_demo_lab <- colnames(temp_melt)[2]
+          colnames(temp_melt)[2] <- 'V2'
+          # group by and get population and percent for each year
+          temp_dat <- temp_melt %>%
+            group_by(year, V2) %>%
+            mutate(tot_pop = sum(value))  %>%
+            group_by(year, V2, variable) %>%
+            mutate(pop_per = round((value/tot_pop)*100,2))
+          
+          temp_dat <- temp_dat %>% filter(V2 %in% owner_plot_vm_filter)
+          # plot data
+          cols <- colorRampPalette(brewer.pal(9, 'Reds'))(length(unique(temp_dat$variable)))
+          g <- ggplot(data = temp_dat,
+                      aes(x = year,
+                          y = pop_per,
+                          fill = variable,
+                          text = paste('Total population 15-29 year old: ', tot_pop,
+                                       '<br>', pop_per , '%', as.factor(variable)))) +
+            scale_fill_manual(name = '',
+                              values = cols) +
+            geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) +
+            theme_bw(base_size = 13, base_family = 'Ubuntu') + labs(x = '', y = '')
+          
+          if(length(owner_plot_vm_filter) > 1){
+            g <- g  + facet_wrap(~V2) + 
+              theme_bw(base_size = 9, base_family = 'Ubuntu') + labs(x = '', y = '')
+            
+          }
+          final_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
+            layout( 
+              legend = list(
+                orientation = "l",
+                x = 0,
+                y = -0.6))
+        }
+        
+        
       
-     final_plot <-  plotly::ggplotly(g, tooltip = 'text') %>%
-        layout( 
-          legend = list(
-            orientation = "l",
-            x = 0,
-            y = -0.5))
     }
     
-    if(house_demo_variable == 'Sex') {
-      # get data
-      temp <- new_census %>%
-        filter(!grepl('Total', `Sex`)) %>%
-        filter(grepl('Total', `Place of Birth`)) %>%
-        filter(grepl('Total', `Visible minority`)) %>%
-        filter(grepl('Total', `Aboriginal identity`))
-      temp$`Age group` <- temp$Geography <- temp$geo_code <-
-        temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
-      temp$Other <- temp$Population - (temp$`Living in owner occupied dwelling` + temp$`Living in rented dwelling`)
-      temp$Population <- NULL
-      
-      temp_melt <- melt(temp, id.vars = c('year', house_demo_variable))
-      
-      
-      temp_melt$year <- as.factor(temp_melt$year)
-      temp_melt$value <- as.numeric(temp_melt$value)
-      
-      
-      temp_demo_lab <- colnames(temp_melt)[2]
-      colnames(temp_melt)[2] <- 'V2'
-      # group by and get population and percent for each year
-      temp_dat <- temp_melt %>%
-        group_by(year, V2) %>%
-        mutate(tot_pop = sum(value))  %>%
-        group_by(year, V2, variable) %>%
-        mutate(pop_per = round((value/tot_pop)*100,2))
-    
-      
-      # plot data
-      cols <- colorRampPalette(brewer.pal(9, 'Reds'))(length(unique(temp_dat$variable)))
-      g <- ggplot(data = temp_dat,
-                  aes(x = year,
-                      y = pop_per,
-                      fill = variable,
-                      text = paste('Total population 15-29 year old: ', tot_pop,
-                                   '<br>', pop_per , '%', as.factor(variable)))) +
-        scale_fill_manual(name = '',
-                          values = cols) +
-        geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) + 
-        theme_bw(base_size = 13, base_family = 'Ubuntu') + labs(x = '', y = '')
-      
-      g <- g  + facet_wrap(~V2)
-      
-      
-      final_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
-        layout( 
-          legend = list(
-            orientation = "l",
-            x = 0,
-            y = -0.6))
-    }
-    
-    if(house_demo_variable == 'Place of Birth') {
-      
-      # get data
-      temp <- new_census %>%
-        filter(!grepl('Total', `Place of Birth`)) %>%
-        filter(grepl('Total', `Sex`)) %>%
-        filter(grepl('Total', `Visible minority`)) %>%
-        filter(grepl('Total', `Aboriginal identity`))
-      temp$`Age group` <- temp$Geography <- temp$geo_code <-
-        temp$`Aboriginal identity` <- temp$`Sex` <- temp$`Visible minority` <-   NULL
-      
-      temp$Other <- temp$Population - (temp$`Living in owner occupied dwelling` + temp$`Living in rented dwelling`)
-      temp$Population <- NULL
-      
-      temp_melt <- melt(temp, id.vars = c('year', house_demo_variable))
-      
-      
-      temp_melt$year <- as.factor(temp_melt$year)
-      temp_melt$value <- as.numeric(temp_melt$value)
-      
-      
-      temp_demo_lab <- colnames(temp_melt)[2]
-      colnames(temp_melt)[2] <- 'V2'
-      # group by and get population and percent for each year
-      temp_dat <- temp_melt %>%
-        group_by(year, V2) %>%
-        mutate(tot_pop = sum(value))  %>%
-        group_by(year, V2, variable) %>%
-        mutate(pop_per = round((value/tot_pop)*100,2))
-      
-      
-      # plot data
-      cols <- colorRampPalette(brewer.pal(9, 'Reds'))(length(unique(temp_dat$variable)))
-      g <- ggplot(data = temp_dat,
-                  aes(x = year,
-                      y = pop_per,
-                      fill = variable,
-                      text = paste('Total population 15-29 year old: ', tot_pop,
-                                   '<br>', pop_per , '%', as.factor(variable)))) +
-        scale_fill_manual(name = '',
-                          values = cols) +
-        geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) + 
-        theme_bw(base_size = 13, base_family = 'Ubuntu') + labs(x = '', y = '')
-      
-      g <- g  + facet_wrap(~V2)
-      
-      
-      final_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
-        layout( 
-          legend = list(
-            orientation = "l",
-            x = 0,
-            y = -0.6))
-      
-    }
-    
-    if(house_demo_variable == 'Visible minority') {
-      # get data
-      temp <- new_census %>%
-        filter(!grepl('Total', `Visible minority`)) %>%
-        filter(grepl('Total', `Place of Birth`)) %>%
-        filter(grepl('Total', `Sex`)) %>%
-        filter(grepl('Total', `Aboriginal identity`))
-      
-      temp$`Age group` <- temp$Geography <- temp$geo_code <-
-        temp$`Place of Birth` <- temp$Sex <- temp$`Aboriginal identity` <-   NULL
-      
-      # remove Arab/West Asian
-      temp <- temp[temp$`Visible minority` != 'Arab/West Asian',]
-      temp <- temp[temp$`Visible minority` != 'All visible minorities',]
-      temp$Other <- temp$Population - (temp$`Living in owner occupied dwelling` + temp$`Living in rented dwelling`)
-      temp$Population <- NULL
-      
-      temp_melt <- melt(temp, id.vars = c('year', house_demo_variable))
-      
-      
-      temp_melt$year <- as.factor(temp_melt$year)
-      temp_melt$value <- as.numeric(temp_melt$value)
-      
-      
-      temp_demo_lab <- colnames(temp_melt)[2]
-      colnames(temp_melt)[2] <- 'V2'
-      # group by and get population and percent for each year
-      temp_dat <- temp_melt %>%
-        group_by(year, V2) %>%
-        mutate(tot_pop = sum(value))  %>%
-        group_by(year, V2, variable) %>%
-        mutate(pop_per = round((value/tot_pop)*100,2))
-      
-      
-      # plot data
-      cols <- colorRampPalette(brewer.pal(9, 'Reds'))(length(unique(temp_dat$variable)))
-      g <- ggplot(data = temp_dat,
-                  aes(x = year,
-                      y = pop_per,
-                      fill = variable,
-                      text = paste('Total population 15-29 year old: ', tot_pop,
-                                   '<br>', pop_per , '%', as.factor(variable)))) +
-        scale_fill_manual(name = '',
-                          values = cols) +
-        geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) + 
-        theme_bw(base_size = 13, base_family = 'Ubuntu') + labs(x = '', y = '')
-      
-      g <- g  + facet_wrap(~V2)
-      
-      
-      final_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
-        layout( 
-          legend = list(
-            orientation = "l",
-            x = 0,
-            y = -0.6))
-      
     }
     
     if(house_demo_variable == 'Aboriginal identity') {
@@ -2018,42 +2062,344 @@ server <- function(input, output) {
   })
   
 #
-#   output$owner_table <- renderDataTable({
-#
-#     # "Living in owner occupied dwelling", "Living in rented dwelling"
-#     location <- 'Ontario'
-#     years <- c(2001, 2006, 2011, 2016)
-#     location <- input$location
-#     years <- input$years
-#
-#     demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex",
-#                    "Place of Birth","Visible minority", "Aboriginal identity",
-#                    "Living in owner occupied dwelling", "Living in rented dwelling", "Population")
-#     new_census <- census[ , demo_vars]
-#
-#     temp <- new_census %>% filter(Geography %in% location) %>%
-#       filter(year %in% years) %>% filter(grepl("Total",`Age group`)) %>%
-#       filter(grepl('Total', `Sex`)) %>%
-#       filter(grepl('Total', `Place of Birth`)) %>%
-#       filter(grepl('Total', `Visible minority`)) %>%
-#       filter(grepl('Total', `Aboriginal identity`))
-#     temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
-#       temp$`Place of Birth`  <- temp$`Visible minority` <- temp$`Aboriginal identity` <-  NULL
-#
-#     temp$`Percent owner occupied` <- (temp$`Living in owner occupied dwelling`/temp$Population)
-#     temp$`Percent rented` <- (temp$`Living in rented dwelling`/temp$Population)
-#
-#     temp$Population <- temp$`Living in owner occupied dwelling` <- temp$`Living in rented dwelling` <- NULL
-#
-#     temp_melt <- melt(temp, id.vars = 'year')
-#
+  output$owner_table <- renderDataTable({
+
+    
+    # subset data by inputs
+    location <- 'Ontario'
+    years <- c(2001, 2006, 2011, 2016)
+    house_demo_variable <- 'Sex'
+    # avg_years <- TRUE
+    
+    location <- input$location
+    years <- input$years
+    house_demo_variable <- input$house_demo_variable
+    # avg_years <- input$demo_chart_avg
+    
+    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex",
+                   "Place of Birth","Visible minority", "Aboriginal identity",
+                   "Living in owner occupied dwelling", "Living in rented dwelling", "Population")
+    new_census <- census[ , demo_vars]
+    
+    new_census <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% filter(grepl('Total',`Age group`))
+    # 
+    if(house_demo_variable == 'All youth'){
+      # get data
+      temp <- new_census %>%
+        filter(grepl('Total', `Sex`)) %>%
+        filter(grepl('Total', `Place of Birth`)) %>%
+        filter(grepl('Total', `Visible minority`)) %>%
+        filter(grepl('Total', `Aboriginal identity`))
+      temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
+        temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
+      
+      temp$Other <- temp$Population - (temp$`Living in owner occupied dwelling` + temp$`Living in rented dwelling`)
+      temp$Population <- NULL
+      
+      
+      temp_melt <- melt(temp, id.vars = 'year')
+      
+      temp_melt$year <- as.factor(temp_melt$year)
+      temp_melt$value <- as.numeric(temp_melt$value)
+      
+      # group by and get population and percent for each year
+      temp_dat <- temp_melt %>%
+        group_by(year) %>%
+        mutate(tot_pop = sum(value))  %>%
+        group_by(year, variable) %>%
+        mutate(pop_per = round((value/tot_pop)*100,2))
+ 
+    }
+    
+    if(house_demo_variable == 'Sex') {
+      # get data
+      temp <- new_census %>%
+        filter(!grepl('Total', `Sex`)) %>%
+        filter(grepl('Total', `Place of Birth`)) %>%
+        filter(grepl('Total', `Visible minority`)) %>%
+        filter(grepl('Total', `Aboriginal identity`))
+      temp$`Age group` <- temp$Geography <- temp$geo_code <-
+        temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
+      temp$Other <- temp$Population - (temp$`Living in owner occupied dwelling` + temp$`Living in rented dwelling`)
+      temp$Population <- NULL
+      
+      temp_melt <- melt(temp, id.vars = c('year', house_demo_variable))
+      
+      
+      temp_melt$year <- as.factor(temp_melt$year)
+      temp_melt$value <- as.numeric(temp_melt$value)
+      
+      
+      temp_demo_lab <- colnames(temp_melt)[2]
+      colnames(temp_melt)[2] <- 'V2'
+      # group by and get population and percent for each year
+      temp_dat <- temp_melt %>%
+        group_by(year, V2) %>%
+        mutate(tot_pop = sum(value))  %>%
+        group_by(year, V2, variable) %>%
+        mutate(pop_per = round((value/tot_pop)*100,2))
+      
+    
+    }
+    
+    if(house_demo_variable == 'Place of Birth') {
+      
+      # get data
+      temp <- new_census %>%
+        filter(!grepl('Total', `Place of Birth`)) %>%
+        filter(grepl('Total', `Sex`)) %>%
+        filter(grepl('Total', `Visible minority`)) %>%
+        filter(grepl('Total', `Aboriginal identity`))
+      temp$`Age group` <- temp$Geography <- temp$geo_code <-
+        temp$`Aboriginal identity` <- temp$`Sex` <- temp$`Visible minority` <-   NULL
+      
+      temp$Other <- temp$Population - (temp$`Living in owner occupied dwelling` + temp$`Living in rented dwelling`)
+      temp$Population <- NULL
+      
+      temp_melt <- melt(temp, id.vars = c('year', house_demo_variable))
+      
+      
+      temp_melt$year <- as.factor(temp_melt$year)
+      temp_melt$value <- as.numeric(temp_melt$value)
+      
+      
+      temp_demo_lab <- colnames(temp_melt)[2]
+      colnames(temp_melt)[2] <- 'V2'
+      # group by and get population and percent for each year
+      temp_dat <- temp_melt %>%
+        group_by(year, V2) %>%
+        mutate(tot_pop = sum(value))  %>%
+        group_by(year, V2, variable) %>%
+        mutate(pop_per = round((value/tot_pop)*100,2))
+      
+      
+    }
+    
+    if(house_demo_variable == 'Visible minority') {
+      # get data
+      temp <- new_census %>%
+        filter(!grepl('Total', `Visible minority`)) %>%
+        filter(grepl('Total', `Place of Birth`)) %>%
+        filter(grepl('Total', `Sex`)) %>%
+        filter(grepl('Total', `Aboriginal identity`))
+      
+      temp$`Age group` <- temp$Geography <- temp$geo_code <-
+        temp$`Place of Birth` <- temp$Sex <- temp$`Aboriginal identity` <-   NULL
+      
+      # remove Arab/West Asian
+      temp <- temp[temp$`Visible minority` != 'Arab/West Asian',]
+      temp <- temp[temp$`Visible minority` != 'All visible minorities',]
+      temp$Other <- temp$Population - (temp$`Living in owner occupied dwelling` + temp$`Living in rented dwelling`)
+      temp$Population <- NULL
+      
+      temp_melt <- melt(temp, id.vars = c('year', house_demo_variable))
+      
+      
+      temp_melt$year <- as.factor(temp_melt$year)
+      temp_melt$value <- as.numeric(temp_melt$value)
+      
+      
+      temp_demo_lab <- colnames(temp_melt)[2]
+      colnames(temp_melt)[2] <- 'V2'
+      # group by and get population and percent for each year
+      temp_dat <- temp_melt %>%
+        group_by(year, V2) %>%
+        mutate(tot_pop = sum(value))  %>%
+        group_by(year, V2, variable) %>%
+        mutate(pop_per = round((value/tot_pop)*100,2))
+    
+      
+    }
+    
+    if(house_demo_variable == 'Aboriginal identity') {
+      # get data
+      temp <- new_census %>%
+        filter(!grepl('Total', `Aboriginal identity`)) %>%
+        filter(grepl('Total', `Place of Birth`)) %>%
+        filter(grepl('Total', `Sex`)) %>%
+        filter(grepl('Total', `Visible minority`))
+      
+      temp$`Age group` <- temp$Geography <- temp$geo_code <-
+        temp$`Place of Birth` <- temp$Sex <- temp$`Visible minority` <-   NULL
+      
+      temp$Other <- temp$Population - (temp$`Living in owner occupied dwelling` + temp$`Living in rented dwelling`)
+      temp$Population <- NULL
+      
+      temp_melt <- melt(temp, id.vars = c('year', house_demo_variable))
+      
+      
+      temp_melt$year <- as.factor(temp_melt$year)
+      temp_melt$value <- as.numeric(temp_melt$value)
+      
+      
+      temp_demo_lab <- colnames(temp_melt)[2]
+      colnames(temp_melt)[2] <- 'V2'
+      # group by and get population and percent for each year
+      temp_dat <- temp_melt %>%
+        group_by(year, V2) %>%
+        mutate(tot_pop = sum(value))  %>%
+        group_by(year, V2, variable) %>%
+        mutate(pop_per = round((value/tot_pop)*100,2))
+      
+      
+    }
+    
+    prettify(temp_dat, cap_columns = TRUE, comma_numbers = TRUE, nrows = 5, download_options = TRUE)
+
+  })
+#   
 # 
-#     
-#   })
-#   
-#   
+#####
+# subsidized housing
   
+  # ownder occupied vs rented 
+  # owner_rented_table_plot, sub_table_plot
   
+  output$sub_plot_vm_filter <- renderUI({
+    
+    if(input$sub_demo_variable !='Visible minority' | is.null(input$sub_demo_variable)){
+      NULL
+    } else {
+      choice_vm <- unique(census$`Visible minority`)
+      choice_vm <- choice_vm[!grepl('Arab/West|Total', choice_vm)]
+      selectInput('owner_plot_vm_filter',
+                  'Take a closer look',
+                  choices = choice_vm,
+                  selected = 'All visible minorities',
+                  multiple = TRUE)
+    }
+  })
+  
+  # by gender 
+  output$sub_plot <- renderPlotly({
+    
+    
+    # subset data by inputs
+    location <- 'Ontario'
+    years <- c(2001, 2006, 2011, 2016)
+    sub_demo_variable <- 'Visible minority'
+    # avg_years <- TRUE
+    
+    location <- input$location
+    years <- input$years
+    sub_demo_variable <- input$sub_demo_variable
+    
+    if(is.null(input$sub_demo_variable)){
+      NULL
+    } else {
+      # avg_years <- input$demo_chart_avg
+      
+      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex",
+                     "Place of Birth","Visible minority", "Aboriginal identity",
+                     "Subsidized housing", "Population")
+      new_census <- census[ , demo_vars]
+      
+      new_census <- new_census %>% filter(Geography %in% location) %>%
+        filter(year %in% years) %>% filter(grepl('Total',`Age group`))
+      # 
+      if(sub_demo_variable == 'All youth'){
+        # get data
+        temp <- new_census %>%
+          filter(grepl('Total', `Sex`)) %>%
+          filter(grepl('Total', `Place of Birth`)) %>%
+          filter(grepl('Total', `Visible minority`)) %>%
+          filter(grepl('Total', `Aboriginal identity`))
+        temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
+          temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
+       
+      
+      }
+      
+      if(sub_demo_variable == 'Sex') {
+        # get data
+        temp <- new_census %>%
+          filter(!grepl('Total', `Sex`)) %>%
+          filter(grepl('Total', `Place of Birth`)) %>%
+          filter(grepl('Total', `Visible minority`)) %>%
+          filter(grepl('Total', `Aboriginal identity`))
+        temp$`Age group` <- temp$Geography <- temp$geo_code <-
+          temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
+        temp$Other <- temp$Population - (temp$`Living in owner occupied dwelling` + temp$`Living in rented dwelling`)
+        temp$Population <- NULL
+        
+      
+      }
+      
+      if(sub_demo_variable == 'Place of Birth') {
+        
+        # get data
+        temp <- new_census %>%
+          filter(!grepl('Total', `Place of Birth`)) %>%
+          filter(grepl('Total', `Sex`)) %>%
+          filter(grepl('Total', `Visible minority`)) %>%
+          filter(grepl('Total', `Aboriginal identity`))
+        temp$`Age group` <- temp$Geography <- temp$geo_code <-
+          temp$`Aboriginal identity` <- temp$`Sex` <- temp$`Visible minority` <-   NULL
+        
+       
+        
+       
+        
+      }
+      
+      if(sub_demo_variable == 'Visible minority') {
+        
+        if(is.null(input$owner_plot_vm_filter)) {
+          return(NULL)
+        } else {
+          owner_plot_vm_filter <- input$owner_plot_vm_filter
+          # get data
+          temp <- new_census %>%
+            filter(!grepl('Total', `Visible minority`)) %>%
+            filter(grepl('Total', `Place of Birth`)) %>%
+            filter(grepl('Total', `Sex`)) %>%
+            filter(grepl('Total', `Aboriginal identity`))
+          
+          temp$`Age group` <- temp$Geography <- temp$geo_code <-
+            temp$`Place of Birth` <- temp$Sex <- temp$`Aboriginal identity` <-   NULL
+          
+          # remove Arab/West Asian
+          temp <- temp[temp$`Visible minority` != 'Arab/West Asian',]
+          
+       
+        }
+        
+        
+        
+      }
+      
+    }
+    
+    if(sub_demo_variable == 'Aboriginal identity') {
+      # get data
+      temp <- new_census %>%
+        filter(!grepl('Total', `Aboriginal identity`)) %>%
+        filter(grepl('Total', `Place of Birth`)) %>%
+        filter(grepl('Total', `Sex`)) %>%
+        filter(grepl('Total', `Visible minority`))
+      
+      temp$`Age group` <- temp$Geography <- temp$geo_code <-
+        temp$`Place of Birth` <- temp$Sex <- temp$`Visible minority` <-   NULL
+      
+      
+      
+      
+    }
+    
+    final_plot
+    
+  })
+  
+  # #
+  # output$sub_table <- renderDataTable({
+  #   
+  #   
+  #   
+  #   prettify(temp_dat, cap_columns = TRUE, comma_numbers = TRUE, nrows = 5, download_options = TRUE)
+  #   
+  # })
+  # 
   
   
 }
