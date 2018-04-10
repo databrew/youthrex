@@ -13,12 +13,9 @@ library(memisc)
 library(stringdist)
 library(reshape2)
 
-
-
-
 leaf <- function(x, 
-                 tile = 'CartoDB.DarkMatterNoLabels', 
-                 palette = 'Purples',
+                 tile = 'CartoDB.DarkMatter', 
+                 palette = 'Oranges',
                  show_legend = TRUE,
                  years,
                  title = NULL){
@@ -39,8 +36,12 @@ leaf <- function(x,
   # Create a color palette
   # pal <- colorQuantile("Blues", NULL, n = 9)
   # bins <- round(c(quantile(shp@data$value, na.rm = TRUE), Inf))
-  bins <- unique(round(c(quantile(ceiling(shp@data$per_youth), 
-                                  na.rm = TRUE, c(seq(0, 1, 0.15), 1)))))
+  # insure that the full range of numbers is captured by aplying floor and then adding one to the max.
+  bins <- unique(floor(c(quantile(shp@data$per_youth, 
+                                  na.rm = TRUE, c(seq(0, 1, 0.15), 1)))), 2)
+  
+  bins[length(bins)] <- bins[length(bins)] +1
+  
   
   pal <- colorBin(palette, domain = shp@data$per_youth, bins = bins,
                   na.color = NA)
@@ -57,12 +58,14 @@ leaf <- function(x,
   
   
   # Create map
-  l <- leaf_basic(shp = shp)
+  l <- leaf_basic(shp = shp, tile, palette = palette)
   # l <- leaflet(data = shp) %>%
   #   addProviderTiles(tile)
   if(show_legend){
     l <- l %>%
-      addLegend(pal = pal, values = ~per_youth, opacity = 0.7, 
+      addLegend(pal = pal, 
+                values =~per_youth, 
+                opacity = 0.7, 
                 position = "bottomleft",
                 title = 'Percent youth (15-29)')
   }
@@ -91,9 +94,9 @@ leaf <- function(x,
 # Define function for generating a leaflet plot
 
 # Create a basic leaflet with nothing else on it
-leaf_basic <- function(shp = ont2){
-  tile = 'CartoDB.DarkMatterNoLabels'
-  palette = 'Purples'
+leaf_basic <- function(shp = ont2, tile, palette){
+  # tile = 'CartoDB.DarkMatterNoLabels'
+  # palette = 'Purples'
   l <- leaflet(data = shp) %>%
     addPolylines(color = NA, opacity = 0.5, weight = 0.2) %>%
     addProviderTiles(tile,
