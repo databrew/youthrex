@@ -366,6 +366,39 @@ pie_plotly_demo <- function(temp_dat){
 }
 
 
+# # get data by year 
+# temp_2011 <- temp_melt[temp_melt$year == '2011',]
+# temp_2016 <- temp_melt[temp_melt$year == '2016',]
+# 
+# temp_2011$year <- NULL
+# temp_2016$year <- NULL
+# 
+# 
+# plot_2011 <- gvisPieChart(temp_2011, 
+#              options=list(title='2011',
+#                           titlePosition='out',
+#                           fontSize = 15,
+#                           width=275,
+#                           height=400,
+#                           pieSliceText = 'value',
+#                           hAxis="{slantedText:'true',slantedTextAngle:45}",
+#                           titleTextStyle="{color:'black',fontName:'Courier', fontSize:'25'}",
+#                           legend="{position:'none',color:'black',fontName:'Courier'}",
+#                           chartArea="{left:10,top:30,width:'100%',height:'100%'}"))
+# 
+# plot_2016 <- gvisPieChart(temp_2016, 
+#                           options=list(title='2016',
+#                                        titlePosition='out',
+#                                        fontSize = 15,
+#                                        width=275,
+#                                        height=400,
+#                                        pieSliceText = 'value',
+#                                        titleTextStyle="{color:'black',fontName:'Courier', fontSize:'25'}",
+#                                        legend="{position:'none',color:'black',fontName:'Courier'}",
+#                                        chartArea="{left:10,top:30,width:'100%',height:'100%'}"))
+# 
+# 
+
 
 
 # # get_plotly_pie <-
