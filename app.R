@@ -428,7 +428,8 @@ ui <- dashboardPage(skin = 'blue',
                                    column(4,
                                           uiOutput('income_status_map_demo_filter'))),
                           fluidRow(column(6,
-                                          leafletOutput('income_status_map_all_geo')),
+                                          leafletOutput('income_status_map_all_geo', 
+                                                        width = 400, height = 500)),
                                    column(6,
                                           DT::dataTableOutput('income_status_table')))
                           
@@ -2891,15 +2892,13 @@ server <- function(input, output) {
   
   output$income_status_map_all_geo <- renderLeaflet({
     # subset data by inputs
-    location <- 'Ontario'
-    years <- c(2001, 2006, 2011, 2016)
+    income_map_year <- c(2016)
     income_status_map_demo <- 'Age group'
-    income_status_map_demo_filter <- '25 to 29 years'
+    income_status_map_demo_filter <- "Total - 15 to 29 years"
     
-    location <- input$location
-    years <- input$years
-    income_status_map_demo_filter <- input$income_status_map_demo_filter 
+    income_map_years <- input$income_map_year
     income_status_map_demo <- input$income_status_map_demo
+    income_status_map_demo_filter <- input$income_status_map_demo_filter 
     
     # avg_years <- input$demo_chart_avg
     demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex",
@@ -2907,8 +2906,8 @@ server <- function(input, output) {
                    "Low income (LICO before tax)", 'Population')
     new_census <- census[ , demo_vars]
     
-    new_census <- new_census %>% filter(Geography %in% location) %>%
-      filter(year %in% years)
+    new_census <- new_census %>% filter(!grepl('Ontario', Geography)) %>%
+      filter(year %in% income_map_year)
     
     
     if(income_status_map_demo == 'Age group') {
@@ -2961,14 +2960,13 @@ server <- function(input, output) {
       temp$Sex <- temp$`Age group` <- temp$`Visible minority` <- temp$`Place of Birth` <-    NULL
     }
     
-    # get percentage 
-    # temp$`Percent low income status` <- round((temp$`Low income (LICO before tax)`/temp$Population)*100,2)
+    # get percentage
+    temp <- as.data.frame(temp)
+    temp$`Percent low income status` <- round((temp$`Low income (LICO before tax)`/temp$Population)*100,2)
+   
+    leaf_income(temp, variable_name = income_status_map_demo_filter)
     
-    
-    
-    
-    
-  })
+})
   
   
   

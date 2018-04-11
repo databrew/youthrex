@@ -13,6 +13,7 @@ library(memisc)
 library(stringdist)
 library(reshape2)
 
+
 leaf <- function(x, 
                  tile = 'CartoDB.DarkMatter', 
                  palette = 'Oranges',
@@ -32,6 +33,9 @@ leaf <- function(x,
     mutate(geography = CCA_2) %>%
     left_join(right,
               by = 'geography')
+  
+  # remove body of water on map (4 lakes, all currentl NA)
+  
   
   # Create a color palette
   # pal <- colorQuantile("Blues", NULL, n = 9)
@@ -365,6 +369,81 @@ pie_plotly_demo <- function(temp_dat){
 
 }
 
+
+leaf_income <- function(x, 
+                 tile = 'OpenStreetMap.Mapnik', 
+                 palette = 'Reds',
+                 variable_name = income_status_map_demo_filter,
+                 show_legend = TRUE,
+                 title = NULL){
+  
+  # This function expects "x" to be a dataframe with a column named "geo_code" (a 4 character string)
+  # and another named "value"
+  # Keep only the numbered values
+  right <- x %>%
+    filter(!is.na(as.numeric(geo_code))) %>%
+    mutate(geography = substr(geo_code, 3,4))
+  # join to ont shapefile
+  shp <- ont2
+  shp@data <- shp@data %>%
+    mutate(geography = CCA_2) %>%
+    left_join(right,
+              by = 'geography')
+  
+  # shp@data <- shp@data[!grepl('Water', shp@data$TYPE_2),]
+  
+  # Create a color palette
+  # pal <- colorQuantile("Blues", NULL, n = 9)
+  # bins <- round(c(quantile(shp@data$value, na.rm = TRUE), Inf))
+  # insure that the full range of numbers is captured by aplying floor and then adding one to the max.
+  bins <- unique(floor(c(quantile(shp@data$`Percent low income status`, 
+                                  na.rm = TRUE, c(seq(0, 1, 0.15), 1)))), 2)
+  
+  bins[length(bins)] <- bins[length(bins)] +1
+  
+  
+  pal <- colorBin(palette, domain = shp@data$`Percent low income status`, bins = bins,
+                  na.color = NA)
+  
+  # Create a popup
+  popper <- paste0(shp@data$NAME_2, ': ', variable_name, ' Youth  have ',
+                   round(shp@data$`Percent low income status`, 2),'% lower income status')
+
+  # Create map
+  l <- leaf_basic(shp = shp, tile, palette = palette)
+  # l <- leaflet(data = shp) %>%
+  #   addProviderTiles(tile)
+  if(show_legend){
+    l <- l %>%
+      addLegend(pal = pal, 
+                values =~`Percent low income status`, 
+                opacity = 0.8, 
+                position = "topright",
+                title = paste0('% low income status <br>',
+                               variable_name))
+  }
+  l <- l %>%
+    addPolygons(fillColor = ~pal(`Percent low income status`),
+                fillOpacity = 0.8,
+                color = "grey",
+                weight = 1,
+                # popup = popper,
+                highlight = highlightOptions(
+                  weight = 5,
+                  color = "white",
+                  dashArray = "",
+                  fillOpacity = 0.7,
+                  bringToFront = TRUE),
+                label = popper,
+                labelOptions = labelOptions(
+                  style = list("font-weight" = "normal", 
+                               padding = "5px 5px"),
+                  textsize = "10px",
+                  direction = "auto")) 
+  # %>% 
+  #   setView(lng = -84.3232, lat = 53.25, zoom = 6)
+  return(l)
+}
 
 # # get data by year 
 # temp_2011 <- temp_melt[temp_melt$year == '2011',]
