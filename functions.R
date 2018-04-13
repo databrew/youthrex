@@ -321,6 +321,7 @@ bar_plotly_demo <- function(temp_dat, no_legend){
                                values = cols) + theme_bw(base_size = 10, base_family = 'Ubuntu') 
     
     g_plotly <- plotly::ggplotly(g, tooltip = 'text') %>%
+      config(displayModeBar = F) %>%
       layout(legend = list(
         orientation = "h",
         y = -0.1
@@ -375,7 +376,7 @@ pie_plotly_demo <- function(temp_dat, hole_value){
   
   
   
-  p1 <-  plot_ly(temp_dat,labels = ~V2, values = ~mean_pop ,
+  p1 <-  plot_ly(temp_dat,labels = ~V2, values = ~mean_pop,
                  type ='pie',
                  hole = hole_value,
                  textposition = 'inside',
@@ -383,8 +384,12 @@ pie_plotly_demo <- function(temp_dat, hole_value){
                  insidetextfont = f,
                  hoverinfo = 'label+value')  %>%
     
+      config(displayModeBar = F) %>%
+    
     layout(title = title_name, font = title_f, showlegend = F,
            annotations = list(
+             showarrow = FALSE,
+             text = '',
            font = list(color = '#1F2023',
                        family = 'sans serif')), 
            xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
@@ -398,7 +403,7 @@ pie_plotly_demo <- function(temp_dat, hole_value){
 leaf_income <- function(x, 
                  tile = 'OpenStreetMap.Mapnik', 
                  palette = 'Reds',
-                 income_status_map_demo_filter,
+                 # income_status_map_demo_filter,
                  show_legend = TRUE,
                  title = NULL){
   
@@ -438,8 +443,8 @@ leaf_income <- function(x,
                 values =~`Percent low income status`, 
                 opacity = 0.8, 
                 position = "topright",
-                title = paste0('% low income status <br>',
-                               income_status_map_demo_filter))
+                title = paste0('% low income status'))
+                               #,income_status_map_demo_filter))
   }
   l <- l %>%
     addPolygons(fillColor = ~pal(`Percent low income status`),
