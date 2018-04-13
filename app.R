@@ -46,8 +46,36 @@ ui <- dashboardPage(skin = 'blue',
                                         h1('Welcome to the Ontario Youth Compass data portal')))
                       ),
                       
+                      tags$style(HTML("
+
+                    .box.box-solid.box-danger>.box-header{
+                    color:#fff;
+                    background:darkred;
+                    }
+
+                    .box.box-solid.box-danger{
+                    border-bottom-color:#222d32;
+                    border-left-color:#222d32;
+                    border-right-color:#222d32;
+                    }
+
+                   .box.box-solid>.box-header{
+                    color:#fff;
+                    background:#2C3E50
+                    }
+
+                    .box.box-solid{
+                    border-bottom-color:#222d32;
+                    border-left-color:#222d32;
+                    border-right-color:#222d32;
+                    }
+
+
+                    ")),
+                      
                       fluidPage(
-                        fluidRow(shinydashboard::box(
+                        fluidRow(
+                          shinydashboard::box(
                           title = '',
                           solidHeader = TRUE,
                           width = 12,
@@ -78,10 +106,9 @@ ui <- dashboardPage(skin = 'blue',
                           align = 'center',
                           box(
                             title = 'Map of Ontario',
-                            style = "border:20px;",
                             solidHeader = FALSE,
                             width = 12,
-                            background = 'black',
+                            background = 'light-blue',
                             collapsible = TRUE,
                             collapsed = TRUE,
                             column(12,
@@ -100,6 +127,12 @@ ui <- dashboardPage(skin = 'blue',
                         
                         # Valid colors are: red, yellow, aqua, blue, light-blue, green, navy, teal, olive, lime, orange, fuchsia, purple, maroon, black.
                         
+                        shinydashboard::box(
+                          solidHeader = TRUE,
+                          width = 12,
+                          collapsible = FALSE,
+                          collapsed = FALSE,
+                          
                         fluidRow(
                           shinydashboard::box(
                             title = 'Demographics',
@@ -134,8 +167,8 @@ ui <- dashboardPage(skin = 'blue',
                             
                           )
                           
-                        )
-                      ),
+                        ),
+
                       
                       # (2) family status
                       # - spouses and common law vs lone parents (25-29)
@@ -149,20 +182,36 @@ ui <- dashboardPage(skin = 'blue',
                           width = 12,
                           collapsible = TRUE,
                           collapsed = TRUE,
+                          fluidRow(column(12,
+                                          h2('Family structure of youth as both children and parents'))),
+                          br(), br(),
                           fluidRow(column(6,
+                                          shinydashboard::box(
+                                            title = 'Youth (25-29) as parents',
+                                            status = 'success',
+                                            solidHeader = TRUE,
+                                            width = 12, 
+                                            collapsible = TRUE,
+                                            collapsed = TRUE,
                                           radioButtons('fam_type',
-                                                       'Parental type',
+                                                       '',
                                                        choices = c('Lone parents', 'Spouses and common law partners'),
                                                        selected = 'Lone parents', 
-                                                       inline = TRUE),
-                                          uiOutput('fam_plot_parents')),
+                                                       inline = FALSE),
+                                          uiOutput('fam_plot_parents'))),
                                    column(6,
-                                          br(), br(), 
-                                          plotlyOutput('fam_plot_kids'))),
+                                          shinydashboard:: box(
+                                            title = 'Youth (15-19) as children',
+                                            status = 'success',
+                                            solidHeader = TRUE,
+                                            width = 12,
+                                            collapsible = TRUE,
+                                            collapsed = TRUE,
+                                          plotlyOutput('fam_plot_kids')))),
                           br(), 
                           fluidRow(column(6,
                                           selectInput('which_fam_type',
-                                                      'Parental structure',
+                                                      'Parental type by visible minority',
                                                       choices = c('Spouses and common law partners', 'Lone parents'),
                                                       selected = 'Lone parents',
                                                       multiple = FALSE)),
@@ -198,8 +247,8 @@ ui <- dashboardPage(skin = 'blue',
                                      background = 'green',                                  
                                      solidHeader = FALSE,
                                      width = 12,
-                                     collapsible = FALSE,
-                                     collapsed = FALSE,
+                                     collapsible = TRUE,
+                                     collapsed = TRUE,
                                      textOutput('ed_text_highschool'))
                             ),
                             column(4,
@@ -208,8 +257,8 @@ ui <- dashboardPage(skin = 'blue',
                                      solidHeader = FALSE,
                                      background = 'light-blue',                                  
                                      width = 12,
-                                     collapsible = FALSE,
-                                     collapsed = FALSE,
+                                     collapsible = TRUE,
+                                     collapsed = TRUE,
                                      textOutput('ed_text_college'))
                             ),
                             
@@ -220,8 +269,8 @@ ui <- dashboardPage(skin = 'blue',
                                      solidHeader = FALSE,
                                      background = 'aqua',
                                      width = 12,
-                                     collapsible = FALSE,
-                                     collapsed = FALSE,
+                                     collapsible =TRUE,
+                                     collapsed = TRUE,
                                      textOutput('ed_text_university'))
                             )
                             
@@ -249,6 +298,7 @@ ui <- dashboardPage(skin = 'blue',
                           collapsible = TRUE,
                           collapsed = TRUE,
                           fluidRow(
+                            br(), br(),
                             column(12, 
                                    align = 'center',
                                    textOutput('emp_header'),
@@ -301,10 +351,9 @@ ui <- dashboardPage(skin = 'blue',
                                    box(
                                      title = 'Aboriginal unemployment rate: ',
                                      solidHeader = FALSE,
-                                     background = 'navy',                                  
                                      width = 12,
-                                     collapsible = FALSE,
-                                     collapsed = FALSE,
+                                     collapsible = TRUE,
+                                     collapsed = TRUE,
                                      textOutput('emp_ab_text'))
                             ),
                             
@@ -312,10 +361,9 @@ ui <- dashboardPage(skin = 'blue',
                                    box(
                                      title = "Non-Aboriginal unemployment rate: ",
                                      solidHeader = FALSE,
-                                     background = 'teal',
                                      width = 12,
-                                     collapsible = FALSE,
-                                     collapsed = FALSE,
+                                     collapsible = TRUE,
+                                     collapsed = TRUE,
                                      textOutput('emp_non_text'))
                             )
                             
@@ -326,16 +374,21 @@ ui <- dashboardPage(skin = 'blue',
                       fluidRow(
                         shinydashboard::box(
                           title = 'Housing',
-                          status = 'danger',
                           solidHeader = TRUE,
                           width = 12,
                           collapsible = TRUE,
                           collapsed = TRUE,
+                          fluidRow(column(12,
+                                          align = 'center',
+                                          h2('Housing for youth aged 15-29'))),
+                          br(),
                           column(6,
                                  box(solidHeader = TRUE,
                                      width = 12,
                                      title = 'Owner occupied vs rented 
                                      (Youth 15-29)',
+                                     collapsible = TRUE,
+                                     collapsed = TRUE,
                                      tabsetPanel(tabPanel('Plot', 
                                                           selectInput('house_demo_variable',
                                                                       'Examine by:', 
@@ -357,6 +410,8 @@ ui <- dashboardPage(skin = 'blue',
                              box(solidHeader = TRUE,
                                  width = 12,
                                  title = 'Subsidized housing (youth 15-29)',
+                                 collapsible = TRUE,
+                                 collapsed = TRUE,
                                  tabsetPanel(tabPanel('Plot', 
                                                       selectInput('sub_demo_variable',
                                                                   'Examine by:', 
@@ -380,6 +435,7 @@ ui <- dashboardPage(skin = 'blue',
                       fluidRow(
                         shinydashboard::box(
                           title = 'Income',
+                          status = 'danger',
                           solidHeader = TRUE,
                           width = 12,
                           collapsible = TRUE,
@@ -418,8 +474,8 @@ ui <- dashboardPage(skin = 'blue',
                         )
                       )
                       )
-                    
-                    
+                    )
+                    )         
 )
 
 
@@ -795,6 +851,8 @@ server <- function(input, output) {
       location <- 'Ontario'
       years <- c(2001)
       fam_type <- 'Spouses and common law partners'
+      
+      # get family input 
       fam_type <- input$fam_type
       location <- input$location
       years <- input$years
@@ -828,7 +886,7 @@ server <- function(input, output) {
                      insidetextfont = f,
                      hoverinfo = 'label+value')  %>%
         
-        layout(title = paste0('Youth: 25 to 29: ', fam_type), showlegend = F,
+        layout(title = '', showlegend = F,
                annotations = list(
                  font = list(color = '264E86',
                              family = 'sans serif',
@@ -878,8 +936,8 @@ server <- function(input, output) {
       temp$year <- as.factor(temp$year)
       line <- 
         gvisLineChart(temp, xvar="year", yvar=c(paste0('Total ', fam_type), 'Percent'),
-                      options=list(title=paste0(fam_type, " (25-29 years old)"),
-                                   titleTextStyle="{color:'black',
+                      options=list(title="",
+                                   titleTextStyle="{color:'#1F2023',
                                    fontName:'Ubuntu',
                                    fontSize:18}",
                                    curveType="function", 
@@ -900,7 +958,7 @@ server <- function(input, output) {
                                    textPosition: 'out'}]",
                                    hAxes="[{title:'Year',
                                    textPosition: 'out'}]",
-                                   width=450, height=450
+                                   height=320
                       ),
                       chartid="twoaxislinechart_fam"
         )
@@ -967,8 +1025,8 @@ server <- function(input, output) {
         mutate(pop_per =round((value/tot_pop)*100,  2))
       temp_dat$year <- as.factor(temp_dat$year)
       
-      # plot data
-      cols <- colorRampPalette(brewer.pal(9, 'RdBu'))(length(unique(temp_dat$variable)))
+      # plot dataseries="[{targetAxisIndex:0, 
+      cols <- c('#28B463','#FF4C4C', "grey" )
       g <- ggplot(data = temp_dat,
                   aes(x = year,
                       y = pop_per,
@@ -977,12 +1035,16 @@ server <- function(input, output) {
                                    '<br>', pop_per , '%', as.factor(variable)))) +
         geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) +
         # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
-        labs(x = '', y = 'Percent') + ggtitle('Children (15-19) living with single or coupled parents')
-      g <- g  + theme_bw(base_size = 10, base_family = 'Ubuntu') 
+        labs(x = '', y = '%') + scale_fill_manual(name = '',
+                                                  values = cols)
+      g <- g  + theme_bw(base_size = 12, base_family = 'Ubuntu') 
       
       plotly::ggplotly(g, tooltip = 'text') %>%
-        layout(autosize = T, width = 400, height = 450, legend = list(x = -0.05, y = -0.4))
-      
+        layout( 
+          legend = list(
+            orientation = "l",
+            x = 0,
+            y = -0.6))
       
     }
     
@@ -1051,7 +1113,7 @@ server <- function(input, output) {
       
       if(fam_chart_table_all_or_vm){
         # plot all vm
-        cols <- c('red', 'blue')
+        cols <- c('darkgreen', 'black')
         g <- ggplot(data = temp_all,
                     aes(x = year,
                         y = per,
@@ -1064,13 +1126,12 @@ server <- function(input, output) {
           
           
           labs(x = '', y = 'Percent') + ggtitle(paste0('Youth (25 to 29) who are ', which_fam_type))
-        g <- g  + theme_bw(base_size = 8, base_family = 'Ubuntu') 
+        g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') 
         
-        p1 <- plotly::ggplotly(g, tooltip = 'text') %>%
-          layout(height = 400)
+        p1 <- plotly::ggplotly(g, tooltip = 'text') 
       } else {
         # plot data
-        cols <- colorRampPalette(brewer.pal(9, 'RdBu'))(length(unique(temp_vm$`Visible minority`)))
+        cols <- colorRampPalette(brewer.pal(9, 'Greens'))(length(unique(temp_vm$`Visible minority`)))
         g <- ggplot(data = temp_vm,
                     aes(x = year,
                         y = per,
@@ -1079,15 +1140,10 @@ server <- function(input, output) {
                         text = paste('Total population of', `Visible minority`, ': ', Population,
                                      '<br>', per , '%'))) +
           geom_point(size = 6) + geom_line(size = 2, alpha = 0.6) + scale_color_manual(name = '',
-                                                                                       values = cols) + theme_bw(base_size = 16, base_family = 'Ubuntu')  +
-          
-          
+                                                                                       values = cols) + theme_bw(base_size = 14, base_family = 'Ubuntu')  +
           labs(x = '', y = 'Percent') + ggtitle(paste0('Youth (25 to 29) who are ', which_fam_type))
-        g <- g  + theme_bw(base_size = 8, base_family = 'Ubuntu') 
-        
-        p1 <- plotly::ggplotly(g, tooltip = 'text') %>%
-          layout(height = 400)
-        
+
+        p1 <- plotly::ggplotly(g, tooltip = 'text') 
       }
       
       return(p1)
@@ -1346,11 +1402,12 @@ server <- function(input, output) {
       scale_fill_manual(name ='',
                         values = c('green3', 'deepskyblue')) + scale_y_continuous(labels = scales::percent) +
       # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
-      labs(x = '', y = '') 
+      labs(x = '', y = ' ') 
     g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') + facet_wrap(~`Age group`)
     
     plotly::ggplotly(g, tooltip = 'text') %>%
-      layout(width = 850, height = 400)
+      layout(width = 1000)
+      
     
   })
   
@@ -1780,7 +1837,7 @@ server <- function(input, output) {
           scale_fill_manual(name = '',
                             values = cols) +
           geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) + 
-          theme_bw(base_size = 13, base_family = 'Ubuntu') + labs(x = '', y = '')
+          theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = '')
         
         
         final_plot <-  plotly::ggplotly(g, tooltip = 'text') %>%
@@ -1831,7 +1888,7 @@ server <- function(input, output) {
           scale_fill_manual(name = '',
                             values = cols) +
           geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) + 
-          theme_bw(base_size = 13, base_family = 'Ubuntu') + labs(x = '', y = '')
+          theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = '')
         
         g <- g  + facet_wrap(~V2)
         
@@ -1886,7 +1943,7 @@ server <- function(input, output) {
           scale_fill_manual(name = '',
                             values = cols) +
           geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) + 
-          theme_bw(base_size = 13, base_family = 'Ubuntu') + labs(x = '', y = '')
+          theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = '')
         
         g <- g  + facet_wrap(~V2)
         
@@ -1949,11 +2006,11 @@ server <- function(input, output) {
             scale_fill_manual(name = '',
                               values = cols) +
             geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) +
-            theme_bw(base_size = 13, base_family = 'Ubuntu') + labs(x = '', y = '')
+            theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = '')
           
           if(length(owner_plot_vm_filter) > 1){
             g <- g  + facet_wrap(~V2) + 
-              theme_bw(base_size = 9, base_family = 'Ubuntu') + labs(x = '', y = '')
+              theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = '')
             
           }
           final_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
@@ -2012,7 +2069,7 @@ server <- function(input, output) {
         scale_fill_manual(name = '',
                           values = cols) +
         geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) + 
-        theme_bw(base_size = 13, base_family = 'Ubuntu') + labs(x = '', y = '')
+        theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = '')
       
       g <- g  + facet_wrap(~V2)
       
@@ -2321,7 +2378,7 @@ server <- function(input, output) {
                             values = c('grey', 'black')) +
           # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
           labs(x = '', y = '', title ='') 
-        g <- g  + theme_bw(base_size = 10, base_family = 'Ubuntu') 
+        g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') 
         
         sub_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
           layout( 
@@ -2365,7 +2422,7 @@ server <- function(input, output) {
                              values = c('grey', 'black')) +
           # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
           labs(x = '', y = '', title ='') 
-        g <- g  + theme_bw(base_size = 10, base_family = 'Ubuntu') +
+        g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') +
           facet_wrap(~Sex)
         
         sub_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
@@ -2409,7 +2466,7 @@ server <- function(input, output) {
                              values = c('grey', 'black')) +
           # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
           labs(x = '', y = '', title ='') 
-        g <- g  + theme_bw(base_size = 10, base_family = 'Ubuntu') +
+        g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') +
           facet_wrap(~`Place of Birth`)
         
         sub_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
@@ -2461,7 +2518,7 @@ server <- function(input, output) {
                                values = c('grey', 'black')) +
             # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
             labs(x = '', y = '', title ='') 
-          g <- g  + theme_bw(base_size = 10, base_family = 'Ubuntu') +
+          g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') +
             facet_wrap(~`Visible minority`)
           
           sub_plot <- plotly::ggplotly(g, tooltip = 'text') %>%

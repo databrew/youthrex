@@ -15,7 +15,7 @@ library(reshape2)
 
 
 leaf <- function(x, 
-                 tile = 'CartoDB.DarkMatter', 
+                 tile = 'OpenStreetMap.Mapnik', 
                  palette = 'Oranges',
                  show_legend = TRUE,
                  years,
@@ -101,7 +101,7 @@ leaf <- function(x,
 
 # Create a basic leaflet with nothing else on it
 leaf_basic <- function(shp = ont2, tile, palette){
-  tile = 'CartoDB.DarkMatterNoLabels'
+  tile = 'OpenStreetMap.Mapnik'
   palette = 'Oranges'
   l <- leaflet(data = shp) %>%
     addPolylines(color = NA, opacity = 0.5, weight = 0.2) %>%
