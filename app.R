@@ -481,12 +481,12 @@ ui <- dashboardPage(skin = 'blue',
                                                       selected = '2016',
                                                       inline = TRUE)),
                                    column(4,
-                                          uiOutput('income_status_map_demo_filter'))),
+                                          uiOutput('income_status_map_demo_filter_ui'))),
                           fluidRow(column(6,
                                           br(), br(), 
                                           leafletOutput('income_status_map_all_geo')),
                                    column(6,
-                                          dataTableOutput('income_status_table')))
+                                          DT::dataTableOutput('income_status_table')))
                           
                         )
                       )
@@ -3135,7 +3135,7 @@ server <- function(input, output) {
   # table: income_status_table
   
  
-  output$income_status_map_demo_filter <- renderUI({
+  output$income_status_map_demo_filter_ui <- renderUI({
 
     if(is.null(input$income_status_map_demo)){
       return(NULL)
@@ -3169,13 +3169,13 @@ server <- function(input, output) {
     # income_map_year <- c(2016)
     # income_status_map_demo <- 'Sex'
     # income_status_map_demo_filter <- "Male"
-
-      if( is.null(input$income_status_map_demo) |is.null(input$income_map_year)){
+    income_status_map_demo <- input$income_status_map_demo
+    income_map_year <- input$income_map_year
+    income_status_map_demo_filter <- input$income_status_map_demo_filter
+    
+      if( is.null(income_status_map_demo) | is.null(income_map_year) | is.null(income_status_map_demo_filter)){
         return(NULL)
       } else {
-        income_map_year <- input$income_map_year
-        income_status_map_demo <- input$income_status_map_demo
-        income_status_map_demo_filter <- input$income_status_map_demo_filter
 
         # avg_years <- input$demo_chart_avg
         demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex",
@@ -3242,7 +3242,7 @@ server <- function(input, output) {
         temp_final$`Percent low income status` <-
           round((temp_final$`Low income (LICO before tax)`/temp_final$Population)*100,2)
 
-        return(leaf_income(temp_final, income_status_map_demo_filter =  income_status_map_demo_filter ))
+        leaf_income(temp_final, income_status_map_demo_filter =  income_status_map_demo_filter )
       }
 
 
@@ -3250,18 +3250,15 @@ server <- function(input, output) {
 })
   
   
-  output$income_status_table <- renderDataTable({
+  output$income_status_table <- DT::renderDataTable({
     # # subset data by inputs
-    # income_map_year <- c(2016)
-    # income_status_map_demo <- 'Sex'
-    # income_status_map_demo_filter <- "Male"
-    # income_status_map_demo_filter <- NULL
-    if(is.null(input$income_status_map_demo_filter) |  is.null(input$income_status_map_demo) |is.null(input$income_map_year)){
+    income_map_year <- input$income_map_year
+    income_status_map_demo <- input$income_status_map_demo
+    income_status_map_demo_filter <- input$income_status_map_demo_filter
+    if(is.null(income_status_map_demo_filter) |  is.null(income_status_map_demo) |is.null(income_map_year)){
       return(NULL)
     } else {
-      income_map_year <- input$income_map_year
-      income_status_map_demo <- input$income_status_map_demo
-      income_status_map_demo_filter <- input$income_status_map_demo_filter
+
 
       # avg_years <- input$demo_chart_avg
       demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex",
@@ -3326,9 +3323,10 @@ server <- function(input, output) {
     # get percentage
     temp_final <- as.data.frame(temp)
     temp_final$`Percent low income status` <- round((temp_final$`Low income (LICO before tax)`/temp_final$Population)*100,2)
-    temp$geo_code <- temp$year <- temp$Population <- NULL
-
-    return(prettify(temp, comma_numbers = TRUE,download_options = TRUE))
+    temp_final$geo_code <- temp_final$year <- temp_final$Population <- NULL
+    message('temp final is')
+    print(head(temp_final))
+    prettify(temp_final, comma_numbers = TRUE,download_options = TRUE)
 
   })
 
