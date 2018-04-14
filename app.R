@@ -524,11 +524,11 @@ server <- function(input, output) {
     } else {
       
       # subset data by inputs 
-      # location <- 'Ontario'
-      years <- c(2001, 2006, 2011, 2016)
-      # location <- input$location
+
       years <- input$years
-      
+      message('YEARS are ')
+      print(input$years)
+
       demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
                      "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
       new_census <- census[ , demo_vars]
@@ -543,10 +543,11 @@ server <- function(input, output) {
       # keep only age group, year, and population
       temp <- temp[, c('Geography', 'geo_code','year','Population')]
       
-      temp$year <- as.factor(temp$year)
-      census_pop$year <- as.factor(census_pop$year)
+      temp$year <- as.character(temp$year)
+      temp$Geography <- NULL
+      census_pop$year <- as.character(census_pop$year)
       
-      temp <- inner_join(temp, census_pop)
+      temp <- inner_join(temp, census_pop, by = c('year', 'geo_code'))
       # make percentage youth variable 
       temp$per_youth <- round((temp$Population/temp$`Total population`)*100, 2)
       
@@ -562,8 +563,6 @@ server <- function(input, output) {
       leaf(temp, years = years)
       
     }
-    
-    
   })
   
   

@@ -15,7 +15,7 @@ library(reshape2)
 
 
 leaf <- function(x, 
-                 tile = 'OpenStreetMap.Mapnik', 
+                 tile = 'OpenStreetMap', 
                  palette = 'Oranges',
                  show_legend = TRUE,
                  years,
@@ -41,14 +41,16 @@ leaf <- function(x,
   # pal <- colorQuantile("Blues", NULL, n = 9)
   # bins <- round(c(quantile(shp@data$value, na.rm = TRUE), Inf))
   # insure that the full range of numbers is captured by aplying floor and then adding one to the max.
-  bins <- unique(floor(c(quantile(shp@data$per_youth, 
-                                  na.rm = TRUE, c(seq(0, 1, 0.15), 1)))), 2)
+  # bins <- unique(floor(c(quantile(shp@data$per_youth, 
+  #                                 na.rm = TRUE, c(seq(0, 1, 0.15), 1)))), 2)
+  # 
+  # bins[length(bins)] <- bins[length(bins)] +1
   
-  bins[length(bins)] <- bins[length(bins)] +1
   
-  
-  pal <- colorBin(palette, domain = shp@data$per_youth, bins = bins,
-                  na.color = NA)
+  pal <- colorBin(palette, domain = shp@data$per_youth, 
+                  # bins = bins,
+                  bins = 7,
+                  na.color = 'grey')
   
   if(length(years) > 1){
     # Create a popup
@@ -74,19 +76,21 @@ leaf <- function(x,
                 title = '% youth (15-29)')
   }
   l <- l %>%
-    addPolygons(fillColor = ~pal(per_youth),
+    addPolygons(data = shp, 
+                fillColor = ~pal(per_youth),
                 fillOpacity = 0.8,
-                color = "black",
+                color = "white",
                 weight = 1,
                 # popup = popper,
-                highlight = highlightOptions(
-                  weight = 5,
-                  color = "white",
-                  dashArray = "",
-                  fillOpacity = 0.7,
-                  bringToFront = TRUE),
+                # highlight = highlightOptions(
+                #   weight = 5,
+                #   color = "white",
+                #   dashArray = "",
+                #   fillOpacity = 0.7,
+                #   bringToFront = TRUE),
                 label = popper,
-                labelOptions = labelOptions(noHide = T, direction = "auto",
+                labelOptions = labelOptions(#noHide = T, 
+                                            direction = "auto",
                                             style = list(
                                               "color" = "#191A1C",
                                               "box-shadow" = "3px 3px rgba(0,0,0,0.25)",
@@ -101,13 +105,8 @@ leaf <- function(x,
 
 # Create a basic leaflet with nothing else on it
 leaf_basic <- function(shp = ont2, tile, palette){
-  tile = 'OpenStreetMap.Mapnik'
-  palette = 'Oranges'
-  l <- leaflet(data = shp) %>%
-    addPolylines(color = NA, opacity = 0.5, weight = 0.2) %>%
-    addProviderTiles(tile,
-                     options = providerTileOptions(minZoom = 4, maxZoom = 10)) 
-  return(l)
+  leaflet(data = shp) %>%
+    addProviderTiles(provider = tile)
 }
 
 
