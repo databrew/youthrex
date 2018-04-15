@@ -26,6 +26,7 @@ library(shinyLP)
 library(ggplot2)
 library(shinythemes)
 library(ggthemes)
+library(gridExtra)
 
 
 
@@ -150,7 +151,7 @@ ui <- dashboardPage(skin = 'blue',
                                             DT::dataTableOutput('pie_table')),
                                      column(6,
                                             selectInput('demo_variable',
-                                                        'Exampine by ',
+                                                        'Examine by ',
                                                         choices =  c('Sex', 
                                                                      'Place of Birth', 
                                                                      'Visible minority',
@@ -277,17 +278,23 @@ ui <- dashboardPage(skin = 'blue',
                           ),
                           fluidRow(
                             column(12,
-                                   h3('Highschool or equivalent', align = 'center'),
-                                   align = 'center',
-                                   checkboxInput('ed_plot_or_table',
-                                                 'View as table', 
-                                                 value = FALSE),
-                                   uiOutput('ed_plot_table'))
+                                   h3('Highschool or equivalent', align = 'center'))),
+                        fluidRow(
+                          column(6,
+                                 checkboxInput('ed_plot_or_table_age',
+                                               'View as table', 
+                                               value = FALSE),
+                                 uiOutput('ed_plot_table_age')),
+                          column(6,
+                                 checkboxInput('ed_plot_or_table_sex',
+                                               'View as table', 
+                                               value = FALSE),
+                                 uiOutput('ed_plot_table_sex')))
+                            
                           )  
                           
                           
-                        )
-                      ),
+                        ),
                       
                       fluidRow(
                         shinydashboard::box(
@@ -656,6 +663,11 @@ server <- function(input, output) {
       return(NULL)
     } else {
       
+      location <- 'Ontario'
+      years <- 2016
+      demo_variable <- 'Sex'
+      
+      
       location <- input$location
       years <- input$years
       
@@ -683,12 +695,6 @@ server <- function(input, output) {
         temp$`Age group` <- temp$Geography <- temp$geo_code <- 
           temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
         
-        if(avg_years){
-          plotly_plot <- pie_plotly_demo(temp, hole_value = 0.5)
-        } else {
-          plotly_plot <- bar_plotly_demo(temp, no_legend = F)
-        }
-        
       }
       
       if(demo_variable == 'Place of Birth') {
@@ -702,12 +708,6 @@ server <- function(input, output) {
         temp$`Age group` <- temp$Geography <- temp$geo_code <- 
           temp$`Aboriginal identity` <- temp$`Sex` <- temp$`Visible minority` <-   NULL
         
-        
-        if(avg_years){
-          plotly_plot <- pie_plotly_demo(temp, hole_value = 0.5)
-        } else {
-          plotly_plot <- bar_plotly_demo(temp, no_legend = F)
-        }
         
       }
       
@@ -726,12 +726,6 @@ server <- function(input, output) {
         temp <- temp[temp$`Visible minority` != 'Arab/West Asian',]
         temp <- temp[temp$`Visible minority` != 'All visible minorities',]
         
-        
-        if(avg_years){
-          plotly_plot <- pie_plotly_demo(temp, hole_value = 0.5)
-        } else {
-          plotly_plot <- hide_legend(bar_plotly_demo(temp, no_legend = F))
-        }          
       }
       
       if(demo_variable == 'Aboriginal identity') {
@@ -744,13 +738,20 @@ server <- function(input, output) {
         
         temp$`Age group` <- temp$Geography <- temp$geo_code <- 
           temp$`Place of Birth` <- temp$Sex <- temp$`Visible minority` <-   NULL
-        
+      
+      }
+      
+      
+      if(length(years) == 1){
+        plotly_plot <- pie_plotly_demo(temp, hole_value = 0.5)
+      } else {
         if(avg_years){
           plotly_plot <- pie_plotly_demo(temp, hole_value = 0.5)
         } else {
           plotly_plot <- bar_plotly_demo(temp, no_legend = F)
-        }          
+        }
       }
+      
       
       return(plotly_plot)
     }
@@ -881,25 +882,33 @@ server <- function(input, output) {
       
       temp_melt <- melt(temp, id.vars = 'year')
       
+
       f <- list(
         family = "Ubuntu",
         size = 15,
         color = "white"
       )
       
+      
+     
+      cols <- c('#FF4C4C','#28B463')
       p1 <-  plot_ly(temp_melt,labels = ~variable, values = ~value ,
                      type ='pie',
                      hole = 0.5,
                      textposition = 'inside',
                      textinfo = 'percent',
                      insidetextfont = f,
-                     hoverinfo = 'label+value')  %>%
+                     marker = list(colors = cols,
+                                   line = list(color = '#FFFFFF', width = 1)),
+                     hoverinfo = 'label+value') %>%
+        config(displayModeBar = F) %>%
         
-        layout(title = '', showlegend = F,
+        layout(title = title_name, font = title_f, showlegend = F,
                annotations = list(
-                 font = list(color = '264E86',
-                             family = 'sans serif',
-                             size = 20)), 
+                 showarrow = FALSE,
+                 text = '',
+                 font = list(color = '#1F2023',
+                             family = 'sans serif')), 
                xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
                yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
       
@@ -1000,7 +1009,7 @@ server <- function(input, output) {
     } else {
       # subset data by inputs
       location <- 'Ontario'
-      years <- c(2001, 2006, 2011, 2016)
+      years <- ( 2016)
       location <- input$location
       years <- input$years
       
@@ -1034,27 +1043,53 @@ server <- function(input, output) {
         mutate(pop_per =round((value/tot_pop)*100,  2))
       temp_dat$year <- as.factor(temp_dat$year)
       
-      # plot dataseries="[{targetAxisIndex:0, 
-      cols <- c('#28B463','#FF4C4C', "grey" )
-      g <- ggplot(data = temp_dat,
-                  aes(x = year,
-                      y = pop_per,
-                      fill = variable, 
-                      text = paste('Total population 15-19 year old: ', tot_pop,
-                                   '<br>', pop_per , '%', as.factor(variable)))) +
-        geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) +
-        # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
-        labs(x = '', y = '%') + scale_fill_manual(name = '',
-                                                  values = cols)
-      g <- g  + theme_bw(base_size = 12, base_family = 'Ubuntu') 
-      
-      plotly::ggplotly(g, tooltip = 'text') %>%
-        config(displayModeBar = F) %>%
-        layout( 
-          legend = list(
-            orientation = "l",
-            x = 0,
-            y = -0.6))
+      if(length(years) == 1){
+        cols <- c('#FF4C4C','#28B463')
+        p1 <-  plot_ly(temp_dat, labels = ~variable, values = ~value ,
+                       type ='pie',
+                       hole = 0.5,
+                       textposition = 'inside',
+                       textinfo = 'percent',
+                       insidetextfont = f,
+                       marker = list(colors = cols,
+                                     line = list(color = '#FFFFFF', width = 1)),
+                       hoverinfo = 'label+value') %>%
+          config(displayModeBar = F) %>%
+          
+          layout(title = title_name, font = title_f, showlegend = F,
+                 annotations = list(
+                   showarrow = FALSE,
+                   text = '',
+                   font = list(color = '#1F2023',
+                               family = 'sans serif')), 
+                 xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+                 yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+        
+        p1
+      } else {
+        # plot dataseries="[{targetAxisIndex:0, 
+        cols <- c('#28B463','#FF4C4C', "grey" )
+        g <- ggplot(data = temp_dat,
+                    aes(x = year,
+                        y = pop_per,
+                        fill = variable, 
+                        text = paste('Total population 15-19 year old: ', tot_pop,
+                                     '<br>', pop_per , '%', as.factor(variable)))) +
+          geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) +
+          # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
+          labs(x = '', y = '%') + scale_fill_manual(name = '',
+                                                    values = cols)
+        g <- g  + theme_bw(base_size = 12, base_family = 'Ubuntu') 
+        
+        plotly::ggplotly(g, tooltip = 'text') %>%
+          config(displayModeBar = F) %>%
+          layout( 
+            legend = list(
+              orientation = "l",
+              x = 0,
+              y = -0.6))
+      }
+     
       
     }
     
@@ -1078,7 +1113,7 @@ server <- function(input, output) {
     } else {
       # subset data by inputs
       location <- 'Ontario'
-      years <- c(2001, 2006, 2011, 2016)
+      years <- c(2016)
       which_fam_type <- 'Lone parents'
       fam_chart_table_all_or_vm <- FALSE
       which_fam_type <- input$which_fam_type
@@ -1117,44 +1152,81 @@ server <- function(input, output) {
       colnames(temp_all)[3] <- 'V2'
       colnames(temp_vm)[3] <- 'V2'
       
-      temp_all$per <- round((temp_all$V2/temp_all$Population)*100,2 )
-      temp_vm$per <- round((temp_vm$V2/temp_vm$Population)*100,2 )
+      temp_all$per <- round(temp_all$V2/temp_all$Population,2 )
+      temp_vm$per <- round(temp_vm$V2/temp_vm$Population,2 )
       
       
-      if(fam_chart_table_all_or_vm){
-        # plot all vm
-        cols <- c('darkgreen', 'black')
-        g <- ggplot(data = temp_all,
-                    aes(x = year,
-                        y = per,
-                        group = `Visible minority`,
-                        colour = `Visible minority`,
-                        text = paste('Total population of', `Visible minority`, ': ', Population,
-                                     '<br>', per , '%'))) +
-          geom_point(size = 6) + geom_line(size = 2, alpha = 0.6) + scale_color_manual(name = '',
-                                                                                       values = cols) + theme_bw(base_size = 16, base_family = 'Ubuntu')  +
+      if(length(years)==1){
+        if(fam_chart_table_all_or_vm){
+          # plot all vm
+          cols <- c('darkgreen', 'black')
+          g <- ggplot(data = temp_all,
+                      aes(x = `Visible minority`,
+                          y = per,
+                          text = paste('Total population of', `Visible minority`, ': ', Population,
+                                       '<br>', (per)*100, '%'))) +
+            geom_bar(stat = 'identity', alpha = 0.7,fill = 'darkgreen') + theme_bw(base_size = 16, base_family = 'Ubuntu')  +
+            labs(x = '', y = '') + ggtitle(paste0('Youth (25 to 29) who are ', which_fam_type)) + 
+            scale_y_continuous(labels = scales::percent)
           
+          g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') 
           
-          labs(x = '', y = 'Percent') + ggtitle(paste0('Youth (25 to 29) who are ', which_fam_type))
-        g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') 
+          p1 <- plotly::ggplotly(g, tooltip = 'text') %>% config(displayModeBar = F) 
+        } else {
+          temp_vm$`Visible minority` <- gsub('Visible minority, n.i.e.', 'VM N.I.E', temp_vm$`Visible minority`)
+          temp_vm$`Visible minority`<- gsub('Multiple visible minority', 'Multiple VM', temp_vm$`Visible minority`)
+          
+          cols <- colorRampPalette(brewer.pal(9, 'Greens'))(length(unique(temp_vm$`Visible minority`)))
+          g <- ggplot(data = temp_vm,
+                      aes(x = as.factor(`Visible minority`),
+                          y = per,
+                          text = paste('Total population of', `Visible minority`, ': ', Population,
+                                       '<br>', (per)*100 , '%'))) +  theme_bw(base_size = 8, base_family = 'Ubuntu') +
+            geom_bar(stat = 'identity', alpha = 0.7,fill = cols) + 
+            labs(x = '', y = ' ') + ggtitle(paste0('Youth (25 to 29) who are ', which_fam_type)) + 
+            scale_y_continuous(labels = scales::percent)
+            
+          
+          p1 <- plotly::ggplotly(g, tooltip = 'text') %>% config(displayModeBar = F)
+        }
         
-        p1 <- plotly::ggplotly(g, tooltip = 'text') %>% config(displayModeBar = F) 
       } else {
-        # plot data
-        cols <- colorRampPalette(brewer.pal(9, 'Greens'))(length(unique(temp_vm$`Visible minority`)))
-        g <- ggplot(data = temp_vm,
-                    aes(x = year,
-                        y = per,
-                        group = `Visible minority`,
-                        colour = `Visible minority`,
-                        text = paste('Total population of', `Visible minority`, ': ', Population,
-                                     '<br>', per , '%'))) +
-          geom_point(size = 6) + geom_line(size = 2, alpha = 0.6) + scale_color_manual(name = '',
-                                                                                       values = cols) + theme_bw(base_size = 14, base_family = 'Ubuntu')  +
-          labs(x = '', y = 'Percent') + ggtitle(paste0('Youth (25 to 29) who are ', which_fam_type))
-
-        p1 <- plotly::ggplotly(g, tooltip = 'text')  %>% config(displayModeBar = F)
+        if(fam_chart_table_all_or_vm){
+          # plot all vm
+          cols <- c('darkgreen', 'black')
+          g <- ggplot(data = temp_all,
+                      aes(x = year,
+                          y = per,
+                          group = `Visible minority`,
+                          colour = `Visible minority`,
+                          text = paste('Total population of', `Visible minority`, ': ', Population,
+                                       '<br>', (per)*100 , '%'))) +
+            geom_point(size = 6) + geom_line(size = 2, alpha = 0.6) + scale_color_manual(name = '',
+                                                                                         values = cols) + theme_bw(base_size = 16, base_family = 'Ubuntu')  +
+            labs(x = '', y = ' ') + ggtitle(paste0('Youth (25 to 29) who are ', which_fam_type)) + 
+            scale_y_continuous(labels = scales::percent)
+          g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') 
+          
+          p1 <- plotly::ggplotly(g, tooltip = 'text') %>% config(displayModeBar = F) 
+        } else {
+          # plot data
+          cols <- colorRampPalette(brewer.pal(9, 'Greens'))(length(unique(temp_vm$`Visible minority`)))
+          g <- ggplot(data = temp_vm,
+                      aes(x = year,
+                          y = per,
+                          group = `Visible minority`,
+                          colour = `Visible minority`,
+                          text = paste('Total population of', `Visible minority`, ': ', Population,
+                                       '<br>', (per)*100 , '%'))) + 
+            geom_point(size = 6) + geom_line(size = 2, alpha = 0.6) + scale_color_manual(name = '',
+                                                                                         values = cols) + theme_bw(base_size = 14, base_family = 'Ubuntu')  +
+            scale_y_continuous(labels = scales::percent) +
+            labs(x = '', y = ' ') + ggtitle(paste0('Youth (25 to 29) who are ', which_fam_type))
+          
+          p1 <- plotly::ggplotly(g, tooltip = 'text')  %>% config(displayModeBar = F)
+        }
       }
+      
       
       return(p1)
       
@@ -1366,18 +1438,118 @@ server <- function(input, output) {
   })
   
   
-  output$ed_plot_table <- renderUI({
-    if(!input$ed_plot_or_table){
-      plotlyOutput('ed_plot')
+  output$ed_plot_table_age <- renderUI({
+    if(!input$ed_plot_or_table_age){
+      plotlyOutput('ed_plot_age')
       
     } else {
-      DT::dataTableOutput('ed_table')
+      DT::dataTableOutput('ed_table_age')
+    }
+    
+  })
+  
+  output$ed_plot_table_sex <- renderUI({
+    if(!input$ed_plot_or_table_sex){
+      plotlyOutput('ed_plot_sex')
+      
+    } else {
+      DT::dataTableOutput('ed_table_sex')
     }
     
   })
   
   # plot of highschool 20-29, gender
-  output$ed_plot <- renderPlotly({
+  output$ed_plot_age <- renderPlotly({
+    location <- 'Ontario'
+    years <- c(2001, 2006, 2011,2016)
+    location <- input$location
+    years <- input$years
+    
+    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                   "Place of Birth","Visible minority", "Aboriginal identity", 
+                   "High school or equivalent" ,'Population')
+    new_census <- census[ , demo_vars]
+    
+    
+    # get age data
+    temp_age <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% 
+      filter(!grepl("Total|15",`Age group`)) %>%
+      filter(grepl('Total', `Sex`)) %>%
+      filter(grepl('Total', `Place of Birth`)) %>%
+      filter(grepl('Total', `Visible minority`)) %>%
+      filter(grepl('Total', `Aboriginal identity`))
+    temp_age$Geography <- temp_age$geo_code  <- temp_age$Sex <- 
+      temp_age$`Aboriginal identity` <- temp_age$`Place of Birth`  <-
+      temp_age$`Visible minority` <- NULL
+    
+    temp_age$per <- round((temp_age$`High school or equivalent`/temp_age$Population),2)
+    
+    
+    if(length(years) == 1){
+      year_value <- unique(temp_age$year)
+      title_name <- paste0('By age:  ', year_value)
+      
+      # plot1 - by age group (20-24) vs (25-29) (bar)
+      # plot data
+      cols <- c('green3', 'deepskyblue')
+      g <- ggplot(data = temp_age,
+                  aes(x = as.factor(year),
+                      y = per,
+                      fill = `Age group`,
+                      text = paste('Total population for age group: ', Population,
+                                   '<br>', (per)*100 , '%', as.factor(`Age group`)))) +
+        scale_fill_manual(name = '',
+                          values = cols) + scale_y_continuous(labels = scales::percent) +
+        geom_bar(position = 'dodge', stat = 'identity', colour = 'darkgrey',alpha = 0.8) + 
+        theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = ' ', title = title_name)
+      
+      
+      age_plot <-  plotly::ggplotly(g, tooltip = 'text') %>%
+        config(displayModeBar = F) %>%
+        layout( 
+          legend = list(
+            orientation = "l",
+            x = 0,
+            y = -0.3))
+      
+     
+    } else {
+      year_value <- unique(temp_age$year)
+      year_value <- paste0(year_value, collapse = ', ')
+      title_name <- paste0('By age:  ', year_value)
+      # plot1 - by age group (20-24) vs (25-29)
+      # bar plot with year by percent, grouped by age and gender
+      cols <- c('green3', 'deepskyblue')
+      # plot data
+      g <- ggplot(data = temp_age,
+                  aes(x = year,
+                      y =per,
+                      group = `Age group`,
+                      colour = `Age group`,
+                      text = paste('<br>', as.factor(`Age group`),': ', (per)*100, '%',
+                                   '<br> With highschool degree of equivalent'))) +
+        geom_point(size = 4) +
+        geom_line(size = 1, alpha = 0.8,linetype = 'dashed') +
+        geom_smooth(alpha = 0.4, size = 1) +     theme_bw(base_size = 13, base_family = 'Ubuntu') +
+        scale_color_manual(name = '', 
+                           values = cols) + theme(legend.position="none") +
+        labs(x = '', y = ' ', title = title_name) + scale_y_continuous(labels=scales::percent) 
+      
+      age_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
+        config(displayModeBar = F)  
+  
+    }
+    age_plot
+    
+    
+  })
+  
+  
+  
+  
+  # plot of highschool 20-29, gender
+  output$ed_plot_sex <- renderPlotly({
     location <- 'Ontario'
     years <- c(2001, 2006, 2011, 2016)
     location <- input$location
@@ -1388,42 +1560,113 @@ server <- function(input, output) {
                    "High school or equivalent" ,'Population')
     new_census <- census[ , demo_vars]
     
-    temp <- new_census %>% filter(Geography %in% location) %>%
-      filter(year %in% years) %>% filter(!grepl("15 to 19 years|Total",`Age group`)) %>%
+    
+    # get sex data
+    temp_sex <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% 
+      filter(grepl("Total",`Age group`)) %>%
       filter(!grepl('Total', `Sex`)) %>%
       filter(grepl('Total', `Place of Birth`)) %>%
       filter(grepl('Total', `Visible minority`)) %>%
       filter(grepl('Total', `Aboriginal identity`))
-    temp$Geography <- temp$geo_code  <-
-      temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
-      temp$`Visible minority` <- NULL
-    temp$per <- (temp$`High school or equivalent`/temp$Population)
+    temp_sex$Geography <- temp_sex$geo_code  <-temp_sex$`Age group` <- 
+      temp_sex$`Aboriginal identity` <- temp_sex$`Place of Birth`  <-
+      temp_sex$`Visible minority` <- NULL
     
-    # bar plot with year by percent, grouped by age and gender
-    # plot data
-    cols <- colorRampPalette(brewer.pal(9, 'RdBu'))(length(unique(temp$Sex)))
-    g <- ggplot(data = temp,
-                aes(x = year,
-                    y = per,
-                    fill = Sex, 
-                    text = paste('Total population 15-19 year old: ', Population,
-                                 '<br>', round((per*100), 2) , '%', as.factor(Sex)))) +
-      geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.6) +
-      scale_fill_manual(name ='',
-                        values = c('green3', 'deepskyblue')) + scale_y_continuous(labels = scales::percent) +
-      # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
-      labs(x = '', y = ' ') 
-    g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') + facet_wrap(~`Age group`)
+    temp_sex$per <- round((temp_sex$`High school or equivalent`/temp_sex$Population),2)
     
-    plotly::ggplotly(g, tooltip = 'text') %>%
-      config(displayModeBar = F) %>% 
-      layout(width = 1000)
+    # if one year, both charts become bar charts 
+    
+    if(length(years) == 1){
+      year_value <- unique(temp_sex$year)
+      title_name <- paste0('By sex:  ', year_value)
+      # plot 2 - by sex bar
+      cols <- c('green3', 'deepskyblue')
+      g <- ggplot(data = temp_sex,
+                  aes(x = as.factor(year),
+                      y = per,
+                      fill = Sex,
+                      text = paste('Total population for age group: ', Population,
+                                   '<br>', (per)*100 , '%', as.factor(Sex)))) +
+        scale_fill_manual(name = '',
+                          values = cols) + scale_y_continuous(labels = scales::percent) +
+        geom_bar(position = 'dodge', stat = 'identity', colour = 'darkgrey',alpha = 0.8) + 
+        theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = ' ', title = title_name)
       
+      
+      sex_plot <-  plotly::ggplotly(g, tooltip = 'text') %>%
+        config(displayModeBar = F) %>%
+        layout( 
+          legend = list(
+            orientation = "l",
+            x = 0,
+            y = -0.3))
+       
+
+    } else {
+      year_value <- unique(temp_sex$year)
+      
+      year_value <- paste0(year_value, collapse = ', ')
+      title_name <- paste0('By Sex :  ', year_value)
+      
+      cols <- c('green3', 'deepskyblue')
+      # plot data
+      g <- ggplot(data = temp_sex,
+                  aes(x = year,
+                      y =per,
+                      group = Sex,
+                      colour = Sex,
+                      text = paste('<br>', as.factor(Sex),': ', (per)*100, '%',
+                                   '<br> With highschool degree of equivalent'))) +
+        geom_point(size = 4) +
+        geom_line(size = 1, alpha = 0.8,linetype = 'dashed') +
+        geom_smooth(alpha = 0.4, size = 1) +   theme_bw(base_size = 13, base_family = 'Ubuntu') +
+        scale_color_manual(name = '', 
+                           values = cols) + theme(legend.position="none") +
+        labs(x = '', y = ' ', title = title_name) + scale_y_continuous(labels=scales::percent) 
+      
+      sex_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
+        config(displayModeBar = F)  
+      
+    }
+    
+    sex_plot
     
   })
   
   # table of highschool 20-29, gender
-  output$ed_table <- renderDataTable({
+  output$ed_table_age <- renderDataTable({
+    location <- 'Ontario'
+    years <- c(2001, 2006, 2011,2016)
+    location <- input$location
+    years <- input$years
+    
+    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                   "Place of Birth","Visible minority", "Aboriginal identity", 
+                   "High school or equivalent" ,'Population')
+    new_census <- census[ , demo_vars]
+    
+    
+    # get age data
+    temp_age <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% 
+      filter(!grepl("Total|15",`Age group`)) %>%
+      filter(grepl('Total', `Sex`)) %>%
+      filter(grepl('Total', `Place of Birth`)) %>%
+      filter(grepl('Total', `Visible minority`)) %>%
+      filter(grepl('Total', `Aboriginal identity`))
+    temp_age$Geography <- temp_age$geo_code  <- temp_age$Sex <- 
+      temp_age$`Aboriginal identity` <- temp_age$`Place of Birth`  <-
+      temp_age$`Visible minority` <- NULL
+    
+    temp_age$per <- round((temp_age$`High school or equivalent`/temp_age$Population),2)
+    
+    prettify(temp_age, download_options = TRUE, round_digits = TRUE)
+  })
+  
+  
+  # table of highschool 20-29, gender
+  output$ed_table_sex <- renderDataTable({
     location <- 'Ontario'
     years <- c(2001, 2006, 2011, 2016)
     location <- input$location
@@ -1434,19 +1677,24 @@ server <- function(input, output) {
                    "High school or equivalent" ,'Population')
     new_census <- census[ , demo_vars]
     
-    temp <- new_census %>% filter(Geography %in% location) %>%
-      filter(year %in% years) %>% filter(!grepl("15 to 19 years|Total",`Age group`)) %>%
+    
+    # get sex data
+    temp_sex <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% 
+      filter(grepl("Total",`Age group`)) %>%
       filter(!grepl('Total', `Sex`)) %>%
       filter(grepl('Total', `Place of Birth`)) %>%
       filter(grepl('Total', `Visible minority`)) %>%
       filter(grepl('Total', `Aboriginal identity`))
-    temp$Geography <- temp$geo_code  <-
-      temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
-      temp$`Visible minority` <- NULL
-    temp$per <- round((temp$`High school or equivalent`/temp$Population)*100,2)
+    temp_sex$Geography <- temp_sex$geo_code  <-temp_sex$`Age group` <- 
+      temp_sex$`Aboriginal identity` <- temp_sex$`Place of Birth`  <-
+      temp_sex$`Visible minority` <- NULL
     
-    prettify(temp, download_options = TRUE, round_digits = TRUE)
+    temp_sex$per <- round((temp_sex$`High school or equivalent`/temp_sex$Population),2)
+    
+    prettify(temp_sex, download_options = TRUE, round_digits = TRUE)
   })
+  
   
   
   

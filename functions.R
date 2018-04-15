@@ -340,10 +340,28 @@ pie_plotly_demo <- function(temp_dat, hole_value){
   # get font list
   
   year_value <- unique(temp_dat$year)
-  year_value <- paste0(year_value, collapse = ', ')
-  title_name <- paste0('Average for years:  ', year_value)
-
   
+  if(length(year_value) == 1){
+    title_name <- year_value
+    title_f <- list(
+      family = "Ubuntu",
+      size = 12,
+      color = "#1F2023"
+    )
+    
+    
+  } else {
+    year_value <- paste0(year_value, collapse = ', ')
+    title_name <- paste0('Average for years:  ', year_value)
+    
+    title_f <- list(
+      family = "Ubuntu",
+      size = 11,
+      color = "#1F2023"
+    )
+    
+  }
+
   # rename variable fo plotting 
   colnames(temp_dat)[2] <- 'V2'
   
@@ -367,12 +385,7 @@ pie_plotly_demo <- function(temp_dat, hole_value){
   )
   
   
-  title_f <- list(
-    family = "Ubuntu",
-    size = 11,
-    color = "#1F2023"
-  )
-  
+ 
   
   
   p1 <-  plot_ly(temp_dat,labels = ~V2, values = ~mean_pop,
@@ -383,14 +396,14 @@ pie_plotly_demo <- function(temp_dat, hole_value){
                  insidetextfont = f,
                  hoverinfo = 'label+value')  %>%
     
-      config(displayModeBar = F) %>%
+    config(displayModeBar = F) %>%
     
     layout(title = title_name, font = title_f, showlegend = F,
            annotations = list(
              showarrow = FALSE,
              text = '',
-           font = list(color = '#1F2023',
-                       family = 'sans serif')), 
+             font = list(color = '#1F2023',
+                         family = 'sans serif')), 
            xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
            yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
   
