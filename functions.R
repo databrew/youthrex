@@ -315,21 +315,24 @@ bar_plotly_demo <- function(temp_dat, no_legend){
     # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
     labs(x = '', y = '%', title = title_name) +  theme(plot.title = element_text(size=12)) 
   
-  if(!no_legend){
     g <- g + scale_fill_manual(name = '',
                                values = cols) + theme_bw(base_size = 10, base_family = 'Ubuntu') 
     
-    g_plotly <- plotly::ggplotly(g, tooltip = 'text') %>%
-      config(displayModeBar = F) %>%
-      layout(legend = list(
-        orientation = "h",
-        y = -0.1
-      )
-      )
-  } else {
-    g <- g + theme(legend.position = 'none')
-    g_plotly <- plotly::ggplotly(g, tooltip = 'text')
-  }
+    
+     
+    g_plotly <- plotly::ggplotly(g, tooltip = 'text') 
+    
+    if(var_lab == 'Visible minority'){
+      g_plotly <- g_plotly %>% config(displayModeBar = F) %>%
+        layout(showlegend = F)
+      
+    } else {
+      g_plotly <- g_plotly %>% config(displayModeBar = F) %>%
+        layout(legend = list(
+          orientation = "h",
+          y = -0.1))
+    }
+  
     
   
   
