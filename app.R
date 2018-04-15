@@ -3326,9 +3326,16 @@ server <- function(input, output) {
     temp_final <- as.data.frame(temp)
     temp_final$`Percent low income status` <- round((temp_final$`Low income (LICO before tax)`/temp_final$Population)*100,2)
     temp_final$geo_code <- temp_final$year <- temp_final$Population <- NULL
-    message('temp final is')
-    print(head(temp_final))
-    prettify(temp_final, comma_numbers = TRUE,download_options = TRUE)
+    
+    if(!is.null(temp_final)){
+      if(nrow(temp_final) > 0){
+        message('temp final is')
+        print(head(temp_final))
+        prettify(temp_final, comma_numbers = TRUE,download_options = TRUE)
+      }
+    }
+    
+    
 
   })
 
