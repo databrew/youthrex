@@ -443,7 +443,7 @@ leaf_income <- function(x,
                 values =~`Percent low income status`, 
                 opacity = 0.8, 
                 position = "topright",
-                title = paste0('% low income status' ,income_status_map_demo_filter))
+                title = paste0('% low income status ' ,income_status_map_demo_filter))
   }
   print('shp is')
   print(head(shp@data))
