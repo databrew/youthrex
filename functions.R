@@ -376,18 +376,13 @@ pie_plotly_demo <- function(temp_dat, hole_value){
      group_by(V2) %>%
      summarise(mean_pop = mean(Population, na.rm = T),
                mean_per = mean(pop_per, na.rm = T))
-  
-   
+
   f <- list(
     family = "Ubuntu",
     size = 20,
     color = "white"
   )
-  
-  
  
-  
-  
   p1 <-  plot_ly(temp_dat,labels = ~V2, values = ~mean_pop,
                  type ='pie',
                  hole = hole_value,

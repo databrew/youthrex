@@ -859,10 +859,10 @@ server <- function(input, output) {
     if (is.null(input$years) | is.null(input$location) | is.null(input$fam_type)) {
       return(NULL)
     } else {
-      # subset data by inputs
-      location <- 'Ontario'
-      years <- c(2001)
-      fam_type <- 'Spouses and common law partners'
+      # # subset data by inputs
+      # location <- 'Ontario'
+      # years <- c(2001)
+      # fam_type <- 'Spouses and common law partners'
       
       # get family input 
       fam_type <- input$fam_type
@@ -891,7 +891,28 @@ server <- function(input, output) {
         color = "white"
       )
       
+      year_value <- unique(temp_melt$year)
       
+      if(length(year_value) == 1){
+        title_name <- year_value
+        title_f <- list(
+          family = "Ubuntu",
+          size = 12,
+          color = "#1F2023"
+        )
+        
+        
+      } else {
+        year_value <- paste0(year_value, collapse = ', ')
+        title_name <- paste0('Average for years:  ', year_value)
+        
+        title_f <- list(
+          family = "Ubuntu",
+          size = 11,
+          color = "#1F2023"
+        )
+        
+      }
      
       cols <- c('#FF4C4C','#28B463')
       p1 <-  plot_ly(temp_melt,labels = ~variable, values = ~value ,
@@ -1045,7 +1066,28 @@ server <- function(input, output) {
         mutate(pop_per =round((value/tot_pop)*100,  2))
       temp_dat$year <- as.factor(temp_dat$year)
       
+      year_value <- unique(temp_dat$year)
+      
+      f <- list(
+        family = "Ubuntu",
+        size = 20,
+        color = "white"
+      )
+      
+      
+      
+      
       if(length(years) == 1){
+        
+        
+          title_name <- year_value
+          title_f <- list(
+            family = "Ubuntu",
+            size = 12,
+            color = "#1F2023"
+          )
+          
+       
         cols <- c('#FF4C4C','#28B463')
         p1 <-  plot_ly(temp_dat, labels = ~variable, values = ~value ,
                        type ='pie',
@@ -1069,6 +1111,15 @@ server <- function(input, output) {
         
         p1
       } else {
+        
+        year_value <- paste0(year_value, collapse = ', ')
+        title_name <- paste0('Average for years:  ', year_value)
+        
+        title_f <- list(
+          family = "Ubuntu",
+          size = 11,
+          color = "#1F2023"
+        )
         # plot dataseries="[{targetAxisIndex:0, 
         cols <- c('#28B463','#FF4C4C', "grey" )
         g <- ggplot(data = temp_dat,
