@@ -3243,7 +3243,7 @@ server <- function(input, output) {
         temp_final <- as.data.frame(temp)
         temp_final$`Percent low income status` <-
           round((temp_final$`Low income (LICO before tax)`/temp_final$Population)*100,2)
-
+        save(temp_final, file = 'x.RData')
         leaf_income(temp_final, income_status_map_demo_filter =  income_status_map_demo_filter )
       }
 

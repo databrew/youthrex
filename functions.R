@@ -413,8 +413,8 @@ pie_plotly_demo <- function(temp_dat, hole_value){
 
 
 leaf_income <- function(x, 
-                 tile = 'OpenStreetMap.Mapnik', 
-                 palette = 'Reds',
+                 tile = 'OpenStreetMap', 
+                 palette = 'Oranges',
                  income_status_map_demo_filter,
                  show_legend = TRUE,
                  title = NULL){
@@ -439,7 +439,9 @@ leaf_income <- function(x,
   bins[length(bins)] <- bins[length(bins)] +1
   
   
-  pal <- colorBin(palette, domain = shp@data$`Percent low income status`, bins = bins,
+  pal <- colorBin(palette, domain = shp@data$`Percent low income status`, 
+                  # bins = bins,
+                  bins = 7,
                   na.color = NA)
   
   # Create a popup
@@ -457,20 +459,22 @@ leaf_income <- function(x,
                 position = "topright",
                 title = paste0('% low income status ' ,income_status_map_demo_filter))
   }
+  print('shp is')
+  print(head(shp@data))
   l <- l %>%
     addPolygons(fillColor = ~pal(`Percent low income status`),
                 fillOpacity = 0.8,
                 color = "grey",
                 weight = 1,
                 # popup = popper,
-                highlight = highlightOptions(
-                  weight = 5,
-                  color = "white",
-                  dashArray = "",
-                  fillOpacity = 0.7,
-                  bringToFront = TRUE),
+                # highlight = highlightOptions(
+                #   weight = 5,
+                #   color = "white",
+                #   dashArray = "",
+                #   fillOpacity = 0.7,
+                #   bringToFront = TRUE),
                 label = popper,
-                labelOptions = labelOptions(noHide = T, direction = "auto",
+                labelOptions = labelOptions(noHide = FALSE, direction = "auto",
                                             style = list(
                                               "color" = "#191A1C",
                                               "box-shadow" = "3px 3px rgba(0,0,0,0.25)",
@@ -483,12 +487,9 @@ leaf_income <- function(x,
 }
 
 leaf_basic_income <- function(shp = ont2, tile, palette){
-  tile = 'OpenStreetMap.Mapnik'
-  palette = 'Purples'
+
   l <- leaflet(data = shp) %>%
-    addPolylines(color = NA, opacity = 0.5, weight = 0.2) %>%
-    addProviderTiles(tile,
-                     options = providerTileOptions(minZoom = 4, maxZoom = 10)) 
+    addProviderTiles(tile) 
   return(l)
 }
 
