@@ -15,7 +15,7 @@ library(reshape2)
 
 
 leaf <- function(x, 
-                 tile = 'OpenStreetMap.Mapnik', 
+                 tile = 'OpenStreetMap', 
                  palette = 'Oranges',
                  show_legend = TRUE,
                  years,
@@ -41,14 +41,16 @@ leaf <- function(x,
   # pal <- colorQuantile("Blues", NULL, n = 9)
   # bins <- round(c(quantile(shp@data$value, na.rm = TRUE), Inf))
   # insure that the full range of numbers is captured by aplying floor and then adding one to the max.
-  bins <- unique(floor(c(quantile(shp@data$per_youth, 
-                                  na.rm = TRUE, c(seq(0, 1, 0.15), 1)))), 2)
+  # bins <- unique(floor(c(quantile(shp@data$per_youth, 
+  #                                 na.rm = TRUE, c(seq(0, 1, 0.15), 1)))), 2)
+  # 
+  # bins[length(bins)] <- bins[length(bins)] +1
   
-  bins[length(bins)] <- bins[length(bins)] +1
   
-  
-  pal <- colorBin(palette, domain = shp@data$per_youth, bins = bins,
-                  na.color = NA)
+  pal <- colorBin(palette, domain = shp@data$per_youth, 
+                  # bins = bins,
+                  bins = 7,
+                  na.color = 'grey')
   
   if(length(years) > 1){
     # Create a popup
@@ -74,19 +76,21 @@ leaf <- function(x,
                 title = '% youth (15-29)')
   }
   l <- l %>%
-    addPolygons(fillColor = ~pal(per_youth),
+    addPolygons(data = shp, 
+                fillColor = ~pal(per_youth),
                 fillOpacity = 0.8,
-                color = "black",
+                color = "white",
                 weight = 1,
                 # popup = popper,
-                highlight = highlightOptions(
-                  weight = 5,
-                  color = "white",
-                  dashArray = "",
-                  fillOpacity = 0.7,
-                  bringToFront = TRUE),
+                # highlight = highlightOptions(
+                #   weight = 5,
+                #   color = "white",
+                #   dashArray = "",
+                #   fillOpacity = 0.7,
+                #   bringToFront = TRUE),
                 label = popper,
-                labelOptions = labelOptions(noHide = T, direction = "auto",
+                labelOptions = labelOptions(#noHide = T, 
+                                            direction = "auto",
                                             style = list(
                                               "color" = "#191A1C",
                                               "box-shadow" = "3px 3px rgba(0,0,0,0.25)",
@@ -101,13 +105,8 @@ leaf <- function(x,
 
 # Create a basic leaflet with nothing else on it
 leaf_basic <- function(shp = ont2, tile, palette){
-  tile = 'OpenStreetMap.Mapnik'
-  palette = 'Oranges'
-  l <- leaflet(data = shp) %>%
-    addPolylines(color = NA, opacity = 0.5, weight = 0.2) %>%
-    addProviderTiles(tile,
-                     options = providerTileOptions(minZoom = 4, maxZoom = 10)) 
-  return(l)
+  leaflet(data = shp) %>%
+    addProviderTiles(provider = tile)
 }
 
 
@@ -341,10 +340,28 @@ pie_plotly_demo <- function(temp_dat, hole_value){
   # get font list
   
   year_value <- unique(temp_dat$year)
-  year_value <- paste0(year_value, collapse = ', ')
-  title_name <- paste0('Average for years:  ', year_value)
-
   
+  if(length(year_value) == 1){
+    title_name <- year_value
+    title_f <- list(
+      family = "Ubuntu",
+      size = 12,
+      color = "#1F2023"
+    )
+    
+    
+  } else {
+    year_value <- paste0(year_value, collapse = ', ')
+    title_name <- paste0('Average for years:  ', year_value)
+    
+    title_f <- list(
+      family = "Ubuntu",
+      size = 11,
+      color = "#1F2023"
+    )
+    
+  }
+
   # rename variable fo plotting 
   colnames(temp_dat)[2] <- 'V2'
   
@@ -359,23 +376,13 @@ pie_plotly_demo <- function(temp_dat, hole_value){
      group_by(V2) %>%
      summarise(mean_pop = mean(Population, na.rm = T),
                mean_per = mean(pop_per, na.rm = T))
-  
-   
+
   f <- list(
     family = "Ubuntu",
     size = 20,
     color = "white"
   )
-  
-  
-  title_f <- list(
-    family = "Ubuntu",
-    size = 11,
-    color = "#1F2023"
-  )
-  
-  
-  
+ 
   p1 <-  plot_ly(temp_dat,labels = ~V2, values = ~mean_pop,
                  type ='pie',
                  hole = hole_value,
@@ -384,14 +391,14 @@ pie_plotly_demo <- function(temp_dat, hole_value){
                  insidetextfont = f,
                  hoverinfo = 'label+value')  %>%
     
-      config(displayModeBar = F) %>%
+    config(displayModeBar = F) %>%
     
     layout(title = title_name, font = title_f, showlegend = F,
            annotations = list(
              showarrow = FALSE,
              text = '',
-           font = list(color = '#1F2023',
-                       family = 'sans serif')), 
+             font = list(color = '#1F2023',
+                         family = 'sans serif')), 
            xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
            yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
   
@@ -401,9 +408,9 @@ pie_plotly_demo <- function(temp_dat, hole_value){
 
 
 leaf_income <- function(x, 
-                 tile = 'OpenStreetMap.Mapnik', 
-                 palette = 'Reds',
-                 # income_status_map_demo_filter,
+                 tile = 'OpenStreetMap', 
+                 palette = 'Oranges',
+                 income_status_map_demo_filter,
                  show_legend = TRUE,
                  title = NULL){
   
@@ -427,7 +434,9 @@ leaf_income <- function(x,
   bins[length(bins)] <- bins[length(bins)] +1
   
   
-  pal <- colorBin(palette, domain = shp@data$`Percent low income status`, bins = bins,
+  pal <- colorBin(palette, domain = shp@data$`Percent low income status`, 
+                  # bins = bins,
+                  bins = 7,
                   na.color = NA)
   
   # Create a popup
@@ -443,23 +452,24 @@ leaf_income <- function(x,
                 values =~`Percent low income status`, 
                 opacity = 0.8, 
                 position = "topright",
-                title = paste0('% low income status'))
-                               #,income_status_map_demo_filter))
+                title = paste0('% low income status ' ,income_status_map_demo_filter))
   }
+  print('shp is')
+  print(head(shp@data))
   l <- l %>%
     addPolygons(fillColor = ~pal(`Percent low income status`),
                 fillOpacity = 0.8,
                 color = "grey",
                 weight = 1,
                 # popup = popper,
-                highlight = highlightOptions(
-                  weight = 5,
-                  color = "white",
-                  dashArray = "",
-                  fillOpacity = 0.7,
-                  bringToFront = TRUE),
+                # highlight = highlightOptions(
+                #   weight = 5,
+                #   color = "white",
+                #   dashArray = "",
+                #   fillOpacity = 0.7,
+                #   bringToFront = TRUE),
                 label = popper,
-                labelOptions = labelOptions(noHide = T, direction = "auto",
+                labelOptions = labelOptions(noHide = FALSE, direction = "auto",
                                             style = list(
                                               "color" = "#191A1C",
                                               "box-shadow" = "3px 3px rgba(0,0,0,0.25)",
@@ -472,12 +482,9 @@ leaf_income <- function(x,
 }
 
 leaf_basic_income <- function(shp = ont2, tile, palette){
-  tile = 'OpenStreetMap.Mapnik'
-  palette = 'Purples'
+
   l <- leaflet(data = shp) %>%
-    addPolylines(color = NA, opacity = 0.5, weight = 0.2) %>%
-    addProviderTiles(tile,
-                     options = providerTileOptions(minZoom = 4, maxZoom = 10)) 
+    addProviderTiles(tile) 
   return(l)
 }
 

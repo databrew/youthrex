@@ -18,23 +18,25 @@ source('functions.R')
 ##########
 # https://drive.google.com/file/d/1vew1zjUFJwR6sQJY0OxaczcddW_fJ1fH/view
 
-if('map_data.RData' %in% dir('data/geo')){
-  load('data/geo/map_data.RData')
+if('map_dat.RData' %in% dir('data/geo')){
+  load('data/geo/map_dat.RData')
 } else {
   # Get a map of canada
   can2 <- raster::getData(name = 'GADM', country = 'CAN', level = 2)
   # Subset to just Toronto
   ont2 <- can2[can2@data$NAME_1 == 'Ontario',]
-  ont2 <- rmapshaper::ms_simplify(ont2)
-  # Create a crazy-ass looking version
+  # Create a more simplified version of ont2 for faster mapping
+  ont2 <- rmapshaper::ms_simplify(ont2, keep_shapes = TRUE)  # Create a crazy-ass looking version
   ont_crazy <- thinnedSpatialPoly(SP = ont2,
                                   minarea = 0,
                                   tolerance = 5,
                                   topologyPreserve = TRUE)
   # Save for later
   save(ont2, ont_crazy,
-       file = 'data/geo/map_data.RData')
+       file = 'data/geo/map_dat.RData')
 }
+
+
 
 # Get a fortified version of ont
 ont_fortified <- broom::tidy(ont2)
@@ -441,4 +443,5 @@ census_pop$Geography <- unlist(lapply(strsplit(census_pop$Geography, ',', fixed 
 # remove trailling and leading spaces 
 census_pop$Geography <- trimws(census_pop$Geography, 'both')
 
-
+# Pre-make a leaflet object
+leafy <- leaf_basic(shp = ont2, tile = 'OpenStreetMap', palette = 'Oranges')
