@@ -1065,7 +1065,7 @@ server <- function(input, output) {
         group_by(year) %>%
         mutate(tot_pop = sum(value))  %>%
         group_by(year, variable) %>%
-        mutate(pop_per =round((value/tot_pop)*100,  2))
+        mutate(pop_per =round(value/tot_pop,  2))
       temp_dat$year <- as.factor(temp_dat$year)
       
       year_value <- unique(temp_dat$year)
@@ -1131,8 +1131,9 @@ server <- function(input, output) {
                         text = paste('Total population 15-19 year old: ', tot_pop,
                                      '<br>', pop_per , '%', as.factor(variable)))) +
           geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) +
+          scale_y_continuous(labels = scales::percent) +
           # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
-          labs(x = '', y = '%') + scale_fill_manual(name = '',
+          labs(x = '', y = ' ') + scale_fill_manual(name = '',
                                                     values = cols)
         g <- g  + theme_bw(base_size = 12, base_family = 'Ubuntu') 
         
