@@ -275,6 +275,15 @@ prettify_scroll <- function (the_table, remove_underscores_columns = TRUE, cap_c
 
 
 
+# default colors for plotly in order
+#1f77b4 or rgb(31, 119, 180)
+#ff7f0e or rgb(255, 127, 14)
+#2ca02c or rgb(44, 160, 44)
+#d62728 or rgb(214, 39, 40)
+#9467bd or rgb(148, 103, 189)
+#8c564b or rgb(140, 86, 75)
+
+
 # barplot with ggplotly
 # temp_dat <- temp
 bar_plotly_demo <- function(temp_dat, no_legend){
@@ -289,11 +298,11 @@ bar_plotly_demo <- function(temp_dat, no_legend){
     group_by(year) %>%
     mutate(tot_pop = sum(Population))  %>%
     group_by(year, V2) %>%
-    mutate(pop_per =round((Population/tot_pop)*100,  2))
+    mutate(pop_per =round(Population/tot_pop,  2))
   temp_dat$year <- as.factor(temp_dat$year)
   
   if(length(unique(temp_dat$V2)) == 2) {
-    cols <- c('blue', 'darkgreen')
+    cols <- c('#1f77b4', '#2ca02c')
   } else {
     # plot data
     cols <- colorRampPalette(brewer.pal(9, 'Greens'))(length(unique(temp_dat$V2)))
@@ -311,12 +320,12 @@ bar_plotly_demo <- function(temp_dat, no_legend){
                                '<br>', V2,
                                '<br>Year: ', as.factor(year)))) +
     geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) +
-    theme(legend.position = 'bottom') +
+    theme(legend.position = 'bottom') + scale_y_continuous(labels = scales::percent) +
     # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
-    labs(x = '', y = '%', title = title_name) +  theme(plot.title = element_text(size=12)) 
+    labs(x = '', y = ' ', title = title_name) +  theme(plot.title = element_text(size=12)) 
   
     g <- g + scale_fill_manual(name = '',
-                               values = cols) + theme_bw(base_size = 10, base_family = 'Ubuntu') 
+                               values = cols) + theme_bw(base_size = 13, base_family = 'Ubuntu') 
     
     
      
