@@ -2127,6 +2127,7 @@ server <- function(input, output) {
       
       new_census <- new_census %>% filter(Geography %in% location) %>%
         filter(year %in% years) %>% filter(grepl('Total',`Age group`))
+      
       # 
       if(house_demo_variable == 'All youth'){
         # get data
