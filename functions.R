@@ -500,6 +500,27 @@ leaf_basic_income <- function(shp = ont2, tile, palette){
   return(l)
 }
 
+
+# function for line chart in employment
+emp_line <- function(temp_dat) {
+  # plot data
+  g <- ggplot(data = temp_dat,
+              aes(x = year,
+                  y = value,
+                  group = variable,
+                  colour = variable,
+                  text = paste('<br>', value , as.factor(variable)))) +
+    geom_point(size = 4) +
+    geom_line(size = 2, alpha = 0.8) +
+    scale_color_manual(name = '', 
+                       values = c('grey', 'black')) + scale_y_continuous(labels = scales::percent) +
+    # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
+    labs(x = '', y = ' ', title ='') 
+  g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu')
+  
+  return(g)
+}
+
 # # get data by year 
 # temp_2011 <- temp_melt[temp_melt$year == '2011',]
 # temp_2016 <- temp_melt[temp_melt$year == '2016',]

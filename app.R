@@ -360,6 +360,7 @@ ui <- dashboardPage(skin = 'blue',
                                    box(
                                      title = 'Aboriginal unemployment rate: ',
                                      solidHeader = FALSE,
+                                     background = "aqua",
                                      width = 12,
                                      collapsible = TRUE,
                                      collapsed = TRUE,
@@ -370,6 +371,7 @@ ui <- dashboardPage(skin = 'blue',
                                    box(
                                      title = "Non-Aboriginal unemployment rate: ",
                                      solidHeader = FALSE,
+                                     background = "yellow",
                                      width = 12,
                                      collapsible = TRUE,
                                      collapsed = TRUE,
@@ -1812,6 +1814,12 @@ server <- function(input, output) {
     temp <- temp %>% filter(`Age group` %in% age_group)
     temp$year <- as.factor(temp$year)
     # double axis chart
+    
+    if(length(temp$year) == 1){
+      point_size <- 40
+    } else {
+      point_size <- 15
+    }
     line <-
       gvisLineChart(temp, xvar="year", yvar=c('Unemployed', 'Unemployment rate %'),
                     options=list(title=paste0(age_group, ' years old'),
@@ -1819,7 +1827,7 @@ server <- function(input, output) {
                                  fontName:'Ubuntu',
                                  fontSize:18}",
                                  curveType="function",
-                                 pointSize=15,
+                                 pointSize=point_size,
                                  series="[{targetAxisIndex:0,
                                  color:'#FFA500'},
                                  {targetAxisIndex:1,
@@ -1908,7 +1916,14 @@ server <- function(input, output) {
     temp <- temp %>% filter(Sex %in% gen_group)
     temp$`Unemployment rate %` <- round(temp$`Unemployment rate %`, 2)
     temp$year <- as.factor(temp$year)
-    # double axis chart
+    
+    if(length(temp$year) == 1){
+      point_size <- 40
+    } else {
+      point_size <- 15
+    }# double axis chart
+    
+    
     line_gen <-
       gvisLineChart(temp, xvar="year", yvar=c('Unemployed', 'Unemployment rate %'),
                     options=list(title=paste0(gen_group),
@@ -1916,7 +1931,7 @@ server <- function(input, output) {
                                  fontName:'Ubuntu',
                                  fontSize:18}",
                                  curveType="function",
-                                 pointSize=15,
+                                 pointSize=point_size,
                                  series="[{targetAxisIndex:0,
                                  color:'#1799B5'},
                                  {targetAxisIndex:1,
@@ -2137,7 +2152,7 @@ server <- function(input, output) {
           group_by(year) %>%
           mutate(tot_pop = sum(value))  %>%
           group_by(year, variable) %>%
-          mutate(pop_per = round((value/tot_pop)*100,2))
+          mutate(pop_per = round(value/tot_pop ,2))
         
         # plot data
         cols <- colorRampPalette(brewer.pal(9, 'Reds'))(length(unique(temp_dat$variable)))
@@ -2148,9 +2163,9 @@ server <- function(input, output) {
                         text = paste('Total population 15-29 year old: ', tot_pop,
                                      '<br>', pop_per , '%', as.factor(variable)))) +
           scale_fill_manual(name = '',
-                            values = cols) +
+                            values = cols) + scale_y_continuous(labels = scales::percent) +
           geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) + 
-          theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = '')
+          theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = ' ')
         
         
         final_plot <-  plotly::ggplotly(g, tooltip = 'text') %>%
@@ -2159,7 +2174,7 @@ server <- function(input, output) {
             legend = list(
               orientation = "l",
               x = 0,
-              y = -0.5))
+              y = -0.6))
       }
       
       if(house_demo_variable == 'Sex') {
@@ -2188,7 +2203,7 @@ server <- function(input, output) {
           group_by(year, V2) %>%
           mutate(tot_pop = sum(value))  %>%
           group_by(year, V2, variable) %>%
-          mutate(pop_per = round((value/tot_pop)*100,2))
+          mutate(pop_per = round(value/tot_pop,2))
         
         
         # plot data
@@ -2200,9 +2215,9 @@ server <- function(input, output) {
                         text = paste('Total population 15-29 year old: ', tot_pop,
                                      '<br>', pop_per , '%', as.factor(variable)))) +
           scale_fill_manual(name = '',
-                            values = cols) +
+                            values = cols) + scale_y_continuous(labels = scales::percent) +
           geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) + 
-          theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = '')
+          theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = ' ')
         
         g <- g  + facet_wrap(~V2)
         
@@ -2244,7 +2259,7 @@ server <- function(input, output) {
           group_by(year, V2) %>%
           mutate(tot_pop = sum(value))  %>%
           group_by(year, V2, variable) %>%
-          mutate(pop_per = round((value/tot_pop)*100,2))
+          mutate(pop_per = round(value/tot_pop, 2))
         
         
         # plot data
@@ -2256,9 +2271,9 @@ server <- function(input, output) {
                         text = paste('Total population 15-29 year old: ', tot_pop,
                                      '<br>', pop_per , '%', as.factor(variable)))) +
           scale_fill_manual(name = '',
-                            values = cols) +
+                            values = cols) + scale_y_continuous(labels = scales::percent) +
           geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) + 
-          theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = '')
+          theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = ' ')
         
         g <- g  + facet_wrap(~V2)
         
@@ -2308,7 +2323,7 @@ server <- function(input, output) {
             group_by(year, V2) %>%
             mutate(tot_pop = sum(value))  %>%
             group_by(year, V2, variable) %>%
-            mutate(pop_per = round((value/tot_pop)*100,2))
+            mutate(pop_per = round(value/tot_pop,2))
           
           temp_dat <- temp_dat %>% filter(V2 %in% owner_plot_vm_filter)
           # plot data
@@ -2320,9 +2335,9 @@ server <- function(input, output) {
                           text = paste('Total population 15-29 year old: ', tot_pop,
                                        '<br>', pop_per , '%', as.factor(variable)))) +
             scale_fill_manual(name = '',
-                              values = cols) +
+                              values = cols) + scale_y_continuous(labels = scales::percent)+ 
             geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) +
-            theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = '')
+            theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = ' ')
           
           if(length(owner_plot_vm_filter) > 1){
             g <- g  + facet_wrap(~V2) + 
@@ -2372,7 +2387,7 @@ server <- function(input, output) {
         group_by(year, V2) %>%
         mutate(tot_pop = sum(value))  %>%
         group_by(year, V2, variable) %>%
-        mutate(pop_per = round((value/tot_pop)*100,2))
+        mutate(pop_per = round(value/tot_pop,2))
       
       
       # plot data
@@ -2384,9 +2399,9 @@ server <- function(input, output) {
                       text = paste('Total population 15-29 year old: ', tot_pop,
                                    '<br>', pop_per , '%', as.factor(variable)))) +
         scale_fill_manual(name = '',
-                          values = cols) +
+                          values = cols) + scale_y_continuous(labels = scales::percent) +
         geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) + 
-        theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = '')
+        theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = ' ')
       
       g <- g  + facet_wrap(~V2)
       
@@ -2678,25 +2693,15 @@ server <- function(input, output) {
           temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
         
         # get percentages 
-        temp$`% Subsidized` <- round((temp$`Subsidized housing`/temp$`Living in rented dwelling`)*100,2)
-        temp$`% Not subisdized` <- round((temp$`Non-subsidized housing`/temp$`Living in rented dwelling`)*100,2)
+        temp$`Subsidized` <- round(temp$`Subsidized housing`/temp$`Living in rented dwelling`,2)
+        temp$`Not subisdized` <- round(temp$`Non-subsidized housing`/temp$`Living in rented dwelling`,2)
         temp$`Subsidized housing` <- temp$`Non-subsidized housing` <- temp$`Living in rented dwelling` <- NULL
         temp_melt <- melt(temp, id.vars = 'year')
         
         temp_melt$year <- as.factor(temp_melt$year)
         
-        # plot data
-        g <- ggplot(data = temp_melt,
-                    aes(x = year,
-                        y = value,
-                        fill = variable, 
-                        text = paste('<br>', value , as.factor(variable)))) +
-          geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) +
-          scale_fill_manual(name = '', 
-                            values = c('grey', 'black')) +
-          # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
-          labs(x = '', y = '', title ='') 
-        g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') 
+        temp_plot <- emp_line(temp_melt)
+        g <- temp_plot 
         
         sub_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
           config(displayModeBar = F) %>% 
@@ -2721,28 +2726,15 @@ server <- function(input, output) {
           temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
         
         # get percentages 
-        temp$`% Subsidized` <- round((temp$`Subsidized housing`/temp$`Living in rented dwelling`)*100,2)
-        temp$`% Not subisdized` <- round((temp$`Non-subsidized housing`/temp$`Living in rented dwelling`)*100,2)
+        temp$`Subsidized` <- round(temp$`Subsidized housing`/temp$`Living in rented dwelling`,2)
+        temp$`Not subisdized` <- round(temp$`Non-subsidized housing`/temp$`Living in rented dwelling`,2)
         temp$`Subsidized housing` <- temp$`Non-subsidized housing` <- temp$`Living in rented dwelling` <- NULL
         temp_melt <- melt(temp, id.vars =c('year', 'Sex'))
         
         temp_melt$year <- as.factor(temp_melt$year)
         
-        # plot data
-        g <- ggplot(data = temp_melt,
-                    aes(x = year,
-                        y = value,
-                        group = variable,
-                        colour = variable,
-                        text = paste('<br>', value , as.factor(variable)))) +
-          geom_point(size = 4) +
-          geom_line(size = 2, alpha = 0.8) +
-          scale_color_manual(name = '', 
-                             values = c('grey', 'black')) +
-          # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
-          labs(x = '', y = '', title ='') 
-        g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') +
-          facet_wrap(~Sex)
+        temp_plot <- emp_line(temp_melt)
+        g <- temp_plot + facet_wrap(~Sex)
         
         sub_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
           config(displayModeBar = F) %>% 
@@ -2766,28 +2758,15 @@ server <- function(input, output) {
           temp$`Aboriginal identity` <- temp$`Sex` <- temp$`Visible minority` <-   NULL
         
         # get percentages 
-        temp$`% Subsidized` <- round((temp$`Subsidized housing`/temp$`Living in rented dwelling`)*100,2)
-        temp$`% Not subisdized` <- round((temp$`Non-subsidized housing`/temp$`Living in rented dwelling`)*100,2)
+        temp$`Subsidized` <- round(temp$`Subsidized housing`/temp$`Living in rented dwelling`,2)
+        temp$`Not subisdized` <- round(temp$`Non-subsidized housing`/temp$`Living in rented dwelling`,2)
         temp$`Subsidized housing` <- temp$`Non-subsidized housing` <- temp$`Living in rented dwelling` <- NULL
         temp_melt <- melt(temp, id.vars =c('year', 'Place of Birth'))
         
         temp_melt$year <- as.factor(temp_melt$year)
         
-        # plot data
-        g <- ggplot(data = temp_melt,
-                    aes(x = year,
-                        y = value,
-                        group = variable,
-                        colour = variable,
-                        text = paste('<br>', value , as.factor(variable)))) +
-          geom_point(size = 4) +
-          geom_line(size = 2, alpha = 0.8) +
-          scale_color_manual(name = '', 
-                             values = c('grey', 'black')) +
-          # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
-          labs(x = '', y = '', title ='') 
-        g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') +
-          facet_wrap(~`Place of Birth`)
+        temp_plot <- emp_line(temp_melt)
+        g <- temp_plot + facet_wrap(~`Place of Birth`)
         
         sub_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
           config(displayModeBar = F) %>% 
@@ -2815,8 +2794,8 @@ server <- function(input, output) {
             temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Sex` <-   NULL
           
           # get percentages 
-          temp$`% Subsidized` <- round((temp$`Subsidized housing`/temp$`Living in rented dwelling`)*100,2)
-          temp$`% Not subisdized` <- round((temp$`Non-subsidized housing`/temp$`Living in rented dwelling`)*100,2)
+          temp$`Subsidized` <- round(temp$`Subsidized housing`/temp$`Living in rented dwelling`,2)
+          temp$`Not subisdized` <- round(temp$`Non-subsidized housing`/temp$`Living in rented dwelling` ,2)
           temp$`Subsidized housing` <- temp$`Non-subsidized housing` <- temp$`Living in rented dwelling` <- NULL
           # remove Arab/West Asian
           temp <- temp[temp$`Visible minority` != 'Arab/West Asian',]
@@ -2826,20 +2805,8 @@ server <- function(input, output) {
           
           temp_melt$year <- as.factor(temp_melt$year)
           
-          # plot data
-          g <- ggplot(data = temp_melt,
-                      aes(x = year,
-                          y = value,
-                          group = variable,
-                          colour = variable,
-                          text = paste('<br>', value , as.factor(variable)))) +
-            geom_point(size = 4) +
-            geom_line(size = 2, alpha = 0.8) +
-            scale_color_manual(name = '', 
-                               values = c('grey', 'black')) +
-            # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
-            labs(x = '', y = '', title ='') 
-          g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') +
+          temp_plot <- emp_line(temp_melt)
+          g <- temp_plot +
             facet_wrap(~`Visible minority`)
           
           sub_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
@@ -2869,28 +2836,15 @@ server <- function(input, output) {
         temp$`Sex` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
       
       # get percentages 
-      temp$`% Subsidized` <- round((temp$`Subsidized housing`/temp$`Living in rented dwelling`)*100,2)
-      temp$`% Not subisdized` <- round((temp$`Non-subsidized housing`/temp$`Living in rented dwelling`)*100,2)
+      temp$`% Subsidized` <- round(temp$`Subsidized housing`/temp$`Living in rented dwelling`,2)
+      temp$`% Not subisdized` <- round(temp$`Non-subsidized housing`/temp$`Living in rented dwelling`,2)
       temp$`Subsidized housing` <- temp$`Non-subsidized housing` <- temp$`Living in rented dwelling` <- NULL
       temp_melt <- melt(temp, id.vars =c('year', 'Aboriginal identity'))
       
       temp_melt$year <- as.factor(temp_melt$year)
       
-      # plot data
-      g <- ggplot(data = temp_melt,
-                  aes(x = year,
-                      y = value,
-                      group = variable,
-                      colour = variable,
-                      text = paste('<br>', value , as.factor(variable)))) +
-        geom_point(size = 4) +
-        geom_line(size = 2, alpha = 0.8) +
-        scale_color_manual(name = '', 
-                           values = c('grey', 'black')) +
-        # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
-        labs(x = '', y = '', title ='') 
-      g <- g  + theme_bw(base_size = 10, base_family = 'Ubuntu') +
-        facet_wrap(~`Aboriginal identity`)
+      temp_plot <- emp_line(temp_melt)
+      g <- temp_plot + facet_wrap(~`Aboriginal identity`)
       sub_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
         config(displayModeBar = F) %>% 
         layout( 
@@ -2898,10 +2852,8 @@ server <- function(input, output) {
             orientation = "l",
             x = 0,
             y = -0.4))
-      
     }
-    
-    
+ 
     sub_plot
     
   })
