@@ -889,7 +889,7 @@ server <- function(input, output) {
 
       f <- list(
         family = "Ubuntu",
-        size = 15,
+        size = 20,
         color = "white"
       )
       
@@ -916,7 +916,7 @@ server <- function(input, output) {
         
       }
      
-      cols <- c('#FF4C4C','#28B463')
+      cols <- c("#9999CC",'#28B463')
       p1 <-  plot_ly(temp_melt,labels = ~variable, values = ~value ,
                      type ='pie',
                      hole = 0.5,
@@ -988,7 +988,7 @@ server <- function(input, output) {
                                    series="[{targetAxisIndex:0, 
                                    color:'#28B463'}, 
                                    {targetAxisIndex:1,
-                                   color:'#FF4C4C'}]",
+                                   color:'#9999CC'}]",
                                    vAxes="[{title:'Population',
                                    format:'##,###',
                                    titleTextStyle: {color: 'green'},
@@ -996,8 +996,8 @@ server <- function(input, output) {
                                    textPosition: 'out'}, 
                                    {title:'Percent',
                                    format:'#.##',
-                                   titleTextStyle: {color: '#FF4C4C'},  
-                                   textStyle:{color: '#FF4C4C'},
+                                   titleTextStyle: {color: '#9999CC'},  
+                                   textStyle:{color: '#9999CC'},
                                    textPosition: 'out'}]",
                                    hAxes="[{title:'Year',
                                    textPosition: 'out'}]",
@@ -1090,7 +1090,7 @@ server <- function(input, output) {
           )
           
        
-        cols <- c('#FF4C4C','#28B463')
+        cols <- c('#28B463',"#9999CC")
         p1 <-  plot_ly(temp_dat, labels = ~variable, values = ~value ,
                        type ='pie',
                        hole = 0.5,
@@ -1123,7 +1123,7 @@ server <- function(input, output) {
           color = "#1F2023"
         )
         # plot dataseries="[{targetAxisIndex:0, 
-        cols <- c('#28B463','#FF4C4C', "grey" )
+        cols <- c('#28B463',"#9999CC", "grey" )
         g <- ggplot(data = temp_dat,
                     aes(x = year,
                         y = pop_per,
@@ -1215,14 +1215,14 @@ server <- function(input, output) {
       if(length(years)==1){
         if(fam_chart_table_all_or_vm){
           # plot all vm
-          cols <- c('darkgreen', 'black')
+          cols <- c('darkgreen', "#9999CC")
           g <- ggplot(data = temp_all,
                       aes(x = `Visible minority`,
                           y = per,
                           text = paste('Total population of', `Visible minority`, ': ', Population,
                                        '<br>', (per)*100, '%'))) +
             geom_bar(stat = 'identity', alpha = 0.7,fill = 'darkgreen') + theme_bw(base_size = 16, base_family = 'Ubuntu')  +
-            labs(x = '', y = '') + ggtitle(paste0('Youth (25 to 29) who are ', which_fam_type)) + 
+            labs(x = '', y = ' ') + ggtitle(paste0('Youth (25 to 29) ', which_fam_type)) + 
             scale_y_continuous(labels = scales::percent)
           
           g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') 
@@ -1232,14 +1232,14 @@ server <- function(input, output) {
           temp_vm$`Visible minority` <- gsub('Visible minority, n.i.e.', 'VM N.I.E', temp_vm$`Visible minority`)
           temp_vm$`Visible minority`<- gsub('Multiple visible minority', 'Multiple VM', temp_vm$`Visible minority`)
           
-          cols <- colorRampPalette(brewer.pal(9, 'Greens'))(length(unique(temp_vm$`Visible minority`)))
+          cols <- colorRampPalette(brewer.pal(9, 'Set1'))(length(unique(temp_vm$`Visible minority`)))
           g <- ggplot(data = temp_vm,
                       aes(x = as.factor(`Visible minority`),
                           y = per,
                           text = paste('Total population of', `Visible minority`, ': ', Population,
                                        '<br>', (per)*100 , '%'))) +  theme_bw(base_size = 8, base_family = 'Ubuntu') +
             geom_bar(stat = 'identity', alpha = 0.7,fill = cols) + 
-            labs(x = '', y = ' ') + ggtitle(paste0('Youth (25 to 29) who are ', which_fam_type)) + 
+            labs(x = '', y = ' ') + ggtitle(paste0('Youth (25 to 29) ', which_fam_type)) + 
             scale_y_continuous(labels = scales::percent)
             
           
@@ -1249,7 +1249,7 @@ server <- function(input, output) {
       } else {
         if(fam_chart_table_all_or_vm){
           # plot all vm
-          cols <- c('darkgreen', 'black')
+          cols <- c('darkgreen', "#9999CC")
           g <- ggplot(data = temp_all,
                       aes(x = year,
                           y = per,
@@ -1259,14 +1259,14 @@ server <- function(input, output) {
                                        '<br>', (per)*100 , '%'))) +
             geom_point(size = 6) + geom_line(size = 2, alpha = 0.6) + scale_color_manual(name = '',
                                                                                          values = cols) + theme_bw(base_size = 16, base_family = 'Ubuntu')  +
-            labs(x = '', y = ' ') + ggtitle(paste0('Youth (25 to 29) who are ', which_fam_type)) + 
+            labs(x = '', y = ' ') + ggtitle(paste0('Youth (25 to 29) ', which_fam_type)) + 
             scale_y_continuous(labels = scales::percent)
           g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') 
           
           p1 <- plotly::ggplotly(g, tooltip = 'text') %>% config(displayModeBar = F) 
         } else {
           # plot data
-          cols <- colorRampPalette(brewer.pal(9, 'Greens'))(length(unique(temp_vm$`Visible minority`)))
+          cols <- colorRampPalette(brewer.pal(9, 'Set1'))(length(unique(temp_vm$`Visible minority`)))
           g <- ggplot(data = temp_vm,
                       aes(x = year,
                           y = per,
@@ -1277,7 +1277,7 @@ server <- function(input, output) {
             geom_point(size = 6) + geom_line(size = 2, alpha = 0.6) + scale_color_manual(name = '',
                                                                                          values = cols) + theme_bw(base_size = 14, base_family = 'Ubuntu')  +
             scale_y_continuous(labels = scales::percent) +
-            labs(x = '', y = ' ') + ggtitle(paste0('Youth (25 to 29) who are ', which_fam_type))
+            labs(x = '', y = ' ') + ggtitle(paste0('Youth (25 to 29) ', which_fam_type))
           
           p1 <- plotly::ggplotly(g, tooltip = 'text')  %>% config(displayModeBar = F)
         }
