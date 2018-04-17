@@ -504,6 +504,16 @@ leaf_basic_income <- function(shp = ont2, tile, palette){
 # function for line chart in employment
 emp_line <- function(temp_dat) {
   # plot data
+  
+  if(length(unique(temp_dat$year)) == 1){
+    x_label <- as.character(unique(temp_dat$year))
+    new_theme <- theme(axis.text.x=element_blank(),
+                       axis.ticks.x=element_blank()) 
+  } else {
+    x_label <- ''
+    new_theme <- NULL
+  }
+  
   g <- ggplot(data = temp_dat,
               aes(x = year,
                   y = value,
@@ -514,9 +524,7 @@ emp_line <- function(temp_dat) {
     geom_line(size = 2, alpha = 0.8) +
     scale_color_manual(name = '', 
                        values = c('grey', 'black')) + scale_y_continuous(labels = scales::percent) +
-    # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
-    labs(x = '', y = ' ', title ='') 
-  g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu')
+    labs(x = x_label, y = ' ', title ='')  + theme_bw(base_size = 14, base_family = 'Ubuntu') + new_theme
   
   return(g)
 }
