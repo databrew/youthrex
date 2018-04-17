@@ -2107,8 +2107,8 @@ server <- function(input, output) {
     
     # subset data by inputs
     location <- 'Ontario'
-    years <- c(2001, 2006, 2011, 2016)
-    house_demo_variable <- 'Visible minority'
+    years <- c(2016)
+    house_demo_variable <- 'Sex'
     # avg_years <- TRUE
     
     location <- input$location
@@ -2207,7 +2207,16 @@ server <- function(input, output) {
           mutate(pop_per = round(value/tot_pop,2))
         
         
-        # plot data
+        # set condition for if only 1 year chosen, then set x lab to that year, otherwise blank, and add the extra theme, otherwise dont
+        if(length(unique(temp_dat$year)) == 1){
+          x_label <- as.character(unique(temp_dat$year))
+          new_theme <- theme(axis.text.x=element_blank(),
+                             axis.ticks.x=element_blank()) 
+        } else {
+          x_label <- ''
+          new_theme <- NULL
+        }
+        
         cols <- colorRampPalette(brewer.pal(9, 'Reds'))(length(unique(temp_dat$variable)))
         g <- ggplot(data = temp_dat,
                     aes(x = year,
@@ -2218,9 +2227,8 @@ server <- function(input, output) {
           scale_fill_manual(name = '',
                             values = cols) + scale_y_continuous(labels = scales::percent) +
           geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) + 
-          theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = ' ')
-        
-        g <- g  + facet_wrap(~V2)
+          theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = x_label, y = ' ') + 
+          new_theme + facet_wrap(~V2) 
         
         
         final_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
@@ -2263,6 +2271,17 @@ server <- function(input, output) {
           mutate(pop_per = round(value/tot_pop, 2))
         
         
+        # set condition for if only 1 year chosen, then set x lab to that year, otherwise blank, and add the extra theme, otherwise dont
+        if(length(unique(temp_dat$year)) == 1){
+          x_label <- as.character(unique(temp_dat$year))
+          new_theme <- theme(axis.text.x=element_blank(),
+                             axis.ticks.x=element_blank()) 
+        } else {
+          x_label <- ''
+          new_theme <- NULL
+        }
+        
+        
         # plot data
         cols <- colorRampPalette(brewer.pal(9, 'Reds'))(length(unique(temp_dat$variable)))
         g <- ggplot(data = temp_dat,
@@ -2274,7 +2293,8 @@ server <- function(input, output) {
           scale_fill_manual(name = '',
                             values = cols) + scale_y_continuous(labels = scales::percent) +
           geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) + 
-          theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = ' ')
+          theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = x_label, y = ' ') +
+          new_theme
         
         g <- g  + facet_wrap(~V2)
         
@@ -2327,6 +2347,17 @@ server <- function(input, output) {
             mutate(pop_per = round(value/tot_pop,2))
           
           temp_dat <- temp_dat %>% filter(V2 %in% owner_plot_vm_filter)
+          
+          
+          # set condition for if only 1 year chosen, then set x lab to that year, otherwise blank, and add the extra theme, otherwise dont
+          if(length(unique(temp_dat$year)) == 1){
+            x_label <- as.character(unique(temp_dat$year))
+            new_theme <- theme(axis.text.x=element_blank(),
+                               axis.ticks.x=element_blank()) 
+          } else {
+            x_label <- ''
+            new_theme <- NULL
+          }
           # plot data
           cols <- colorRampPalette(brewer.pal(9, 'Reds'))(length(unique(temp_dat$variable)))
           g <- ggplot(data = temp_dat,
@@ -2342,7 +2373,8 @@ server <- function(input, output) {
           
           if(length(owner_plot_vm_filter) > 1){
             g <- g  + facet_wrap(~V2) + 
-              theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = '')
+              theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = x_label, y = '') +
+              new_theme
             
           }
           final_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
@@ -2391,6 +2423,17 @@ server <- function(input, output) {
         mutate(pop_per = round(value/tot_pop,2))
       
       
+      
+      # set condition for if only 1 year chosen, then set x lab to that year, otherwise blank, and add the extra theme, otherwise dont
+      if(length(unique(temp_dat$year)) == 1){
+        x_label <- as.character(unique(temp_dat$year))
+        new_theme <- theme(axis.text.x=element_blank(),
+                           axis.ticks.x=element_blank()) 
+      } else {
+        x_label <- ''
+        new_theme <- NULL
+      }
+      
       # plot data
       cols <- colorRampPalette(brewer.pal(9, 'Reds'))(length(unique(temp_dat$variable)))
       g <- ggplot(data = temp_dat,
@@ -2402,7 +2445,8 @@ server <- function(input, output) {
         scale_fill_manual(name = '',
                           values = cols) + scale_y_continuous(labels = scales::percent) +
         geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) + 
-        theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = ' ')
+        theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = x_label, y = ' ') +
+        new_theme
       
       g <- g  + facet_wrap(~V2)
       
@@ -2658,8 +2702,8 @@ server <- function(input, output) {
     
     # subset data by inputs
     location <- 'Ontario'
-    years <- c(2001, 2006, 2011, 2016)
-    sub_demo_variable <- 'All youth'
+    years <- c(2016)
+    sub_demo_variable <- 'Sex'
     # avg_years <- TRUE
     
     location <- input$location
@@ -2733,6 +2777,9 @@ server <- function(input, output) {
         temp_melt <- melt(temp, id.vars =c('year', 'Sex'))
         
         temp_melt$year <- as.factor(temp_melt$year)
+        
+        
+        # set condition for if only 1 year chosen, then set x lab to that year, otherwise blank, and add the extra theme, otherwise dont
         
         temp_plot <- emp_line(temp_melt)
         g <- temp_plot + facet_wrap(~Sex)
