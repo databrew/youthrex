@@ -443,8 +443,5 @@ census_pop$Geography <- unlist(lapply(strsplit(census_pop$Geography, ',', fixed 
 # remove trailling and leading spaces 
 census_pop$Geography <- trimws(census_pop$Geography, 'both')
 
-# fix year 
-census$year <- factor(census$year, levels = c('2001', '2006', '2011', '2016'))
-
 # Pre-make a leaflet object
 leafy <- leaf_basic(shp = ont2, tile = 'OpenStreetMap', palette = 'Oranges')
