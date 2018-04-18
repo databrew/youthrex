@@ -3094,12 +3094,12 @@ server <- function(input, output) {
         temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
       temp$`Average household income before tax $` <- round(temp$`Average household income before tax $`)
       
-      temp$year <- as.factor(as.character(temp$year))
       temp$`Average household income before tax $` <- round(temp$`Average household income before tax $`)
       cols <- colorRampPalette(brewer.pal(9, 'Spectral'))(length(unique(temp$Geography)))
       
       # set condition for if only 1 year is chosent 
       if(length(unique(temp$year)) == 1) {
+        temp$year <- as.factor(as.character(temp$year))
         point_size <- 13
       } else {
         point_size <- 4
@@ -3114,7 +3114,7 @@ server <- function(input, output) {
                       text = paste('<br>', `Average household income before tax $` , as.factor(Geography)))) +
         geom_point(size = point_size) +
         geom_line(size = 1, alpha = 0.8,linetype = 'dashed') +
-        geom_smooth(alpha = 0.4, size = 1) +     theme_bw(base_size = 13, base_family = 'Ubuntu') +
+        geom_smooth(alpha = 0.4, size = 1) + theme_bw(base_size = 13, base_family = 'Ubuntu') +
         scale_color_manual(name = '', 
                            values = cols) + theme(legend.position="none") +
         labs(x = '', y = '', title ='') + scale_y_continuous(labels=scales::comma) 
@@ -3165,12 +3165,12 @@ server <- function(input, output) {
     # subet by income_vm_filter to get at least one line 
     temp <- temp %>% filter(`Visible minority` %in% income_vm_filter)
     
-    temp$year <- as.factor(as.character(temp$year))
     temp$`Average household income before tax $` <- round(temp$`Average household income before tax $`)
     cols <- colorRampPalette(brewer.pal(9, 'Spectral'))(length(unique(temp$`Visible minority`)))
     
     # set condition for if only 1 year is chosent 
     if(length(unique(temp$year)) == 1) {
+      temp$year <- as.factor(as.character(temp$year))
       point_size <- 13
     } else {
       point_size <- 4
