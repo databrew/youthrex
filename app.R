@@ -434,7 +434,8 @@ ui <- dashboardPage(skin = 'blue',
                                                                   selected = 'All youth',
                                                                   multiple = FALSE),
                                                       uiOutput('sub_plot_vm_filter'),
-                                                      plotlyOutput('sub_plot')),
+                                                      plotlyOutput('sub_plot'),
+                                                      p('Subsidized housing data only available for 2011 and 2016')),
                                              tabPanel('Table',
                                                       dataTableOutput('sub_table')))
                              )
@@ -2702,7 +2703,7 @@ server <- function(input, output) {
     
     # subset data by inputs
     location <- 'Ontario'
-    years <- c(2016)
+    years <- 2016
     sub_demo_variable <- 'Sex'
     # avg_years <- TRUE
     
