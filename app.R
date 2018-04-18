@@ -488,7 +488,7 @@ ui <- dashboardPage(skin = 'blue',
                                           uiOutput('income_status_map_demo_filter_ui'))),
                           fluidRow(column(6,
                                           br(), br(), 
-                                          leafletOutput('income_status_map_all_geo')),
+                                          leafletOutput('income_status_map_all_geo', height = 450)),
                                    column(6,
                                           DT::dataTableOutput('income_status_table')))
                           
@@ -3093,7 +3093,17 @@ server <- function(input, output) {
         temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
       temp$`Average household income before tax $` <- round(temp$`Average household income before tax $`)
       
+      temp$year <- as.factor(as.character(temp$year))
+      temp$`Average household income before tax $` <- round(temp$`Average household income before tax $`)
       cols <- colorRampPalette(brewer.pal(9, 'Spectral'))(length(unique(temp$Geography)))
+      
+      # set condition for if only 1 year is chosent 
+      if(length(unique(temp$year)) == 1) {
+        point_size <- 13
+      } else {
+        point_size <- 4
+      }
+      
       # plot data
       g <- ggplot(data = temp,
                   aes(x = year,
@@ -3101,7 +3111,7 @@ server <- function(input, output) {
                       group = Geography,
                       colour = Geography,
                       text = paste('<br>', `Average household income before tax $` , as.factor(Geography)))) +
-        geom_point(size = 4) +
+        geom_point(size = point_size) +
         geom_line(size = 1, alpha = 0.8,linetype = 'dashed') +
         geom_smooth(alpha = 0.4, size = 1) +     theme_bw(base_size = 13, base_family = 'Ubuntu') +
         scale_color_manual(name = '', 
@@ -3154,7 +3164,17 @@ server <- function(input, output) {
     # subet by income_vm_filter to get at least one line 
     temp <- temp %>% filter(`Visible minority` %in% income_vm_filter)
     
+    temp$year <- as.factor(as.character(temp$year))
+    temp$`Average household income before tax $` <- round(temp$`Average household income before tax $`)
     cols <- colorRampPalette(brewer.pal(9, 'Spectral'))(length(unique(temp$`Visible minority`)))
+    
+    # set condition for if only 1 year is chosent 
+    if(length(unique(temp$year)) == 1) {
+      point_size <- 13
+    } else {
+      point_size <- 4
+    }
+    
     # plot data
     g <- ggplot(data = temp,
                 aes(x = year,
@@ -3162,7 +3182,7 @@ server <- function(input, output) {
                     group = `Visible minority`,
                     colour = `Visible minority`,
                     text = paste('<br>', `Average household income before tax $` , as.factor(`Visible minority`)))) +
-      geom_point(size = 4) +
+      geom_point(size = point_size) +
       geom_line(size = 1, alpha = 0.8,linetype = 'dashed') +
       geom_smooth(alpha = 0.4, size = 1) + theme_bw(base_size = 13, base_family = 'Ubuntu') +
       scale_color_manual(name = '', 
