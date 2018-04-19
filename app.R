@@ -3159,7 +3159,7 @@ server <- function(input, output) {
       filter(!grepl('Total', `Visible minority`)) %>%
       filter(grepl('Total', `Aboriginal identity`))
     temp$`Age group`  <- temp$geo_code <- temp$Sex <- temp$`Aboriginal identity` <- 
-      temp$`Place of Birth` <-    NULL
+      temp$`Place of Birth` <- NULL
     temp$`Average household income before tax $` <- round(temp$`Average household income before tax $`)
     
     # subet by income_vm_filter to get at least one line 
@@ -3201,7 +3201,6 @@ server <- function(input, output) {
     sub_plot
   })
   
-  
   ######## 
   # percent low income status map 
   # income_status_map_demo : radiobuttons = c('Age group', 'Sex', 'Visible minority', 'Aboriginal identity')
@@ -3209,7 +3208,6 @@ server <- function(input, output) {
   # map: income_status_map_all_geo
   # table: income_status_table
   
- 
   output$income_status_map_demo_filter_ui <- renderUI({
 
     if(is.null(input$income_status_map_demo)){
