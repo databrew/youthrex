@@ -1,4 +1,3 @@
-library(shinydashboard)
 library(sp)
 library(raster)
 library(plotly)
@@ -10,7 +9,6 @@ library(readr)
 library(readxl)
 library(dplyr)
 library(tidyr)
-library(broom)
 library(feather)
 library(memisc)
 library(shiny)
@@ -18,13 +16,9 @@ library(googleVis)
 library(DT)
 library(leaflet)
 library(RColorBrewer)
-library(networkD3)
 options(gvis.plot.tag = 'chart')
 options(scipen = 999)
-library(shinyBS)
-library(shinyLP)
 library(ggplot2)
-library(shinythemes)
 library(ggthemes)
 library(shinymaterial)
 
@@ -61,11 +55,13 @@ ui <- material_page(
                                            depth = 3,
                                            
                                            # years
-                                           material_dropdown(
-                                             input_id = "years",
+                                           selectInput("years",
                                              label = "",
-                                             choices = c('All years', as.character(unique(census$year))),
-                                             selected = 'All years'),
+                                             choices = unique(census$year),
+                                             selected = unique(census$year),
+                                             multiple = TRUE
+                                           ),
+                                          
                                            
                                            # first dropdown for location
                                            material_dropdown(
@@ -93,13 +89,148 @@ ui <- material_page(
   ),
   
   # DEMOGRAPHIC SECTION
-  material_tab_content('demo'
-                       
-                       
+  material_tab_content('demo',
+                       material_row(
+                         material_column(width = 3,
+                                         material_card(
+                                           title = 'Choose year and location',
+                                           depth = 3,
+                                           
+                                           # years
+                                           selectInput("years_demo",
+                                                       label = "",
+                                                       choices = unique(census$year),
+                                                       selected = unique(census$year),
+                                                       multiple = TRUE
+                                           ),
+                                           
+                                           
+                                           # first dropdown for location
+                                           material_dropdown(
+                                             input_id = "location_demo",
+                                             label = "",
+                                             choices = unique(census$Geography),
+                                             selected = "Ontario", multiple = FALSE,
+                                             color = '#424242'
+                                           )
+                                           
+                                         )
+
+                         ),
+                         material_column(width = 8,
+                                         material_card(title = "% youth age 15-29",
+                                                       depth = 4,
+                                                       plotlyOutput(outputId = 'demo_plot_pie')),
+                                         material_card(title = '',
+                                                       p(''),
+                                                       width = 12,
+                                                       depth = 2,
+                                                       DT::dataTableOutput('pie_table'))
+                                         )
+                      
+                       ),
+                       material_row(
+                         material_column(width = 3,
+                                         material_card(title = 'Choose demographic variable',
+                                                       depth = 4,
+                                                       material_dropdown('demo_variable',
+                                                                         'Examine by: ',
+                                                                         choices =  c('Sex', 
+                                                                                      'Place of Birth', 
+                                                                                      'Visible minority',
+                                                                                      'Aboriginal identity'),
+                                                                         selected = 'Sex',
+                                                                         multiple = FALSE))
+                         ),
+                         material_column(width = 8,
+                                         material_card(title = "Demographic breakdown",
+                                                       depth = 4,
+                                                       uiOutput('demo_chart_avg'),
+                                                       plotlyOutput(outputId = 'demo_charts'))
+                                         
+                                         )
+                       )
+                          
+       
   ),
   
   # FAMILY SECTION
-  material_tab_content('family'
+  material_tab_content('family',
+                       material_row(
+                         material_column(width = 4,
+                                         material_card(
+                                           title = '',
+                                           p('Choose a year'),
+                                           depth = 3,
+                                           
+                                           # years
+                                           selectInput("years_fam",
+                                                       label = "",
+                                                       choices = unique(census$year),
+                                                       selected = unique(census$year),
+                                                       multiple = TRUE
+                                           ))),
+                         material_column(width = 4,
+                                         material_card(
+                                           title = '',
+                                           p('Choose a census location'),
+                                           depth = 3,
+                                           
+                                           # first dropdown for location
+                                           material_dropdown(
+                                             input_id = "location_fam",
+                                             label = "",
+                                             choices = unique(census$Geography),
+                                             selected = "Ontario", multiple = FALSE,
+                                             color = '#424242'
+                                           )
+                                           ))
+                        
+                                         ),
+                       material_row(
+                         material_column(width = 6,
+                                         material_card(title = 'Youth (25-29) as parents',
+                                                       depth = 3,
+                                                       material_radio_button('fam_type',
+                                                                             '',
+                                                                             choices = c('Lone parents', 'Spouses and common law partners'), 
+                                                                             color = '#28B463' ),
+                                                       
+                                                       uiOutput('fam_plot_parents'))),
+                         material_column(width = 6,
+                                         material_card(title = 'Youthe (15-19) as children',
+                                                       depth = 3,
+                                                       plotlyOutput('fam_plot_kids')))
+                         
+                         
+                       ),
+                       
+                      
+                       
+                       
+                       material_row(material_column(width = 6,
+                                                    selectInput('which_fam_type',
+                                                                'Parental type by visible minority',
+                                                                choices = c('Spouses and common law partners', 'Lone parents'),
+                                                                selected = 'Lone parents')),
+                                    material_column(width = 6,
+                                                    material_checkbox('fam_chart_table',
+                                                                      'View as table',
+                                                                       initial_value = FALSE, 
+                                                                       color = '#01579b'),
+                                                    material_checkbox('fam_chart_table_all_or_vm',
+                                                                    'Compare with non visible minority population',
+                                                                     initial_value = FALSE,
+                                                                    color = '#ff6f00'))
+                                    
+                                    ),
+                       material_row(column(width = 12,
+                                           align = 'center',
+                                           material_card(title = 'Family structure by Visible minority status',
+                                                         depth = 4, 
+                                                         uiOutput('fam_plot_table_vismin'))))
+                       
+                       
                        
   ),
   
@@ -147,9 +278,7 @@ server <- function(input, output) {
     years <- input$years
     message('YEARS are ')
     print(input$years)
-    if(years == 'All years'){
-      years <- c('2001', '2006', '2011', '2016')
-    }
+
     
     demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
                    "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
@@ -187,28 +316,33 @@ server <- function(input, output) {
   
   
   # -----------------------------------------------------------------------------
-  # demo variables
+  # -----------------------------------------------------------------------------
+  # # demo variables
   output$demo_chart_avg <- renderUI({
-    if (is.null(input$years) | length(input$years) == 1) {
-      return(NULL) 
+    if (is.null(input$years_demo) | length(input$years_demo) == 1) {
+      return(NULL)
     } else {
-      checkboxInput('demo_chart_avg',
-                    'Average all years selected',
-                    value = FALSE)
+      material_switch(
+        input_id = "demo_chart_avg",  
+        label = "Avgerage all years selected",
+        off_label = '',
+        on_label = '',
+        color = 'blue'
+       
+      )
+      
     }
   })
-  
-
-  
+ 
   # demo_plot_pie
   output$demo_plot_pie <- renderPlotly({
     
     print(head(census))
-    if (is.null(input$years)) {
+    if (is.null(input$years_demo)) {
       return(NULL) 
     } else {
-      location <- input$location
-      years <- input$years
+      location <- input$location_demo
+      years <- input$years_demo
       # create vector of demographic variables with population
       demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
                      "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
@@ -235,12 +369,12 @@ server <- function(input, output) {
   output$pie_table <- renderDataTable({
     
     
-    if (is.null(input$years)) {
+    if (is.null(input$years_demo)) {
       return(NULL)
     } else {
       # same idea as above.
-      location <- input$location
-      years <- input$years
+      location <- input$location_demo
+      years <- input$years_demo
       
       demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
       new_census <- census[ , demo_vars]
@@ -272,7 +406,7 @@ server <- function(input, output) {
   # 'Aboriginal identity'
   output$demo_charts <- renderPlotly({
     
-    if ((is.null(input$years) | is.null(input$location) | is.null(input$demo_variable) | is.null(input$demo_chart_avg))) {
+    if ((is.null(input$years_demo) | is.null(input$location_demo) | is.null(input$demo_variable) | is.null(input$demo_chart_avg))) {
       return(NULL)
     } else {
       
@@ -281,8 +415,8 @@ server <- function(input, output) {
       demo_variable <- 'Sex'
       
       
-      location <- input$location
-      years <- input$years
+      location <- input$location_demo
+      years <- input$years_demo
       
       # variable to examine
       demo_variable <- input$demo_variable
@@ -467,7 +601,7 @@ server <- function(input, output) {
   # 
   output$fam_plot_parents_1 <- renderPlotly({
     
-    if (is.null(input$years) | is.null(input$location) | is.null(input$fam_type)) {
+    if (is.null(input$years_fam) | is.null(input$location_fam) | is.null(input$fam_type)) {
       return(NULL)
     } else {
       # # subset data by inputs
@@ -477,8 +611,8 @@ server <- function(input, output) {
       
       # get family input 
       fam_type <- input$fam_type
-      location <- input$location
-      years <- input$years
+      location <- input$location_fam
+      years <- input$years_fam
       
       demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", fam_type,'Population')
       new_census <- census[ , demo_vars]
@@ -554,7 +688,7 @@ server <- function(input, output) {
   
   output$fam_plot_parents_2 <- renderGvis({
     
-    if (is.null(input$years) | is.null(input$location) | is.null(input$fam_type)) {
+    if (is.null(input$years_fam) | is.null(input$location_fam) | is.null(input$fam_type)) {
       return(NULL)
     } else {
       
@@ -562,8 +696,8 @@ server <- function(input, output) {
       location <- 'Ontario'
       years <- c(2001, 2006, 2011, 2016)
       fam_type <- 'Spouses and common law partners'
-      location <- input$location
-      years <- input$years
+      location <- input$location_fam
+      years <- input$years_fam
       fam_type <- input$fam_type
       
       demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", fam_type,'Population')
@@ -622,10 +756,10 @@ server <- function(input, output) {
     })
   
   output$fam_plot_parents <- renderUI({
-    if (is.null(input$years) | is.null(input$location) | is.null(input$fam_type)) {
+    if (is.null(input$years_fam) | is.null(input$location_fam) | is.null(input$fam_type)) {
       return(NULL)
     } else {
-      if(length(input$years) == 1){
+      if(length(input$years_fam) == 1){
         plotlyOutput('fam_plot_parents_1')
       } else {
         htmlOutput('fam_plot_parents_2')
@@ -638,14 +772,14 @@ server <- function(input, output) {
   })
   
   output$fam_plot_kids <- renderPlotly({
-    if (is.null(input$years) | is.null(input$location)) {
+    if (is.null(input$years_fam) | is.null(input$location_fam)) {
       return(NULL)
     } else {
       # subset data by inputs
       location <- 'Ontario'
       years <- ( 2016)
-      location <- input$location
-      years <- input$years
+      location <- input$location_fam
+      years <- input$years_fam
       
       demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 
                      "Children in lone parent families","Children in couple families",'Population')
@@ -773,7 +907,7 @@ server <- function(input, output) {
   
   
   output$fam_plot_vismin <- renderPlotly({
-    if(is.null(input$years) | is.null(input$location) | is.null(input$fam_chart_table_all_or_vm)) {
+    if(is.null(input$years_fam) | is.null(input$location_fam) | is.null(input$fam_chart_table_all_or_vm)) {
       return(NULL)
     } else {
       # subset data by inputs
@@ -782,8 +916,8 @@ server <- function(input, output) {
       which_fam_type <- 'Lone parents'
       fam_chart_table_all_or_vm <- FALSE
       which_fam_type <- input$which_fam_type
-      location <- input$location
-      years <- input$years
+      location <- input$location_fam
+      years <- input$years_fam
       fam_chart_table_all_or_vm <- input$fam_chart_table_all_or_vm
       
       demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 
@@ -901,7 +1035,7 @@ server <- function(input, output) {
   
   
   output$fam_table_vismin <- DT::renderDataTable({
-    if(is.null(input$years) | is.null(input$location) | is.null(input$fam_chart_table_all_or_vm)) {
+    if(is.null(input$years_fam) | is.null(input$location_fam) | is.null(input$fam_chart_table_all_or_vm)) {
       return(NULL)
     } else {
       # subset data by inputs
@@ -910,8 +1044,8 @@ server <- function(input, output) {
       which_fam_type <- 'Lone parents'
       fam_chart_table_all_or_vm <- FALSE
       which_fam_type <- input$which_fam_type
-      location <- input$location
-      years <- input$years
+      location <- input$location_fam
+      years <- input$years_fam
       fam_chart_table_all_or_vm <- input$fam_chart_table_all_or_vm
       
       demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
