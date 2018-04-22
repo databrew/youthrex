@@ -55,21 +55,19 @@ ui <- material_page(
                                            depth = 3,
                                            
                                            # years
-                                           selectInput("years",
+                                           material_radio_button(
+                                             input_id = "years",
                                              label = "",
-                                             choices = unique(census$year),
-                                             selected = unique(census$year),
-                                             multiple = TRUE
+                                             choices = sort(unique(census$year), decreasing = T)
                                            ),
                                           
                                            
                                            # first dropdown for location
-                                           material_dropdown(
-                                             input_id = "",
+                                           selectInput("",
                                              label = "",
                                              choices = unique(census$Geography),
-                                             selected = "Ontario", multiple = FALSE,
-                                             color = '#424242'
+                                             selected = "Ontario", 
+                                             multiple = TRUE
                                            )
                                            
 
@@ -86,174 +84,174 @@ ui <- material_page(
                            )
                        )
                        
-  ),
-  
-  # DEMOGRAPHIC SECTION
-  material_tab_content('demo',
-                       material_row(
-                         material_column(width = 3,
-                                         material_card(
-                                           title = 'Choose year and location',
-                                           depth = 3,
-                                           
-                                           # years
-                                           selectInput("years_demo",
-                                                       label = "",
-                                                       choices = unique(census$year),
-                                                       selected = unique(census$year),
-                                                       multiple = TRUE
-                                           ),
-                                           
-                                           
-                                           # first dropdown for location
-                                           material_dropdown(
-                                             input_id = "location_demo",
-                                             label = "",
-                                             choices = unique(census$Geography),
-                                             selected = "Ontario", multiple = FALSE,
-                                             color = '#424242'
-                                           )
-                                           
-                                         )
-
-                         ),
-                         material_column(width = 8,
-                                         material_card(title = "% youth age 15-29",
-                                                       depth = 4,
-                                                       plotlyOutput(outputId = 'demo_plot_pie')),
-                                         material_card(title = '',
-                                                       p(''),
-                                                       width = 12,
-                                                       depth = 2,
-                                                       DT::dataTableOutput('pie_table'))
-                                         )
-                      
-                       ),
-                       material_row(
-                         material_column(width = 3,
-                                         material_card(title = 'Choose demographic variable',
-                                                       depth = 4,
-                                                       material_dropdown('demo_variable',
-                                                                         'Examine by: ',
-                                                                         choices =  c('Sex', 
-                                                                                      'Place of Birth', 
-                                                                                      'Visible minority',
-                                                                                      'Aboriginal identity'),
-                                                                         selected = 'Sex',
-                                                                         multiple = FALSE))
-                         ),
-                         material_column(width = 8,
-                                         material_card(title = "Demographic breakdown",
-                                                       depth = 4,
-                                                       uiOutput('demo_chart_avg'),
-                                                       plotlyOutput(outputId = 'demo_charts'))
-                                         
-                                         )
-                       )
-                          
-       
-  ),
-  
-  # FAMILY SECTION
-  material_tab_content('family',
-                       material_row(
-                         material_column(width = 4,
-                                         material_card(
-                                           title = '',
-                                           p('Choose a year'),
-                                           depth = 3,
-                                           
-                                           # years
-                                           selectInput("years_fam",
-                                                       label = "",
-                                                       choices = unique(census$year),
-                                                       selected = unique(census$year),
-                                                       multiple = TRUE
-                                           ))),
-                         material_column(width = 4,
-                                         material_card(
-                                           title = '',
-                                           p('Choose a census location'),
-                                           depth = 3,
-                                           
-                                           # first dropdown for location
-                                           material_dropdown(
-                                             input_id = "location_fam",
-                                             label = "",
-                                             choices = unique(census$Geography),
-                                             selected = "Ontario", multiple = FALSE,
-                                             color = '#424242'
-                                           )
-                                           ))
-                        
-                                         ),
-                       material_row(
-                         material_column(width = 6,
-                                         material_card(title = 'Youth (25-29) as parents',
-                                                       depth = 3,
-                                                       material_radio_button('fam_type',
-                                                                             '',
-                                                                             choices = c('Lone parents', 'Spouses and common law partners'), 
-                                                                             color = '#28B463' ),
-                                                       
-                                                       uiOutput('fam_plot_parents'))),
-                         material_column(width = 6,
-                                         material_card(title = 'Youthe (15-19) as children',
-                                                       depth = 3,
-                                                       plotlyOutput('fam_plot_kids')))
-                         
-                         
-                       ),
-                       
-                      
-                       
-                       
-                       material_row(material_column(width = 6,
-                                                    selectInput('which_fam_type',
-                                                                'Parental type by visible minority',
-                                                                choices = c('Spouses and common law partners', 'Lone parents'),
-                                                                selected = 'Lone parents')),
-                                    material_column(width = 6,
-                                                    material_checkbox('fam_chart_table',
-                                                                      'View as table',
-                                                                       initial_value = FALSE, 
-                                                                       color = '#01579b'),
-                                                    material_checkbox('fam_chart_table_all_or_vm',
-                                                                    'Compare with non visible minority population',
-                                                                     initial_value = FALSE,
-                                                                    color = '#ff6f00'))
-                                    
-                                    ),
-                       material_row(column(width = 12,
-                                           align = 'center',
-                                           material_card(title = 'Family structure by Visible minority status',
-                                                         depth = 4, 
-                                                         uiOutput('fam_plot_table_vismin'))))
-                       
-                       
-                       
-  ),
-  
-  # EDUCATION SECTION
-  material_tab_content('edu'
-                       
-  ),
-  
-  # EMPLOYMENT SECTION
-  material_tab_content('emp'
-                       
-  ),
-  
-  # HOUSING SECTION
-  material_tab_content('housing'
-                       
-  ), 
-  
-  # INCOME SECTION
-  material_tab_content('income'
-                       
   )
   
+  # # DEMOGRAPHIC SECTION
+  # material_tab_content('demo',
+  #                      material_row(
+  #                        material_column(width = 3,
+  #                                        material_card(
+  #                                          title = 'Choose year and location',
+  #                                          depth = 3,
+  #                                          
+  #                                          # years
+  #                                          selectInput("years_demo",
+  #                                                      label = "",
+  #                                                      choices = unique(census$year),
+  #                                                      selected = unique(census$year),
+  #                                                      multiple = FALSE
+  #                                          ),
+  #                                          
+  #                                          
+  #                                          # first dropdown for location
+  #                                          material_dropdown(
+  #                                            input_id = "location_demo",
+  #                                            label = "",
+  #                                            choices = unique(census$Geography),
+  #                                            selected = "Ontario", multiple = TRUE,
+  #                                            color = '#424242'
+  #                                          )
+  #                                          
+  #                                        )
+  # 
+  #                        ),
+  #                        material_column(width = 8,
+  #                                        material_card(title = "% youth age 15-29",
+  #                                                      depth = 4,
+  #                                                      plotlyOutput(outputId = 'demo_plot_pie')),
+  #                                        material_card(title = '',
+  #                                                      p(''),
+  #                                                      width = 12,
+  #                                                      depth = 2,
+  #                                                      DT::dataTableOutput('pie_table'))
+  #                                        )
+  #                     
+  #                      ),
+  #                      material_row(
+  #                        material_column(width = 3,
+  #                                        material_card(title = 'Choose demographic variable',
+  #                                                      depth = 4,
+  #                                                      material_dropdown('demo_variable',
+  #                                                                        'Examine by: ',
+  #                                                                        choices =  c('Sex', 
+  #                                                                                     'Place of Birth', 
+  #                                                                                     'Visible minority',
+  #                                                                                     'Aboriginal identity'),
+  #                                                                        selected = 'Sex',
+  #                                                                        multiple = FALSE))
+  #                        ),
+  #                        material_column(width = 8,
+  #                                        material_card(title = "Demographic breakdown",
+  #                                                      depth = 4,
+  #                                                      uiOutput('demo_chart_avg'),
+  #                                                      plotlyOutput(outputId = 'demo_charts'))
+  #                                        
+  #                                        )
+  #                      )
+  #                         
+  #      
+  # ),
+  # 
+  # # FAMILY SECTION
+  # material_tab_content('family',
+  #                      material_row(
+  #                        material_column(width = 4,
+  #                                        material_card(
+  #                                          title = '',
+  #                                          p('Choose a year'),
+  #                                          depth = 3,
+  #                                          
+  #                                          # years
+  #                                          selectInput("years_fam",
+  #                                                      label = "",
+  #                                                      choices = unique(census$year),
+  #                                                      selected = unique(census$year),
+  #                                                      multiple = FALSE
+  #                                          ))),
+  #                        material_column(width = 4,
+  #                                        material_card(
+  #                                          title = '',
+  #                                          p('Choose a census location'),
+  #                                          depth = 3,
+  #                                          
+  #                                          # first dropdown for location
+  #                                          material_dropdown(
+  #                                            input_id = "location_fam",
+  #                                            label = "",
+  #                                            choices = unique(census$Geography),
+  #                                            selected = "Ontario", multiple = TRUE,
+  #                                            color = '#424242'
+  #                                          )
+  #                                          ))
+  #                       
+  #                                        ),
+  #                      material_row(
+  #                        material_column(width = 6,
+  #                                        material_card(title = 'Youth (25-29) as parents',
+  #                                                      depth = 3,
+  #                                                      material_radio_button('fam_type',
+  #                                                                            '',
+  #                                                                            choices = c('Lone parents', 'Spouses and common law partners'), 
+  #                                                                            color = '#28B463' ),
+  #                                                      
+  #                                                      uiOutput('fam_plot_parents'))),
+  #                        material_column(width = 6,
+  #                                        material_card(title = 'Youthe (15-19) as children',
+  #                                                      depth = 3,
+  #                                                      plotlyOutput('fam_plot_kids')))
+  #                        
+  #                        
+  #                      ),
+  #                      
+  #                     
+  #                      
+  #                      
+  #                      material_row(material_column(width = 6,
+  #                                                   selectInput('which_fam_type',
+  #                                                               'Parental type by visible minority',
+  #                                                               choices = c('Spouses and common law partners', 'Lone parents'),
+  #                                                               selected = 'Lone parents')),
+  #                                   material_column(width = 6,
+  #                                                   material_checkbox('fam_chart_table',
+  #                                                                     'View as table',
+  #                                                                      initial_value = FALSE, 
+  #                                                                      color = '#01579b'),
+  #                                                   material_checkbox('fam_chart_table_all_or_vm',
+  #                                                                   'Compare with non visible minority population',
+  #                                                                    initial_value = FALSE,
+  #                                                                   color = '#ff6f00'))
+  #                                   
+  #                                   ),
+  #                      material_row(column(width = 12,
+  #                                          align = 'center',
+  #                                          material_card(title = 'Family structure by Visible minority status',
+  #                                                        depth = 4, 
+  #                                                        uiOutput('fam_plot_table_vismin'))))
+  #                      
+  #                      
+  #                      
+  # ),
+  # 
+  # # EDUCATION SECTION
+  # material_tab_content('edu'
+  #                      
+  # ),
+  # 
+  # # EMPLOYMENT SECTION
+  # material_tab_content('emp'
+  #                      
+  # ),
+  # 
+  # # HOUSING SECTION
+  # material_tab_content('housing'
+  #                      
+  # ), 
+  # 
+  # # INCOME SECTION
+  # material_tab_content('income'
+  #                      
+  # )
+  # 
   
 
 )
@@ -279,7 +277,6 @@ server <- function(input, output) {
     message('YEARS are ')
     print(input$years)
 
-    
     demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
                    "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
     new_census <- census[ , demo_vars]
@@ -305,11 +302,6 @@ server <- function(input, output) {
     # keep only geo code and per_youth
     temp <- temp[, c('geo_code', 'per_youth')]
     
-    if(length(years) > 1){
-      temp <- temp %>%
-        group_by(geo_code) %>%
-        summarise(per_youth = mean(per_youth, na.rm = T))
-    }
     the_map <- leaf(temp, years = years)
     the_map
   })

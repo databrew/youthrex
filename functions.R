@@ -52,15 +52,11 @@ leaf <- function(x,
                   bins = 7,
                   na.color = 'grey')
   
-  if(length(years) > 1){
-    # Create a popup
-    popper <- paste0(shp@data$NAME_2, ': ',
-                     round(shp@data$per_youth, 2),'% Youth - average for all years selected')
-  } else {
-    # Create a popup
-    popper <- paste0(shp@data$NAME_2, ': ',
-                     round(shp@data$per_youth, 2), '% Youth in ', years)
-  }
+  
+  # Create a popup
+  popper <- paste0(shp@data$NAME_2, ': ',
+                   round(shp@data$per_youth, 2), '% Youth in ', years)
+
   
   
   # Create map
