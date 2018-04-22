@@ -408,6 +408,9 @@ get_census_data <- function() {
 # read in dictionary 
 census_dict <- read_csv('dictionaries/census_dictionary.csv')
 
+# read in geogrpahy region dictionary 
+geo_dict <- read_csv('dictionaries/geo_dict.csv')
+
 if('census.feather' %in% dir('data')){
   census <- read_feather('data/census.feather')
 } else {
@@ -442,6 +445,9 @@ census_pop$Geography <- unlist(lapply(strsplit(census_pop$Geography, '(', fixed 
 census_pop$Geography <- unlist(lapply(strsplit(census_pop$Geography, ',', fixed = TRUE), function(x){x[1]}))
 # remove trailling and leading spaces 
 census_pop$Geography <- trimws(census_pop$Geography, 'both')
+
+# join with census
+census <- left_join(census, geo_dict, by = 'Geography')
 
 # Pre-make a leaflet object
 leafy <- leaf_basic(shp = ont2, tile = 'OpenStreetMap', palette = 'Oranges')
