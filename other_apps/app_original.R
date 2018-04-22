@@ -1,3 +1,4 @@
+library(shinydashboard)
 library(sp)
 library(raster)
 library(plotly)
@@ -9,6 +10,7 @@ library(readr)
 library(readxl)
 library(dplyr)
 library(tidyr)
+library(broom)
 library(feather)
 library(memisc)
 library(shiny)
@@ -16,333 +18,589 @@ library(googleVis)
 library(DT)
 library(leaflet)
 library(RColorBrewer)
+library(networkD3)
 options(gvis.plot.tag = 'chart')
 options(scipen = 999)
+library(shinyBS)
+library(shinyLP)
 library(ggplot2)
+library(shinythemes)
 library(ggthemes)
-library(shinymaterial)
+library(gridExtra)
+
+
 
 source('global.R')
 
 
-# overall help here: https://ericrayanderson.github.io/shinymaterial/
-# color universe here: http://materializecss.com/color.html
-# icon universe here :http://materializecss.com/icons.html
+ui <- dashboardPage(skin = 'blue',
+                    
+                    dashboardHeader(disable = TRUE),
+                    
+                    dashboardSidebar(disable = TRUE),
+                    
+                    dashboardBody(
+                      tags$head(
+                        tags$link(rel = "stylesheet", type = "text/css", href = "custom.css"),
+                        fluidRow(column(12,
+                                        align = 'center',
+                                        h1('Welcome to the Ontario Youth Compass data portal')))
+                      ),
+                      
+                      tags$style(HTML("
 
-ui <- material_page(
-  title = "Youthrex data app",
-  nav_bar_color = "blue",
-  
-  # define all the tabs on top of page (map, demo, family, edu, emp, housing, income)
+                    .box.box-solid.box-danger>.box-header{
+                    color:#fff;
+                    background:darkred;
+                    }
 
-  material_tabs(c('Map' = 'map',
-                  'Demographics' = 'demo' ,
-                  'Family' = 'family',
-                  'Education' = 'edu',
-                  'Employment' = 'emp',
-                  'Housing' = 'housing',
-                  'Income' = 'income'), color = 'grey'),
+                    .box.box-solid.box-danger{
+                    border-bottom-color:#222d32;
+                    border-left-color:#222d32;
+                    border-right-color:#222d32;
+                    }
 
-  br(),br(),
-  
-  # MAP SECTION
-  material_tab_content('map',
-                        
-                       material_row(
-                         material_column(width = 3,
-                                         material_card(
-                                           title = 'Choose year and location',
-                                           depth = 3,
-                                           
-                                           # years
-                                           selectInput("years",
-                                             label = "",
+                   .box.box-solid>.box-header{
+                    color:#fff;
+                    background:#2C3E50
+                    }
+
+                    .box.box-solid{
+                    border-bottom-color:#222d32;
+                    border-left-color:#222d32;
+                    border-right-color:#222d32;
+                    }
+
+
+                    ")),
+                      
+                      fluidPage(
+                        fluidRow(
+                          shinydashboard::box(
+                          title = '',
+                          solidHeader = TRUE,
+                          width = 12,
+                          collapsible = FALSE,
+                          collapsed = FALSE,
+                          column(4,
+                                 tags$head(tags$style("
+                                                      #location ~ .selectize-control.single .selectize-input {
+                                                      border: 1px solid #000000; background-color: #D2DAE3;
+                                                      
+                                                      }")),
+                                 selectInput('location',
+                                             'Location',
+                                             choices = unique(census$Geography),
+                                             selected = 'Ontario')),
+                          tags$head(tags$style("
+                                               #location ~ .selectize-control.single .selectize-input {
+                                               border: 1px solid #000000; background-color: #D2DAE3;
+                                               
+                                               }")),
+                          column(4,
+                                 selectInput('years',
+                                             'Years',
                                              choices = unique(census$year),
                                              selected = unique(census$year),
-                                             multiple = TRUE
-                                           ),
-                                          
-                                           
-                                           # first dropdown for location
-                                           material_dropdown(
-                                             input_id = "",
-                                             label = "",
-                                             choices = unique(census$Geography),
-                                             selected = "Ontario", multiple = FALSE,
-                                             color = '#424242'
-                                           )
-                                           
-
-                                         )
-                                         
-                         ),
-                         material_column(width = 8,
-                                         height = 10,
-                                         material_card(title = "Map of ontario's youth's",
-                                                       depth = 4,
-                                                       leafletOutput(outputId = 'the_map'))
-                                         
-                           
-                           )
-                       )
-                       
-  ),
-  
-  # DEMOGRAPHIC SECTION
-  material_tab_content('demo',
-                       material_row(
-                         material_column(width = 3,
-                                         material_card(
-                                           title = 'Choose year and location',
-                                           depth = 3,
-                                           
-                                           # years
-                                           selectInput("years_demo",
-                                                       label = "",
-                                                       choices = unique(census$year),
-                                                       selected = unique(census$year),
-                                                       multiple = TRUE
-                                           ),
-                                           
-                                           
-                                           # first dropdown for location
-                                           material_dropdown(
-                                             input_id = "location_demo",
-                                             label = "",
-                                             choices = unique(census$Geography),
-                                             selected = "Ontario", multiple = FALSE,
-                                             color = '#424242'
-                                           )
-                                           
-                                         )
-
-                         ),
-                         material_column(width = 8,
-                                         material_card(title = "% youth age 15-29",
-                                                       depth = 4,
-                                                       plotlyOutput(outputId = 'demo_plot_pie')),
-                                         material_card(title = '',
-                                                       p(''),
-                                                       width = 12,
-                                                       depth = 2,
-                                                       DT::dataTableOutput('pie_table'))
-                                         )
-                      
-                       ),
-                       material_row(
-                         material_column(width = 3,
-                                         material_card(title = 'Choose demographic variable',
-                                                       depth = 4,
-                                                       material_dropdown('demo_variable',
-                                                                         'Examine by: ',
-                                                                         choices =  c('Sex', 
-                                                                                      'Place of Birth', 
-                                                                                      'Visible minority',
-                                                                                      'Aboriginal identity'),
-                                                                         selected = 'Sex',
-                                                                         multiple = FALSE))
-                         ),
-                         material_column(width = 8,
-                                         material_card(title = "Demographic breakdown",
-                                                       depth = 4,
-                                                       uiOutput('demo_chart_avg'),
-                                                       plotlyOutput(outputId = 'demo_charts'))
-                                         
-                                         )
-                       )
+                                             multiple = TRUE)),
                           
-       
-  ),
-  
-  # FAMILY SECTION
-  material_tab_content('family',
-                       material_row(
-                         material_column(width = 4,
-                                         material_card(
-                                           title = '',
-                                           p('Choose a year'),
-                                           depth = 3,
-                                           
-                                           # years
-                                           selectInput("years_fam",
-                                                       label = "",
-                                                       choices = unique(census$year),
-                                                       selected = unique(census$year),
-                                                       multiple = TRUE
-                                           ))),
-                         material_column(width = 4,
-                                         material_card(
-                                           title = '',
-                                           p('Choose a census location'),
-                                           depth = 3,
-                                           
-                                           # first dropdown for location
-                                           material_dropdown(
-                                             input_id = "location_fam",
-                                             label = "",
-                                             choices = unique(census$Geography),
-                                             selected = "Ontario", multiple = FALSE,
-                                             color = '#424242'
-                                           )
-                                           ))
+                          align = 'center',
+                          box(
+                            title = 'Map of Ontario',
+                            solidHeader = FALSE,
+                            width = 12,
+                            background = 'light-blue',
+                            collapsible = TRUE,
+                            collapsed = TRUE,
+                            column(12,
+                                   align = 'center',
+                                   h2("Percent of all youth age 15-29 within each census location"),
+                                   splitLayout(
+                                     leafletOutput('the_map', width = 900, height = 700))
+                                   
+                            )
+                          
+                          )
+                          
+                                 )
+                          
+                          ),
                         
-                                         ),
-                       material_row(
-                         material_column(width = 6,
-                                         material_card(title = 'Youth (25-29) as parents',
-                                                       depth = 3,
-                                                       material_radio_button('fam_type',
-                                                                             '',
-                                                                             choices = c('Lone parents', 'Spouses and common law partners'), 
-                                                                             color = '#28B463' ),
-                                                       
-                                                       uiOutput('fam_plot_parents'))),
-                         material_column(width = 6,
-                                         material_card(title = 'Youthe (15-19) as children',
-                                                       depth = 3,
-                                                       plotlyOutput('fam_plot_kids')))
-                         
-                         
-                       ),
-                       
-                      
-                       
-                       
-                       material_row(material_column(width = 6,
-                                                    selectInput('which_fam_type',
-                                                                'Parental type by visible minority',
-                                                                choices = c('Spouses and common law partners', 'Lone parents'),
-                                                                selected = 'Lone parents')),
-                                    material_column(width = 6,
-                                                    material_checkbox('fam_chart_table',
-                                                                      'View as table',
-                                                                       initial_value = FALSE, 
-                                                                       color = '#01579b'),
-                                                    material_checkbox('fam_chart_table_all_or_vm',
-                                                                    'Compare with non visible minority population',
-                                                                     initial_value = FALSE,
-                                                                    color = '#ff6f00'))
-                                    
-                                    ),
-                       material_row(column(width = 12,
-                                           align = 'center',
-                                           material_card(title = 'Family structure by Visible minority status',
-                                                         depth = 4, 
-                                                         uiOutput('fam_plot_table_vismin'))))
-                       
-                       
-                       
-  ),
-  
-  # EDUCATION SECTION
-  material_tab_content('edu'
-                       
-  ),
-  
-  # EMPLOYMENT SECTION
-  material_tab_content('emp'
-                       
-  ),
-  
-  # HOUSING SECTION
-  material_tab_content('housing'
-                       
-  ), 
-  
-  # INCOME SECTION
-  material_tab_content('income'
-                       
-  )
-  
-  
+                        # Valid colors are: red, yellow, aqua, blue, light-blue, green, navy, teal, olive, lime, orange, fuchsia, purple, maroon, black.
+                        
+                        shinydashboard::box(
+                          solidHeader = TRUE,
+                          width = 12,
+                          collapsible = FALSE,
+                          collapsed = FALSE,
+                          
+                        fluidRow(
+                          shinydashboard::box(
+                            title = 'Demographics',
+                            status = 'primary',
+                            solidHeader = TRUE,
+                            width = 12,
+                            collapsible = TRUE,
+                            collapsed = TRUE,
+                            
+                            fluidRow(column(12,
+                                            h3('Examine demographic variables by the location and years selected above'))),
+                            br(), br(),
+                            fluidRow(column(6,
+                                            plotlyOutput('demo_plot_pie'),
+                                            DT::dataTableOutput('pie_table')),
+                                     column(6,
+                                            selectInput('demo_variable',
+                                                        'Examine by ',
+                                                        choices =  c('Sex', 
+                                                                     'Place of Birth', 
+                                                                     'Visible minority',
+                                                                     'Aboriginal identity'),
+                                                        selected = 'Sex',
+                                                        multiple = FALSE),
+                                            br(),
+                                            uiOutput('demo_chart_avg'),
+                                            uiOutput('demo_chart_table'),
+                                            br(),
+                                            tabsetPanel(tabPanel('Plot', 
+                                                                 br(), br(),
+                                                                 plotlyOutput('demo_charts')),
+                                                        tabPanel('Table',
+                                                                 DT::dataTableOutput('demo_tables')))))
+                            
+                          )
+                          
+                        ),
 
+                      
+                      # (2) family status
+                      # - spouses and common law vs lone parents (25-29)
+                      # - spouses and common law vs lone parents by vis_min (25-29)
+                      # - children in couple families vs children in lone parent (15-19)
+                      fluidRow(
+                        shinydashboard::box(
+                          title = 'Family status',
+                          status = 'success',
+                          solidHeader = TRUE,
+                          width = 12,
+                          collapsible = TRUE,
+                          collapsed = TRUE,
+                          fluidRow(column(12,
+                                          h2('Family structure of youth as both children and parents'))),
+                          br(), br(),
+                          fluidRow(column(6,
+                                          shinydashboard::box(
+                                            title = 'Youth (25-29) as parents',
+                                            status = 'success',
+                                            solidHeader = TRUE,
+                                            width = 12, 
+                                            collapsible = TRUE,
+                                            collapsed = TRUE,
+                                          radioButtons('fam_type',
+                                                       '',
+                                                       choices = c('Lone parents', 'Spouses and common law partners'),
+                                                       selected = 'Lone parents', 
+                                                       inline = FALSE),
+                                          uiOutput('fam_plot_parents'))),
+                                   column(6,
+                                          shinydashboard:: box(
+                                            title = 'Youth (15-19) as children',
+                                            status = 'success',
+                                            solidHeader = TRUE,
+                                            width = 12,
+                                            collapsible = TRUE,
+                                            collapsed = TRUE,
+                                          plotlyOutput('fam_plot_kids')))),
+                          br(), 
+                          fluidRow(column(6,
+                                          selectInput('which_fam_type',
+                                                      'Parental type by visible minority',
+                                                      choices = c('Spouses and common law partners', 'Lone parents'),
+                                                      selected = 'Lone parents',
+                                                      multiple = FALSE)),
+                                   column(6,
+                                          checkboxInput('fam_chart_table',
+                                                        'View as table',
+                                                        value = FALSE),
+                                          checkboxInput('fam_chart_table_all_or_vm',
+                                                        'Compare with non visible minority population',
+                                                        value = FALSE))
+                          ),
+                          fluidRow(column(12,
+                                          uiOutput('fam_plot_table_vismin')) 
+                          )
+                          
+                        )
+                      ),
+                      
+                      fluidRow(
+                        shinydashboard::box(
+                          title = 'Education',
+                          status = 'info',
+                          solidHeader = TRUE,
+                          width = 12,
+                          collapsible = TRUE,
+                          collapsed = TRUE,
+                          
+                          fluidRow(
+                            column(4,
+                                   box(
+                                     title = 'Highschool',
+                                     background = 'light-blue',                                  
+                                     solidHeader = FALSE,
+                                     width = 12,
+                                     collapsible = TRUE,
+                                     collapsed = TRUE,
+                                     textOutput('ed_text_highschool'))
+                            ),
+                            column(4,
+                                   box(
+                                     title = 'College certificate/diploma',
+                                     solidHeader = FALSE,
+                                     background = 'light-blue',                                  
+                                     width = 12,
+                                     collapsible = TRUE,
+                                     collapsed = TRUE,
+                                     textOutput('ed_text_college'))
+                            ),
+                            
+                            column(4,
+                                   box(
+                                     title = "Univeristy degree/diploma",
+                                     solidHeader = FALSE,
+                                     background = 'light-blue',
+                                     width = 12,
+                                     collapsible =TRUE,
+                                     collapsed = TRUE,
+                                     textOutput('ed_text_university'))
+                            )
+                            
+                          ),
+                          fluidRow(
+                            column(12,
+                                   h3('Highschool or equivalent', align = 'center'))),
+                        fluidRow(
+                          column(6,
+                                 align = 'center',
+                                 checkboxInput('ed_plot_or_table_age',
+                                               'View as table', 
+                                               value = FALSE),
+                                 uiOutput('ed_plot_table_age')),
+                          column(6,
+                                 align = 'center',
+                                 checkboxInput('ed_plot_or_table_sex',
+                                               'View as table', 
+                                               value = FALSE),
+                                 uiOutput('ed_plot_table_sex')))
+                            
+                          )  
+                          
+                          
+                        ),
+                      
+                      fluidRow(
+                        shinydashboard::box(
+                          title = 'Employment',
+                          status = 'warning',
+                          solidHeader = TRUE,
+                          width = 12,
+                          collapsible = TRUE,
+                          collapsed = TRUE,
+                          fluidRow(
+                            br(), br(),
+                            column(12, 
+                                   align = 'center',
+                                   textOutput('emp_header'),
+                                   tags$head(tags$style("#emp_header{color: #424744;
+                                                        font-size: 20px;
+                                                        font-weight: bold;
+                                                        }"
+                                     )
+                                   ))
+                                   ),
+                          
+                          br(),br(), br(),
+                          fluidRow(
+                            column(6,
+                                   align = 'center',
+                                   tags$head(tags$style("
+                                                        #emp_age_group ~ .selectize-control.single .selectize-input {
+                                                        border: 1px solid #000000; background-color: #D2DAE3;
+                                                        
+                                                        }")),
+                                     selectInput('emp_age_group',
+                                                 'Age group',
+                                                 choices = unique(census$`Age group`)[!grepl('Total', unique(census$`Age group`))],
+                                                 selected = "25 to 29 years"),
+                                   checkboxInput('emp_plot_or_table_age',
+                                                 'View as table', 
+                                                 value = FALSE),
+                                   uiOutput('emp_plot_table_age')),
+                            
+                            column(6,
+                                   align = 'center',
+                                   tags$head(tags$style("
+                                                        #emp_gen ~ .selectize-control.single .selectize-input {
+                                                        border: 1px solid #000000; background-color: #D2DAE3;
+                                                        
+                                                        }")),
+                                     
+                                   selectInput('emp_gen',
+                                               'Sex',
+                                               choices = c('Male', 'Female'),
+                                               selected = "Female"),
+                                   checkboxInput('emp_plot_or_table_gen',
+                                                 'View as table', 
+                                                 value = FALSE),
+                                   uiOutput('emp_plot_table_gen'))
+                                   ),
+                          br(), br(),
+                          fluidRow(
+                            column(6,
+                                   box(
+                                     title = 'Aboriginal unemployment rate: ',
+                                     solidHeader = FALSE,
+                                     background = "aqua",
+                                     width = 12,
+                                     collapsible = TRUE,
+                                     collapsed = TRUE,
+                                     textOutput('emp_ab_text'))
+                            ),
+                            
+                            column(6,
+                                   box(
+                                     title = "Non-Aboriginal unemployment rate: ",
+                                     solidHeader = FALSE,
+                                     background = "yellow",
+                                     width = 12,
+                                     collapsible = TRUE,
+                                     collapsed = TRUE,
+                                     textOutput('emp_non_text'))
+                            )
+                            
+                          )
+                            )
+                          ),
+                      
+                      fluidRow(
+                        shinydashboard::box(
+                          title = 'Housing',
+                          solidHeader = TRUE,
+                          width = 12,
+                          collapsible = TRUE,
+                          collapsed = TRUE,
+                          fluidRow(column(12,
+                                          align = 'center',
+                                          h2('Housing for youth aged 15-29'))),
+                          br(),
+                          column(6,
+                                 box(solidHeader = TRUE,
+                                     width = 12,
+                                     title = 'Owner occupied vs rented 
+                                     (Youth 15-29)',
+                                     collapsible = TRUE,
+                                     collapsed = TRUE,
+                                     tabsetPanel(tabPanel('Plot', 
+                                                          selectInput('house_demo_variable',
+                                                                      'Examine by:', 
+                                                                      choices = c('All youth', 
+                                                                                  'Sex', 
+                                                                                  'Place of Birth', 
+                                                                                  'Visible minority',
+                                                                                  'Aboriginal identity'),
+                                                                      selected = 'All youth',
+                                                                      multiple = FALSE),
+                                                          uiOutput('owner_plot_vm_filter'),
+                                                          plotlyOutput('owner_plot')),
+                                                 tabPanel('Table',
+                                                          DT::dataTableOutput('owner_table')))
+                                     
+                                 )
+                      ),
+                      column(6,
+                             box(solidHeader = TRUE,
+                                 width = 12,
+                                 title = 'Subsidized housing (youth 15-29)',
+                                 collapsible = TRUE,
+                                 collapsed = TRUE,
+                                 tabsetPanel(tabPanel('Plot', 
+                                                      selectInput('sub_demo_variable',
+                                                                  'Examine by:', 
+                                                                  choices = c('All youth', 
+                                                                              'Sex', 
+                                                                              'Place of Birth', 
+                                                                              'Visible minority',
+                                                                              'Aboriginal identity'),
+                                                                  selected = 'All youth',
+                                                                  multiple = FALSE),
+                                                      uiOutput('sub_plot_vm_filter'),
+                                                      plotlyOutput('sub_plot'),
+                                                      p('Subsidized housing data only available for 2011 and 2016')),
+                                             tabPanel('Table',
+                                                      dataTableOutput('sub_table')))
+                             )
+                      )
+                      
+                      )
+                      ),
+                      
+                      fluidRow(
+                        shinydashboard::box(
+                          title = 'Income',
+                          status = 'danger',
+                          solidHeader = TRUE,
+                          width = 12,
+                          collapsible = TRUE,
+                          collapsed = TRUE,
+                          align = 'center',
+                          h2('Average household income before tax (Youth 15-29)'), 
+                          fluidRow(column(6,
+                                          selectInput('income_add_location',
+                                                      'Select additional locations',
+                                                      choices = unique(census$Geography),
+                                                      selected = 'Ontario',
+                                                      multiple = TRUE),
+                                          plotlyOutput('income_plot_all_geo')),
+                                   column(6,
+                                          selectInput('income_vm_filter',
+                                                      'Select visible minority',
+                                                      choices = unique(census$`Visible minority`)[!grepl('Total', unique(census$`Visible minority`))],
+                                                      selected = 'All visible minorities',
+                                                      multiple = TRUE),
+                                          plotlyOutput('income_plot_vm'))),
+
+                          br(), br(),
+                          h2('Percent of youth qualifying as low income status by Sex'),
+                          br(),
+                          br(),
+                          fluidRow(column(4,
+                                          selectInput('income_status_map_demo',
+                                                      'Choose a demographic variable',
+                                                      choices = colnames(census)[4:8],
+                                                      selected = colnames(census)[4:8][1],
+                                                      multiple = FALSE)),
+                                   column(4,
+                                          radioButtons('income_map_year',
+                                                      'Choose a year to view map',
+                                                      choices = c('2001', '2006', '2011', '2016'),
+                                                      selected = '2016',
+                                                      inline = TRUE)),
+                                   column(4,
+                                          uiOutput('income_status_map_demo_filter_ui'))),
+                          fluidRow(column(6,
+                                          br(), br(), 
+                                          leafletOutput('income_status_map_all_geo', height = 450)),
+                                   column(6,
+                                          DT::dataTableOutput('income_status_table')))
+                          
+                        )
+                      )
+                      )
+                    )
+                    )         
 )
+
 
 
 
 # Define server 
 server <- function(input, output) {
   
-  # 
-  # output$test_plot <- renderPlot({
-  #   plot(x=c(1:20), y=c(11:30))
+  # -----------------------------------------------------------------------------
+  # reactive objects for map popper
+  
+  
+  # observeEvent(input$locations,{
+  #   updateSelectInput(session, "location", "Location", 
+  #                     choices = unique(census$Geography),
+  #                     selected = input$locations)
   # })
+  # 
+  # observeEvent(input$map_marker_click, {
+  #   click <- input$map_marker_click
+  #   location <- ont2@data[which(ont2@data$lat == click$lat & ont2@data$lat$long == click$lng), ]$Name_2
+  #   updateSelectInput(session, "location", "Location", 
+  #                     choices = unique(census$Geography),
+  #                     selected = c(location))
+  # })
+  # 
+  
+  
   # -----------------------------------------------------------------------------
   # Map
   
   # map of ontario
   output$the_map <- renderLeaflet({
-    
-    
-    # subset data by inputs 
-    years <- input$years
-    message('YEARS are ')
-    print(input$years)
-
-    
-    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
-                   "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
-    new_census <- census[ , demo_vars]
-    
-    temp <- new_census %>% filter(!Geography %in% 'Ontario') %>% 
-      filter(year %in% years) 
-    
-    temp <- temp %>% filter(grepl('Total',`Age group`)) %>%
-      filter(grepl('Total',`Sex`)) %>% filter(grepl('Total',`Place of Birth`)) %>%
-      filter(grepl('Total',`Visible minority`)) %>% filter(grepl('Total',`Aboriginal identity`)) 
-    
-    # keep only age group, year, and population
-    temp <- temp[, c('Geography', 'geo_code','year','Population')]
-    
-    temp$year <- as.character(temp$year)
-    temp$Geography <- NULL
-    census_pop$year <- as.character(census_pop$year)
-    
-    temp <- inner_join(temp, census_pop, by = c('year', 'geo_code'))
-    # make percentage youth variable 
-    temp$per_youth <- round((temp$Population/temp$`Total population`)*100, 2)
-    
-    # keep only geo code and per_youth
-    temp <- temp[, c('geo_code', 'per_youth')]
-    
-    if(length(years) > 1){
-      temp <- temp %>%
-        group_by(geo_code) %>%
-        summarise(per_youth = mean(per_youth, na.rm = T))
-    }
-    the_map <- leaf(temp, years = years)
-    the_map
-  })
-  
-  
-  # -----------------------------------------------------------------------------
-  # -----------------------------------------------------------------------------
-  # # demo variables
-  output$demo_chart_avg <- renderUI({
-    if (is.null(input$years_demo) | length(input$years_demo) == 1) {
-      return(NULL)
+    if (is.null(input$years)) {
+      return(NULL) 
     } else {
-      material_switch(
-        input_id = "demo_chart_avg",  
-        label = "Avgerage all years selected",
-        off_label = '',
-        on_label = '',
-        color = 'blue'
-       
-      )
+      
+      # subset data by inputs 
+
+      years <- input$years
+      message('YEARS are ')
+      print(input$years)
+
+      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                     "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
+      new_census <- census[ , demo_vars]
+      
+      temp <- new_census %>% filter(!Geography %in% 'Ontario') %>% 
+        filter(year %in% years) 
+      
+      temp <- temp %>% filter(grepl('Total',`Age group`)) %>%
+        filter(grepl('Total',`Sex`)) %>% filter(grepl('Total',`Place of Birth`)) %>%
+        filter(grepl('Total',`Visible minority`)) %>% filter(grepl('Total',`Aboriginal identity`)) 
+      
+      # keep only age group, year, and population
+      temp <- temp[, c('Geography', 'geo_code','year','Population')]
+      
+      temp$year <- as.character(temp$year)
+      temp$Geography <- NULL
+      census_pop$year <- as.character(census_pop$year)
+      
+      temp <- inner_join(temp, census_pop, by = c('year', 'geo_code'))
+      # make percentage youth variable 
+      temp$per_youth <- round((temp$Population/temp$`Total population`)*100, 2)
+      
+      # keep only geo code and per_youth
+      temp <- temp[, c('geo_code', 'per_youth')]
+      
+      if(length(years) > 1){
+        temp <- temp %>%
+          group_by(geo_code) %>%
+          summarise(per_youth = mean(per_youth, na.rm = T))
+      }
+      
+      leaf(temp, years = years)
       
     }
   })
- 
+  
+  
+  # -----------------------------------------------------------------------------
+  # demo variables
+  output$demo_chart_avg <- renderUI({
+    if (is.null(input$years) | length(input$years) == 1) {
+      return(NULL) 
+    } else {
+      checkboxInput('demo_chart_avg',
+                    'Average all years selected',
+                    value = FALSE)
+    }
+  })
+  
+
+  
   # demo_plot_pie
   output$demo_plot_pie <- renderPlotly({
     
-    print(head(census))
-    if (is.null(input$years_demo)) {
+    
+    if (is.null(input$years)) {
       return(NULL) 
     } else {
-      location <- input$location_demo
-      years <- input$years_demo
+      location <- input$location
+      years <- input$years
       # create vector of demographic variables with population
       demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
                      "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
@@ -369,12 +627,12 @@ server <- function(input, output) {
   output$pie_table <- renderDataTable({
     
     
-    if (is.null(input$years_demo)) {
+    if (is.null(input$years)) {
       return(NULL)
     } else {
       # same idea as above.
-      location <- input$location_demo
-      years <- input$years_demo
+      location <- input$location
+      years <- input$years
       
       demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
       new_census <- census[ , demo_vars]
@@ -406,7 +664,7 @@ server <- function(input, output) {
   # 'Aboriginal identity'
   output$demo_charts <- renderPlotly({
     
-    if ((is.null(input$years_demo) | is.null(input$location_demo) | is.null(input$demo_variable) | is.null(input$demo_chart_avg))) {
+    if ((is.null(input$years) | is.null(input$location) | is.null(input$demo_variable) | is.null(input$demo_chart_avg))) {
       return(NULL)
     } else {
       
@@ -415,8 +673,8 @@ server <- function(input, output) {
       demo_variable <- 'Sex'
       
       
-      location <- input$location_demo
-      years <- input$years_demo
+      location <- input$location
+      years <- input$years
       
       # variable to examine
       demo_variable <- input$demo_variable
@@ -601,7 +859,7 @@ server <- function(input, output) {
   # 
   output$fam_plot_parents_1 <- renderPlotly({
     
-    if (is.null(input$years_fam) | is.null(input$location_fam) | is.null(input$fam_type)) {
+    if (is.null(input$years) | is.null(input$location) | is.null(input$fam_type)) {
       return(NULL)
     } else {
       # # subset data by inputs
@@ -611,8 +869,8 @@ server <- function(input, output) {
       
       # get family input 
       fam_type <- input$fam_type
-      location <- input$location_fam
-      years <- input$years_fam
+      location <- input$location
+      years <- input$years
       
       demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", fam_type,'Population')
       new_census <- census[ , demo_vars]
@@ -688,7 +946,7 @@ server <- function(input, output) {
   
   output$fam_plot_parents_2 <- renderGvis({
     
-    if (is.null(input$years_fam) | is.null(input$location_fam) | is.null(input$fam_type)) {
+    if (is.null(input$years) | is.null(input$location) | is.null(input$fam_type)) {
       return(NULL)
     } else {
       
@@ -696,8 +954,8 @@ server <- function(input, output) {
       location <- 'Ontario'
       years <- c(2001, 2006, 2011, 2016)
       fam_type <- 'Spouses and common law partners'
-      location <- input$location_fam
-      years <- input$years_fam
+      location <- input$location
+      years <- input$years
       fam_type <- input$fam_type
       
       demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", fam_type,'Population')
@@ -756,10 +1014,10 @@ server <- function(input, output) {
     })
   
   output$fam_plot_parents <- renderUI({
-    if (is.null(input$years_fam) | is.null(input$location_fam) | is.null(input$fam_type)) {
+    if (is.null(input$years) | is.null(input$location) | is.null(input$fam_type)) {
       return(NULL)
     } else {
-      if(length(input$years_fam) == 1){
+      if(length(input$years) == 1){
         plotlyOutput('fam_plot_parents_1')
       } else {
         htmlOutput('fam_plot_parents_2')
@@ -772,14 +1030,14 @@ server <- function(input, output) {
   })
   
   output$fam_plot_kids <- renderPlotly({
-    if (is.null(input$years_fam) | is.null(input$location_fam)) {
+    if (is.null(input$years) | is.null(input$location)) {
       return(NULL)
     } else {
       # subset data by inputs
       location <- 'Ontario'
       years <- ( 2016)
-      location <- input$location_fam
-      years <- input$years_fam
+      location <- input$location
+      years <- input$years
       
       demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 
                      "Children in lone parent families","Children in couple families",'Population')
@@ -907,7 +1165,7 @@ server <- function(input, output) {
   
   
   output$fam_plot_vismin <- renderPlotly({
-    if(is.null(input$years_fam) | is.null(input$location_fam) | is.null(input$fam_chart_table_all_or_vm)) {
+    if(is.null(input$years) | is.null(input$location) | is.null(input$fam_chart_table_all_or_vm)) {
       return(NULL)
     } else {
       # subset data by inputs
@@ -916,8 +1174,8 @@ server <- function(input, output) {
       which_fam_type <- 'Lone parents'
       fam_chart_table_all_or_vm <- FALSE
       which_fam_type <- input$which_fam_type
-      location <- input$location_fam
-      years <- input$years_fam
+      location <- input$location
+      years <- input$years
       fam_chart_table_all_or_vm <- input$fam_chart_table_all_or_vm
       
       demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 
@@ -1035,7 +1293,7 @@ server <- function(input, output) {
   
   
   output$fam_table_vismin <- DT::renderDataTable({
-    if(is.null(input$years_fam) | is.null(input$location_fam) | is.null(input$fam_chart_table_all_or_vm)) {
+    if(is.null(input$years) | is.null(input$location) | is.null(input$fam_chart_table_all_or_vm)) {
       return(NULL)
     } else {
       # subset data by inputs
@@ -1044,8 +1302,8 @@ server <- function(input, output) {
       which_fam_type <- 'Lone parents'
       fam_chart_table_all_or_vm <- FALSE
       which_fam_type <- input$which_fam_type
-      location <- input$location_fam
-      years <- input$years_fam
+      location <- input$location
+      years <- input$years
       fam_chart_table_all_or_vm <- input$fam_chart_table_all_or_vm
       
       demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
@@ -3159,5 +3417,5 @@ server <- function(input, output) {
 # Run the application 
 shinyApp(ui = ui,
          # htmlTemplate("www/index.html"), 
-         server = server)
+         server)
 
