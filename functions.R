@@ -52,15 +52,11 @@ leaf <- function(x,
                   bins = 7,
                   na.color = 'grey')
   
-  if(length(years) > 1){
-    # Create a popup
-    popper <- paste0(shp@data$NAME_2, ': ',
-                     round(shp@data$per_youth, 2),'% Youth - average for all years selected')
-  } else {
-    # Create a popup
-    popper <- paste0(shp@data$NAME_2, ': ',
-                     round(shp@data$per_youth, 2), '% Youth in ', years)
-  }
+  
+  # Create a popup
+  popper <- paste0(shp@data$NAME_2, ': ',
+                   round(shp@data$per_youth, 2), '% Youth in ', years)
+
   
   
   # Create map
@@ -724,3 +720,33 @@ emp_line <- function(temp_dat) {
 # #  
 # 
 # 
+
+leaf_region <- function(region_map, index = 1:4){
+  # cols <- brewer.pal(n = 4, name = 'Set3')
+  the_colors <- c('red', 'blue', 'orange', 'purple')
+  cols <- adjustcolor(the_colors, alpha.f = 0.1)
+  if(length(index) > 0){
+    for(i in index){
+      cols[i] <- the_colors[i]
+    }
+  }
+  
+  x <- region_map
+  leaflet(x) %>%
+    addPolygons(fillColor = cols,
+                fillOpacity = 1,
+                opacity = 1,
+                weight = 1,
+                color = 'black',
+                label = x@data$region,
+                layerId = x@data$region,
+                labelOptions = labelOptions(#noHide = T, 
+                  direction = "auto",
+                  style = list(
+                    "color" = "#191A1C",
+                    "box-shadow" = "3px 3px rgba(0,0,0,0.25)",
+                    "font-size" = "12px",
+                    "border-color" = "rgba(0,0,0,0.5)"
+                  )))
+
+}
