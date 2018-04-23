@@ -64,13 +64,7 @@ ui <- material_page(
                       
                       
                       # first dropdown for location
-                      selectInput("",
-                                  label = "",
-                                  choices = unique(census$Geography),
-                                  selected = "Ontario", 
-                                  multiple = TRUE
-                      )
-                      
+                      uiOutput('location_ui')
                       
                     )
                     
@@ -80,12 +74,14 @@ ui <- material_page(
                     # MAP SECTION
                     material_tab_content('map',
                                          height = 10,
-                                         material_card(title = "Map of ontario's youth's",
+                                         material_card(title = "Ontario",
                                                        depth = 4,
-                                                       leafletOutput(outputId = 'the_map'))                
-                                         
-                                         
-                    )
+                                                       fluidPage(
+                                                         fluidRow(helpText('Click a region (or regions) in the map below to filter the census tract choices at left.')),
+                                                         fluidRow(
+                                                           leafletOutput(outputId = 'the_map')
+                                                         )
+                                                       )))
                     
                     
                     
@@ -310,10 +306,92 @@ server <- function(input, output) {
     # 
     # the_map
     
-    leaf_region(region_map = region_map)
+    cl <- clicky()
+    message('clicky is')
+    print(cl)
+    the_index <- which(region_map$region %in% cl)
+    leaf_region(region_map = region_map,
+                index = the_index)
     
   })
   
+  # Location drop down
+  
+  clicky <- reactiveVal(value=NULL)
+  location_choices <- reactiveVal(value = sort(unique(census$Geography[census$Geography != 'Ontario'])))
+  
+  # observe the shape click and update the left choices and map
+  observeEvent(input$the_map_click,{
+    old_val <- clicky()
+    val <- input$the_map_shape_click
+    val <- val$id
+    message('Map click detected at:')
+    print(val)
+    message('--- Old values were')
+    print(old_val)
+    message('--- New value is')
+    print(val)
+    
+    if(!is.null(val)){
+      if(!is.null(old_val)){
+        if(val %in% old_val){
+          # Just remove
+          message('-----removing.')
+          val <- old_val[old_val != val]
+        } else {
+          message('-----adding.')
+          val <- c(old_val, val)
+        }
+      }
+    }
+    val <- val[!is.na(val)]
+    
+    message('New values are')
+    print(val)
+    clicky(val)
+    
+    
+    # Update the reactive location_choices object
+    if(length(val) == 0){
+      location_choices(sort(unique(census$Geography[census$Geography != 'Ontario'])))
+    } else {
+      new_choices <- geo_dict %>%
+        filter(region %in% val) %>%
+        .$Geography
+      location_choices(new_choices)
+    }
+    
+    
+    # Update the map
+    sub_shp <- ont2[ont2@data$region %in% val,]
+    if(length(val) > 0){
+      leafletProxy('the_map') %>%
+        # clearShapes() %>%
+        addPolylines(data = sub_shp,
+                    color = 'black',
+                    weight = 0.3)
+    }
+    
+    
+    }
+  )
+
+
+  output$location_ui <- renderUI({
+    the_choices <- location_choices()
+    if('Ontario' %in% the_choices){
+      the_selected <- the_choices[1]
+    } else {
+      the_selected <- the_choices
+    }
+
+    selectInput("location",
+                label = "",
+                choices = the_choices,
+                selected = the_selected, 
+                multiple = TRUE
+    )
+  })
   
   # -----------------------------------------------------------------------------
   # -----------------------------------------------------------------------------

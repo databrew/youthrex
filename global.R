@@ -419,60 +419,71 @@ if('census.feather' %in% dir('data')){
   # save(census, file = 'data/census.RData')
   write_feather(census, 'data/census.feather')
 }
-
-# define input cateogry choices
-category_choices <- sort(unique(census_dict$category))
-category_choices <- category_choices[!category_choices %in% c('demographic', 'geo_code', 'year')]
-names(category_choices) <- Hmisc::capitalize(category_choices)
-
-head_vector <- c('Geography', 'geo_code', 'year', 'Age group', 'Sex', 'Place of Birth','Visible minority', 'Aboriginal identity', 'Total')
-
-# Eliminate everywhere references to 15 and over
-names(census) <- gsub(' 15 and over', '', names(census))
-names(census) <- gsub(' 15 years and over', '', names(census))
-census_dict$variable <- names(census)
-
-census_pop <- readRDS('data/census_pop.rda')
-
-# recode the only variable that has two commas 
-census_pop$Geography <- ifelse(grepl('Dundas', census_pop$Geography) ,
-                           'Stormont Dundas and Glengarry, UC (3501)', 
-                           census_pop$Geography)
-
-# Clean up geography - only remove geo codes and keep everything else
-census_pop$Geography <- unlist(lapply(strsplit(census_pop$Geography, '(', fixed = TRUE), function(x){x[1]}))
-# now remove everything after comma
-census_pop$Geography <- unlist(lapply(strsplit(census_pop$Geography, ',', fixed = TRUE), function(x){x[1]}))
-# remove trailling and leading spaces 
-census_pop$Geography <- trimws(census_pop$Geography, 'both')
-
-# join with census
-census <- left_join(census, geo_dict, by = 'Geography')
-
-# Pre-make a leaflet object
-leafy <- leaf_basic(shp = ont2, tile = 'OpenStreetMap', palette = 'Oranges')
-
-# Clean up ont2
-ont2@data <- ont2@data %>%
-  mutate(NAME_2 = gsub(',', '', NAME_2)) %>%
-  mutate(NAME_2 = ifelse(NAME_2 == 'Greater Sudbury', 
-                         'Greater Sudbury / Grand Sudbury',
-                         NAME_2))
-
-# Bring geo code into geo_dict
-geo_dict <- left_join(x = geo_dict,
-               y = census %>% group_by(geo_code) %>% summarise(Geography = dplyr::first(Geography)),
-               by = 'Geography') %>%
-  mutate(CCA_2 = substr(geo_code, 3, 4))
-
-# Create a region map
-region_map <- ont2
-region_map@data <-  left_join(region_map@data,
-                       geo_dict,
-                       by = 'CCA_2')
-region_map <- unionSpatialPolygons(region_map,IDs = region_map@data$region)
-region_data <- data.frame(region = row.names(region_map))
-row.names(region_data) <- row.names(region_map)
-
-region_map <- SpatialPolygonsDataFrame(Sr = region_map,
-                                       data = region_data)
+if('saved.RData' %in% dir()){
+  load('saved.RData')
+} else {
+  # define input cateogry choices
+  category_choices <- sort(unique(census_dict$category))
+  category_choices <- category_choices[!category_choices %in% c('demographic', 'geo_code', 'year')]
+  names(category_choices) <- Hmisc::capitalize(category_choices)
+  
+  head_vector <- c('Geography', 'geo_code', 'year', 'Age group', 'Sex', 'Place of Birth','Visible minority', 'Aboriginal identity', 'Total')
+  
+  # Eliminate everywhere references to 15 and over
+  names(census) <- gsub(' 15 and over', '', names(census))
+  names(census) <- gsub(' 15 years and over', '', names(census))
+  census_dict$variable <- names(census)
+  
+  census_pop <- readRDS('data/census_pop.rda')
+  
+  # recode the only variable that has two commas 
+  census_pop$Geography <- ifelse(grepl('Dundas', census_pop$Geography) ,
+                                 'Stormont Dundas and Glengarry, UC (3501)', 
+                                 census_pop$Geography)
+  
+  # Clean up geography - only remove geo codes and keep everything else
+  census_pop$Geography <- unlist(lapply(strsplit(census_pop$Geography, '(', fixed = TRUE), function(x){x[1]}))
+  # now remove everything after comma
+  census_pop$Geography <- unlist(lapply(strsplit(census_pop$Geography, ',', fixed = TRUE), function(x){x[1]}))
+  # remove trailling and leading spaces 
+  census_pop$Geography <- trimws(census_pop$Geography, 'both')
+  
+  # join with census
+  census <- left_join(census, geo_dict, by = 'Geography')
+  
+  # Pre-make a leaflet object
+  leafy <- leaf_basic(shp = ont2, tile = 'OpenStreetMap', palette = 'Oranges')
+  
+  # Clean up ont2
+  ont2@data <- ont2@data %>%
+    mutate(NAME_2 = gsub(',', '', NAME_2)) %>%
+    mutate(NAME_2 = ifelse(NAME_2 == 'Greater Sudbury', 
+                           'Greater Sudbury / Grand Sudbury',
+                           NAME_2))
+  
+  # Bring geo code into geo_dict
+  geo_dict <- left_join(x = geo_dict,
+                        y = census %>% group_by(geo_code) %>% summarise(Geography = dplyr::first(Geography)),
+                        by = 'Geography') %>%
+    mutate(CCA_2 = substr(geo_code, 3, 4))
+  
+  # Create a region map
+  ont2@data <-  left_join(ont2@data,
+                          geo_dict,
+                          by = 'CCA_2')
+  region_map <- ont2
+  region_map <- unionSpatialPolygons(region_map,IDs = region_map@data$region)
+  region_data <- data.frame(region = row.names(region_map))
+  row.names(region_data) <- row.names(region_map)
+  
+  region_map <- SpatialPolygonsDataFrame(Sr = region_map,
+                                         data = region_data)
+  save(region_map,
+       ont2,
+       geo_dict,
+       census_pop,
+       leafy,
+       category_choices,
+       census,
+       file = 'saved.RData')  
+}
