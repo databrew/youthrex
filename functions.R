@@ -720,3 +720,24 @@ emp_line <- function(temp_dat) {
 # #  
 # 
 # 
+
+leaf_region <- function(region_map){
+  # cols <- brewer.pal(n = 4, name = 'Set3')
+  cols <- c('blue', 'green', 'red', 'orange')
+  x <- region_map
+  leaflet(x) %>%
+    addPolygons(fillColor = cols,
+                fillOpacity = 0.8,
+                weight = 0.1,
+                color = 'black',
+                label = x@data$region,
+                labelOptions = labelOptions(#noHide = T, 
+                  direction = "auto",
+                  style = list(
+                    "color" = "#191A1C",
+                    "box-shadow" = "3px 3px rgba(0,0,0,0.25)",
+                    "font-size" = "12px",
+                    "border-color" = "rgba(0,0,0,0.5)"
+                  )))
+
+}

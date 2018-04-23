@@ -30,6 +30,9 @@ source('global.R')
 # icon universe here :http://materializecss.com/icons.html
 
 ui <- material_page(
+  tags$style('.leaflet-container {
+    background: #FFF;
+}'),
   title = "Youthrex data app",
   nav_bar_color = "blue",
   
@@ -275,39 +278,40 @@ server <- function(input, output) {
   output$the_map <- renderLeaflet({
     
     
-    # subset data by inputs 
-    years <- input$years
-    message('YEARS are ')
-    print(input$years)
+    # # subset data by inputs 
+    # years <- input$years
+    # 
+    # demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+    #                "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
+    # new_census <- census[ , demo_vars]
+    # 
+    # temp <- new_census %>% filter(!Geography %in% 'Ontario') %>% 
+    #   filter(year %in% years) 
+    # 
+    # temp <- temp %>% filter(grepl('Total',`Age group`)) %>%
+    #   filter(grepl('Total',`Sex`)) %>% filter(grepl('Total',`Place of Birth`)) %>%
+    #   filter(grepl('Total',`Visible minority`)) %>% filter(grepl('Total',`Aboriginal identity`)) 
+    # 
+    # # keep only age group, year, and population
+    # temp <- temp[, c('Geography', 'geo_code','year','Population')]
+    # 
+    # temp$year <- as.character(temp$year)
+    # temp$Geography <- NULL
+    # census_pop$year <- as.character(census_pop$year)
+    # 
+    # temp <- inner_join(temp, census_pop, by = c('year', 'geo_code'))
+    # # make percentage youth variable 
+    # temp$per_youth <- round((temp$Population/temp$`Total population`)*100, 2)
+    # 
+    # # keep only geo code and per_youth
+    # temp <- temp[, c('geo_code', 'per_youth')]
+    # 
+    # the_map <- leaf(temp, years = years)
+    # 
+    # the_map
     
+    leaf_region(region_map = region_map)
     
-    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
-                   "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
-    new_census <- census[ , demo_vars]
-    
-    temp <- new_census %>% filter(!Geography %in% 'Ontario') %>% 
-      filter(year %in% years) 
-    
-    temp <- temp %>% filter(grepl('Total',`Age group`)) %>%
-      filter(grepl('Total',`Sex`)) %>% filter(grepl('Total',`Place of Birth`)) %>%
-      filter(grepl('Total',`Visible minority`)) %>% filter(grepl('Total',`Aboriginal identity`)) 
-    
-    # keep only age group, year, and population
-    temp <- temp[, c('Geography', 'geo_code','year','Population')]
-    
-    temp$year <- as.character(temp$year)
-    temp$Geography <- NULL
-    census_pop$year <- as.character(census_pop$year)
-    
-    temp <- inner_join(temp, census_pop, by = c('year', 'geo_code'))
-    # make percentage youth variable 
-    temp$per_youth <- round((temp$Population/temp$`Total population`)*100, 2)
-    
-    # keep only geo code and per_youth
-    temp <- temp[, c('geo_code', 'per_youth')]
-    
-    the_map <- leaf(temp, years = years)
-    the_map
   })
   
   

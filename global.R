@@ -451,3 +451,28 @@ census <- left_join(census, geo_dict, by = 'Geography')
 
 # Pre-make a leaflet object
 leafy <- leaf_basic(shp = ont2, tile = 'OpenStreetMap', palette = 'Oranges')
+
+# Clean up ont2
+ont2@data <- ont2@data %>%
+  mutate(NAME_2 = gsub(',', '', NAME_2)) %>%
+  mutate(NAME_2 = ifelse(NAME_2 == 'Greater Sudbury', 
+                         'Greater Sudbury / Grand Sudbury',
+                         NAME_2))
+
+# Bring geo code into geo_dict
+geo_dict <- left_join(x = geo_dict,
+               y = census %>% group_by(geo_code) %>% summarise(Geography = dplyr::first(Geography)),
+               by = 'Geography') %>%
+  mutate(CCA_2 = substr(geo_code, 3, 4))
+
+# Create a region map
+region_map <- ont2
+region_map@data <-  left_join(region_map@data,
+                       geo_dict,
+                       by = 'CCA_2')
+region_map <- unionSpatialPolygons(region_map,IDs = region_map@data$region)
+region_data <- data.frame(region = row.names(region_map))
+row.names(region_data) <- row.names(region_map)
+
+region_map <- SpatialPolygonsDataFrame(Sr = region_map,
+                                       data = region_data)
