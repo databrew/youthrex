@@ -321,7 +321,7 @@ server <- function(input, output) {
   location_choices <- reactiveVal(value = sort(unique(census$Geography[census$Geography != 'Ontario'])))
   
   # observe the shape click and update the left choices and map
-  observeEvent(input$the_map_click,{
+  observeEvent(input$the_map_shape_click,{
     old_val <- clicky()
     val <- input$the_map_shape_click
     val <- val$id
