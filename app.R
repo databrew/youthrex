@@ -30,6 +30,9 @@ source('global.R')
 # icon universe here :http://materializecss.com/icons.html
 
 ui <- material_page(
+  tags$style('.leaflet-container {
+    background: #FFF;
+}'),
   title = "Youthrex data app",
   nav_bar_color = "blue",
   
@@ -61,13 +64,7 @@ ui <- material_page(
                       
                       
                       # first dropdown for location
-                      selectInput("",
-                                  label = "",
-                                  choices = unique(census$Geography),
-                                  selected = "Ontario", 
-                                  multiple = TRUE
-                      )
-                      
+                      uiOutput('location_ui')
                       
                     )
                     
@@ -77,12 +74,14 @@ ui <- material_page(
                     # MAP SECTION
                     material_tab_content('map',
                                          height = 10,
-                                         material_card(title = "Map of ontario's youth's",
+                                         material_card(title = "Ontario",
                                                        depth = 4,
-                                                       leafletOutput(outputId = 'the_map'))                
-                                         
-                                         
-                    )
+                                                       fluidPage(
+                                                         fluidRow(helpText('Click a region (or regions) in the map below to filter the census tract choices at left.')),
+                                                         fluidRow(
+                                                           leafletOutput(outputId = 'the_map')
+                                                         )
+                                                       )))
                     
                     
                     
@@ -275,41 +274,124 @@ server <- function(input, output) {
   output$the_map <- renderLeaflet({
     
     
-    # subset data by inputs 
-    years <- input$years
-    message('YEARS are ')
-    print(input$years)
+    # # subset data by inputs 
+    # years <- input$years
+    # 
+    # demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+    #                "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
+    # new_census <- census[ , demo_vars]
+    # 
+    # temp <- new_census %>% filter(!Geography %in% 'Ontario') %>% 
+    #   filter(year %in% years) 
+    # 
+    # temp <- temp %>% filter(grepl('Total',`Age group`)) %>%
+    #   filter(grepl('Total',`Sex`)) %>% filter(grepl('Total',`Place of Birth`)) %>%
+    #   filter(grepl('Total',`Visible minority`)) %>% filter(grepl('Total',`Aboriginal identity`)) 
+    # 
+    # # keep only age group, year, and population
+    # temp <- temp[, c('Geography', 'geo_code','year','Population')]
+    # 
+    # temp$year <- as.character(temp$year)
+    # temp$Geography <- NULL
+    # census_pop$year <- as.character(census_pop$year)
+    # 
+    # temp <- inner_join(temp, census_pop, by = c('year', 'geo_code'))
+    # # make percentage youth variable 
+    # temp$per_youth <- round((temp$Population/temp$`Total population`)*100, 2)
+    # 
+    # # keep only geo code and per_youth
+    # temp <- temp[, c('geo_code', 'per_youth')]
+    # 
+    # the_map <- leaf(temp, years = years)
+    # 
+    # the_map
     
+    cl <- clicky()
+    message('clicky is')
+    print(cl)
+    the_index <- which(region_map$region %in% cl)
+    leaf_region(region_map = region_map,
+                index = the_index)
     
-    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
-                   "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
-    new_census <- census[ , demo_vars]
-    
-    temp <- new_census %>% filter(!Geography %in% 'Ontario') %>% 
-      filter(year %in% years) 
-    
-    temp <- temp %>% filter(grepl('Total',`Age group`)) %>%
-      filter(grepl('Total',`Sex`)) %>% filter(grepl('Total',`Place of Birth`)) %>%
-      filter(grepl('Total',`Visible minority`)) %>% filter(grepl('Total',`Aboriginal identity`)) 
-    
-    # keep only age group, year, and population
-    temp <- temp[, c('Geography', 'geo_code','year','Population')]
-    
-    temp$year <- as.character(temp$year)
-    temp$Geography <- NULL
-    census_pop$year <- as.character(census_pop$year)
-    
-    temp <- inner_join(temp, census_pop, by = c('year', 'geo_code'))
-    # make percentage youth variable 
-    temp$per_youth <- round((temp$Population/temp$`Total population`)*100, 2)
-    
-    # keep only geo code and per_youth
-    temp <- temp[, c('geo_code', 'per_youth')]
-    
-    the_map <- leaf(temp, years = years)
-    the_map
   })
   
+  # Location drop down
+  
+  clicky <- reactiveVal(value=NULL)
+  location_choices <- reactiveVal(value = sort(unique(census$Geography[census$Geography != 'Ontario'])))
+  
+  # observe the shape click and update the left choices and map
+  observeEvent(input$the_map_click,{
+    old_val <- clicky()
+    val <- input$the_map_shape_click
+    val <- val$id
+    message('Map click detected at:')
+    print(val)
+    message('--- Old values were')
+    print(old_val)
+    message('--- New value is')
+    print(val)
+    
+    if(!is.null(val)){
+      if(!is.null(old_val)){
+        if(val %in% old_val){
+          # Just remove
+          message('-----removing.')
+          val <- old_val[old_val != val]
+        } else {
+          message('-----adding.')
+          val <- c(old_val, val)
+        }
+      }
+    }
+    val <- val[!is.na(val)]
+    
+    message('New values are')
+    print(val)
+    clicky(val)
+    
+    
+    # Update the reactive location_choices object
+    if(length(val) == 0){
+      location_choices(sort(unique(census$Geography[census$Geography != 'Ontario'])))
+    } else {
+      new_choices <- geo_dict %>%
+        filter(region %in% val) %>%
+        .$Geography
+      location_choices(new_choices)
+    }
+    
+    
+    # Update the map
+    sub_shp <- ont2[ont2@data$region %in% val,]
+    if(length(val) > 0){
+      leafletProxy('the_map') %>%
+        # clearShapes() %>%
+        addPolylines(data = sub_shp,
+                    color = 'black',
+                    weight = 0.3)
+    }
+    
+    
+    }
+  )
+
+
+  output$location_ui <- renderUI({
+    the_choices <- location_choices()
+    if('Ontario' %in% the_choices){
+      the_selected <- the_choices[1]
+    } else {
+      the_selected <- the_choices
+    }
+
+    selectInput("location",
+                label = "",
+                choices = the_choices,
+                selected = the_selected, 
+                multiple = TRUE
+    )
+  })
   
   # -----------------------------------------------------------------------------
   # -----------------------------------------------------------------------------
