@@ -549,10 +549,11 @@ plot_age_demo <- function(location, years){
       geom_bar(stat = 'identity', colour = 'black', fill = '#1f77b4', alpha = 0.7) +
       theme(legend.position = 'bottom') + scale_y_continuous(labels = scales::percent) +
       # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
-      labs(x = '', y = ' ', title = '') +  theme(plot.title = element_text(size=12)) 
+      labs(x = '', y = ' ', title = '') 
     
     g <- g + scale_fill_manual(name = '',
-                               values = cols) + theme_bw(base_size = 13, base_family = 'Ubuntu') 
+                               values = cols) + theme_bw(base_size = 13, base_family = 'Ubuntu') + 
+      theme(axis.text.x = element_text(size = 10, angle = 45, vjust = 0.5, hjust=1))  
     
     
     g <- plotly::ggplotly(g, tooltip = 'text')

@@ -119,7 +119,7 @@ ui <- material_page(
                                            
                                            material_column(width = 3,
                                                            material_card(
-                                                              title = 'Examine by: ',
+                                                             title = 'Examine by: ',
                                                              material_radio_button('demo_variable',
                                                                                    '',
                                                                                    choices=  c('Sex',
@@ -134,7 +134,62 @@ ui <- material_page(
                                          )    
                                          
                                          
-                 
+                                         
+                    ),
+                    # FAMILY SECTION
+                    material_tab_content('family',
+                                         material_tabs(c('Youth as children (15-19)' = 'kids', 'Youth as parents (25-29)'= 'parents' ), color = 'deep-orange'),
+                                      
+                                         material_tab_content('parents',
+                                                              title = '',
+                                                              material_column(width = 12,
+                                                                              material_card(title = '',
+                                                                                            depth = 3,
+                                                                                            material_radio_button('fam_type',
+                                                                                                                  '',
+                                                                                                                  choices = c('Lone parents', 'Spouses and common law partners'),
+                                                                                                                  color = '#28B463' ),
+                                                                                            plotlyOutput('fam_plot_parents')))
+                                                              ),  
+                                         material_tab_content('kids',
+                                                              material_column(width = 12,
+                                                                              material_card(title = '',
+                                                                                            depth = 3,
+                                                                                            material_radio_button('fam_type_kids',
+                                                                                                                  '',
+                                                                                                                  choices = c('Children in lone parent families', 
+                                                                                                                              'Children in couple families'),
+                                                                                                                  color = '#28B463' ),
+                                                                                            plotlyOutput('fam_plot_kids')))
+                                                              
+                                         ),
+                                                       
+      
+                                         
+                                         material_row(material_column(width = 6,
+                                                                      selectInput('which_fam_type',
+                                                                                  'Parental type by visible minority',
+                                                                                  choices = c('Spouses and common law partners', 'Lone parents'),
+                                                                                  selected = 'Lone parents')),
+                                                      material_column(width = 6,
+                                                                      material_checkbox('fam_chart_table',
+                                                                                        'View as table',
+                                                                                        initial_value = FALSE,
+                                                                                        color = '#01579b'),
+                                                                      material_checkbox('fam_chart_table_all_or_vm',
+                                                                                        'Compare with non visible minority population',
+                                                                                        initial_value = FALSE,
+                                                                                        color = '#ff6f00'))
+                                                      
+                                         ),
+                                         material_row(column(width = 12,
+                                                             align = 'center',
+                                                             material_card(title = 'Family structure by Visible minority status',
+                                                                           depth = 4,
+                                                                           uiOutput('fam_plot_table_vismin'))))
+                                         
+                                         
+                                         
                     )
                     
                     
@@ -146,85 +201,7 @@ ui <- material_page(
   
   
   #   
-  #   # FAMILY SECTION
-  #   material_tab_content('family',
-  #                        material_row(
-  #                          material_column(width = 4,
-  #                                          material_card(
-  #                                            title = '',
-  #                                            p('Choose a year'),
-  #                                            depth = 3,
-  #                                            
-  #                                            # years
-  #                                            selectInput("years_fam",
-  #                                                        label = "",
-  #                                                        choices = unique(census$year),
-  #                                                        selected = unique(census$year),
-  #                                                        multiple = FALSE
-  #                                            ))),
-  #                          material_column(width = 4,
-  #                                          material_card(
-  #                                            title = '',
-  #                                            p('Choose a census location'),
-  #                                            depth = 3,
-  #                                            
-  #                                            # first dropdown for location
-  #                                            material_dropdown(
-  #                                              input_id = "location_fam",
-  #                                              label = "",
-  #                                              choices = unique(census$Geography),
-  #                                              selected = "Ontario", multiple = TRUE,
-  #                                              color = '#424242'
-  #                                            )
-  #                                            ))
-  #                         
-  #                                          ),
-  #                        material_row(
-  #                          material_column(width = 6,
-  #                                          material_card(title = 'Youth (25-29) as parents',
-  #                                                        depth = 3,
-  #                                                        material_radio_button('fam_type',
-  #                                                                              '',
-  #                                                                              choices = c('Lone parents', 'Spouses and common law partners'), 
-  #                                                                              color = '#28B463' ),
-  #                                                        
-  #                                                        uiOutput('fam_plot_parents'))),
-  #                          material_column(width = 6,
-  #                                          material_card(title = 'Youthe (15-19) as children',
-  #                                                        depth = 3,
-  #                                                        plotlyOutput('fam_plot_kids')))
-  #                          
-  #                          
-  #                        ),
-  #                        
-  #                       
-  #                        
-  #                        
-  #                        material_row(material_column(width = 6,
-  #                                                     selectInput('which_fam_type',
-  #                                                                 'Parental type by visible minority',
-  #                                                                 choices = c('Spouses and common law partners', 'Lone parents'),
-  #                                                                 selected = 'Lone parents')),
-  #                                     material_column(width = 6,
-  #                                                     material_checkbox('fam_chart_table',
-  #                                                                       'View as table',
-  #                                                                        initial_value = FALSE, 
-  #                                                                        color = '#01579b'),
-  #                                                     material_checkbox('fam_chart_table_all_or_vm',
-  #                                                                     'Compare with non visible minority population',
-  #                                                                      initial_value = FALSE,
-  #                                                                     color = '#ff6f00'))
-  #                                     
-  #                                     ),
-  #                        material_row(column(width = 12,
-  #                                            align = 'center',
-  #                                            material_card(title = 'Family structure by Visible minority status',
-  #                                                          depth = 4, 
-  #                                                          uiOutput('fam_plot_table_vismin'))))
-  #                        
-  #                        
-  #                        
-  #   ),
+  
   #   
   #   # EDUCATION SECTION
   #   material_tab_content('edu'
@@ -468,77 +445,87 @@ server <- function(input, output) {
     location <- locations()
     years <- input$years
     
-    # variable to examine
-    demo_variable <- input$demo_variable
     
-    
-    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
-    new_census <- census[ , demo_vars]
-    
-    new_census <- new_census %>% filter(Geography %in% location) %>%
-      filter(year %in% years) %>% filter(grepl('Total',`Age group`))
-    
-    
-    if(demo_variable == 'Sex') {
-      # get data
-      temp <- new_census %>%
-        filter(!grepl('Total', `Sex`)) %>%
-        filter(grepl('Total', `Place of Birth`)) %>%
-        filter(grepl('Total', `Visible minority`)) %>%
-        filter(grepl('Total', `Aboriginal identity`))
-      temp$`Age group` <- temp$geo_code <- 
-        temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
+    if(length(location) > 0){
+      # variable to examine
+      demo_variable <- input$demo_variable
       
+      
+      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
+      new_census <- census[ , demo_vars]
+      
+      new_census <- new_census %>% filter(Geography %in% location) %>%
+        filter(year %in% years) %>% filter(grepl('Total',`Age group`))
+      
+      
+      if(demo_variable == 'Sex') {
+        # get data
+        temp <- new_census %>%
+          filter(!grepl('Total', `Sex`)) %>%
+          filter(grepl('Total', `Place of Birth`)) %>%
+          filter(grepl('Total', `Visible minority`)) %>%
+          filter(grepl('Total', `Aboriginal identity`))
+        temp$`Age group` <- temp$geo_code <- 
+          temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
+        
+      }
+      
+      if(demo_variable == 'Place of Birth') {
+        
+        # get data
+        temp <- new_census %>%
+          filter(!grepl('Total', `Place of Birth`)) %>%
+          filter(grepl('Total', `Sex`)) %>%
+          filter(grepl('Total', `Visible minority`)) %>%
+          filter(grepl('Total', `Aboriginal identity`))
+        temp$`Age group` <- temp$geo_code <- 
+          temp$`Aboriginal identity` <- temp$`Sex` <- temp$`Visible minority` <-   NULL
+        
+        
+      }
+      
+      if(demo_variable == 'Visible minority') {
+        # get data
+        temp <- new_census %>%
+          filter(!grepl('Total', `Visible minority`)) %>%
+          filter(grepl('Total', `Place of Birth`)) %>%
+          filter(grepl('Total', `Sex`)) %>%
+          filter(grepl('Total', `Aboriginal identity`))
+        
+        temp$`Age group` <- temp$geo_code <- 
+          temp$`Place of Birth` <- temp$Sex <- temp$`Aboriginal identity` <-   NULL
+        
+        # remove Arab/West Asian
+        temp <- temp[temp$`Visible minority` != 'Arab/West Asian',]
+        temp <- temp[temp$`Visible minority` != 'All visible minorities',]
+        
+      }
+      
+      if(demo_variable == 'Aboriginal identity') {
+        # get data
+        temp <- new_census %>%
+          filter(!grepl('Total', `Aboriginal identity`)) %>%
+          filter(grepl('Total', `Place of Birth`)) %>%
+          filter(grepl('Total', `Sex`)) %>%
+          filter(grepl('Total', `Visible minority`))
+        
+        temp$`Age group` <- temp$geo_code <- 
+          temp$`Place of Birth` <- temp$Sex <- temp$`Visible minority` <-   NULL
+        
+      }
+      
+      
+      plotly_plot <- plotly_demo(temp_dat = temp, hole_value = 0.4, geo_names = unique(temp$Geography), var_lab = 'Sex', by_geo = FALSE)
+      
+      return(plotly_plot)
+    } else {
+      g <-  ggplot() + 
+        theme_base() +
+        labs(title = 'You must select a location plot')
+      
+      
+      return(ggplotly(g))
     }
-    
-    if(demo_variable == 'Place of Birth') {
-      
-      # get data
-      temp <- new_census %>%
-        filter(!grepl('Total', `Place of Birth`)) %>%
-        filter(grepl('Total', `Sex`)) %>%
-        filter(grepl('Total', `Visible minority`)) %>%
-        filter(grepl('Total', `Aboriginal identity`))
-      temp$`Age group` <- temp$geo_code <- 
-        temp$`Aboriginal identity` <- temp$`Sex` <- temp$`Visible minority` <-   NULL
-      
-      
-    }
-    
-    if(demo_variable == 'Visible minority') {
-      # get data
-      temp <- new_census %>%
-        filter(!grepl('Total', `Visible minority`)) %>%
-        filter(grepl('Total', `Place of Birth`)) %>%
-        filter(grepl('Total', `Sex`)) %>%
-        filter(grepl('Total', `Aboriginal identity`))
-      
-      temp$`Age group` <- temp$geo_code <- 
-        temp$`Place of Birth` <- temp$Sex <- temp$`Aboriginal identity` <-   NULL
-      
-      # remove Arab/West Asian
-      temp <- temp[temp$`Visible minority` != 'Arab/West Asian',]
-      temp <- temp[temp$`Visible minority` != 'All visible minorities',]
-      
-    }
-    
-    if(demo_variable == 'Aboriginal identity') {
-      # get data
-      temp <- new_census %>%
-        filter(!grepl('Total', `Aboriginal identity`)) %>%
-        filter(grepl('Total', `Place of Birth`)) %>%
-        filter(grepl('Total', `Sex`)) %>%
-        filter(grepl('Total', `Visible minority`))
-      
-      temp$`Age group` <- temp$geo_code <- 
-        temp$`Place of Birth` <- temp$Sex <- temp$`Visible minority` <-   NULL
-      
-    }
-    
-    
-    plotly_plot <- plotly_demo(temp_dat = temp, hole_value = 0.4, geo_names = unique(temp$Geography), var_lab = 'Sex', by_geo = FALSE)
-    
-    return(plotly_plot)
     
     
   })
@@ -649,106 +636,17 @@ server <- function(input, output) {
   # 
   # ---------------------------------------------------------------------------------------------
   # family variables = 'fam_plot_parents, fam_plot_kids, fam_plot_vismin, fam_table_vismin
-  # 
-  output$fam_plot_parents_1 <- renderPlotly({
-    
-    if (is.null(input$years_fam) | is.null(input$location_fam) | is.null(input$fam_type)) {
-      return(NULL)
-    } else {
-      # # subset data by inputs
-      # location <- 'Ontario'
-      # years <- c(2001)
-      # fam_type <- 'Spouses and common law partners'
-      
-      # get family input 
-      fam_type <- input$fam_type
-      location <- input$location_fam
-      years <- input$years_fam
-      
-      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", fam_type,'Population')
-      new_census <- census[ , demo_vars]
-      
-      temp <- new_census %>% filter(Geography %in% location) %>%
-        filter(year %in% years) %>% filter(grepl("25 to 29 years",`Age group`)) %>%
-        filter(grepl('Total', `Sex`)) %>%
-        filter(grepl('Total', `Place of Birth`)) %>%
-        filter(grepl('Total', `Visible minority`)) %>%
-        filter(grepl('Total', `Aboriginal identity`))
-      temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
-        temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
-      
-      
-      temp_melt <- melt(temp, id.vars = 'year')
-      
-      
-      f <- list(
-        family = "Ubuntu",
-        size = 20,
-        color = "white"
-      )
-      
-      year_value <- unique(temp_melt$year)
-      
-      if(length(year_value) == 1){
-        title_name <- year_value
-        title_f <- list(
-          family = "Ubuntu",
-          size = 12,
-          color = "#1F2023"
-        )
-        
-        
-      } else {
-        year_value <- paste0(year_value, collapse = ', ')
-        title_name <- paste0('Average for years:  ', year_value)
-        
-        title_f <- list(
-          family = "Ubuntu",
-          size = 11,
-          color = "#1F2023"
-        )
-        
-      }
-      
-      cols <- c("#9999CC",'#28B463')
-      p1 <-  plot_ly(temp_melt,labels = ~variable, values = ~value ,
-                     type ='pie',
-                     hole = 0.5,
-                     textposition = 'inside',
-                     textinfo = 'percent',
-                     insidetextfont = f,
-                     marker = list(colors = cols,
-                                   line = list(color = '#FFFFFF', width = 1)),
-                     hoverinfo = 'label+value') %>%
-        config(displayModeBar = F) %>%
-        
-        layout(title = title_name, font = title_f, showlegend = F,
-               annotations = list(
-                 showarrow = FALSE,
-                 text = '',
-                 font = list(color = '#1F2023',
-                             family = 'sans serif')), 
-               xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-               yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
-      
-      p1
-    }
-    
-  })
   
+  output$fam_plot_parents <- renderPlotly({
   
-  output$fam_plot_parents_2 <- renderGvis({
-    
-    if (is.null(input$years_fam) | is.null(input$location_fam) | is.null(input$fam_type)) {
-      return(NULL)
-    } else {
       
       # subset data by inputs
-      location <- 'Ontario'
-      years <- c(2001, 2006, 2011, 2016)
+      location <- c('Toronto', 'Ottawa')
+      years <- c(2001, 2006, 2011,2016)
       fam_type <- 'Spouses and common law partners'
-      location <- input$location_fam
-      years <- input$years_fam
+      
+      location <- locations()
+      # years <- input$years
       fam_type <- input$fam_type
       
       demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", fam_type,'Population')
@@ -760,80 +658,51 @@ server <- function(input, output) {
         filter(grepl('Total', `Place of Birth`)) %>%
         filter(grepl('Total', `Visible minority`)) %>%
         filter(grepl('Total', `Aboriginal identity`))
-      temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
+      temp$`Age group` <- temp$geo_code <- temp$Sex <-
         temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
       
-      
+     
       # # get percentages
       temp <- as.data.frame(temp)
-      colnames(temp)[2] <- paste0('Total ', fam_type)
+      colnames(temp)[3] <- paste0('Total ', fam_type)
       
-      temp$Percent <- round((temp[,2]/temp$Population)*100, 2)
-      colnames(temp)[4] <- 'Percent'
-      temp$year <- as.factor(temp$year)
-      line <- 
-        gvisLineChart(temp, xvar="year", yvar=c(paste0('Total ', fam_type), 'Percent'),
-                      options=list(title="",
-                                   titleTextStyle="{color:'#1F2023',
-                                   fontName:'Ubuntu',
-                                   fontSize:18}",
-                                   curveType="function", 
-                                   pointSize=15,
-                                   series="[{targetAxisIndex:0, 
-                                   color:'#28B463'}, 
-                                   {targetAxisIndex:1,
-                                   color:'#9999CC'}]",
-                                   vAxes="[{title:'Population',
-                                   format:'##,###',
-                                   titleTextStyle: {color: 'green'},
-                                   textStyle:{color: 'green'},
-                                   textPosition: 'out'}, 
-                                   {title:'Percent',
-                                   format:'#.##',
-                                   titleTextStyle: {color: '#9999CC'},  
-                                   textStyle:{color: '#9999CC'},
-                                   textPosition: 'out'}]",
-                                   hAxes="[{title:'Year',
-                                   textPosition: 'out'}]",
-                                   height=320
-                      ),
-                      chartid="twoaxislinechart_fam"
-        )
-      line
-  }
-    
-    
-    
+      temp$Percent <- round(temp[,3]/temp$Population, 2)
+
+      # plot all vm
+      cols <- colorRampPalette(brewer.pal(9, 'Blues'))(length(unique(temp$Geography)))
+      g <- ggplot(data = temp,
+                  aes(x = year,
+                      y = Percent,
+                      group = Geography,
+                      colour = Geography,
+                      text = paste0('Location: ', Geography,
+                                   '<br>', (Percent)*100 , '% ', fam_type))) +
+        geom_point(size = 2, alpha = 0.4) + geom_line(size = 1, alpha = 0.6, linetype = 'dotdash') + scale_color_manual(name = '',
+                                                                                     values = cols) + theme_bw(base_size = 16, base_family = 'Ubuntu')  +
+        labs(x = '', y = ' ') + 
+        scale_y_continuous(labels = scales::percent)
+      g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') 
+      
+      p1 <- plotly::ggplotly(g, tooltip = 'text') %>% config(displayModeBar = F) %>%
+        layout(showlegend = F)
+     
+
     })
   
-  output$fam_plot_parents <- renderUI({
-    if (is.null(input$years_fam) | is.null(input$location_fam) | is.null(input$fam_type)) {
-      return(NULL)
-    } else {
-      if(length(input$years_fam) == 1){
-        plotlyOutput('fam_plot_parents_1')
-      } else {
-        htmlOutput('fam_plot_parents_2')
-      }
-    }
-    
-    # ------------------------------------------------
-    # for kids - children in couple families vs children in lone parent families 
-    
-  })
   
   output$fam_plot_kids <- renderPlotly({
-    if (is.null(input$years_fam) | is.null(input$location_fam)) {
-      return(NULL)
-    } else {
+    
       # subset data by inputs
-      location <- 'Ontario'
+      location <- c('Toronto', 'Ottawa')
       years <- ( 2016)
-      location <- input$location_fam
-      years <- input$years_fam
+      fam_type_kids <- "Children in couple families"
+      location <- locations()
+      years <- input$years
+      fam_type_kids <- input$fam_type_kids
+      
       
       demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 
-                     "Children in lone parent families","Children in couple families",'Population')
+                     fam_type_kids,'Population')
       new_census <- census[ , demo_vars]
       
       temp <- new_census %>% filter(Geography %in% location) %>%
@@ -842,106 +711,32 @@ server <- function(input, output) {
         filter(grepl('Total', `Place of Birth`)) %>%
         filter(grepl('Total', `Visible minority`)) %>%
         filter(grepl('Total', `Aboriginal identity`))
-      temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
+      temp$`Age group` <- temp$geo_code <- temp$Sex <-
         temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
       
-      # make an "Other" column that makes up the rest between the addtion of our two variables and total population for 
-      # that age group.
-      temp$other <- temp$Population - (temp$`Children in lone parent families` + temp$`Children in couple families`)
+    
+      names(temp)[3] <- 'V2'
+      temp$Percent <- round(temp$V2/temp$Population, 2)
+      # plot dataseries="[{targetAxisIndex:0, 
+      cols <- colorRampPalette(brewer.pal(9, 'Purples'))(length(unique(temp$Geography)))
+      g <- ggplot(data = temp, 
+                  aes(x = Geography, 
+                      y = Percent,
+                      text = paste('Location: ', Geography,
+                                   '<br>', (Percent)*100 , '% ', as.factor(fam_type_kids)))) +
+        geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) +
+        scale_y_continuous(labels = scales::percent) +
+        labs(x = '', y = ' ') 
+      g <- g  + theme_bw(base_size = 12, base_family = 'Ubuntu')  + theme(axis.text.x = element_text(size = 10, angle = 45, vjust = 0.5, hjust=1))
       
-      # remove population since other variables account for it 
-      temp$Population <- NULL
-      
-      # get in long format 
-      temp_long <- melt(temp, id.vars = 'year')
-      
-      temp_dat <- temp_long %>%
-        group_by(year) %>%
-        mutate(tot_pop = sum(value))  %>%
-        group_by(year, variable) %>%
-        mutate(pop_per =round(value/tot_pop,  2))
-      temp_dat$year <- as.factor(temp_dat$year)
-      
-      year_value <- unique(temp_dat$year)
-      
-      f <- list(
-        family = "Ubuntu",
-        size = 20,
-        color = "white"
-      )
-      
-      
-      
-      
-      if(length(years) == 1){
-        
-        
-        title_name <- year_value
-        title_f <- list(
-          family = "Ubuntu",
-          size = 12,
-          color = "#1F2023"
-        )
-        
-        
-        cols <- c('#28B463',"#9999CC")
-        p1 <-  plot_ly(temp_dat, labels = ~variable, values = ~value ,
-                       type ='pie',
-                       hole = 0.5,
-                       textposition = 'inside',
-                       textinfo = 'percent',
-                       insidetextfont = f,
-                       marker = list(colors = cols,
-                                     line = list(color = '#FFFFFF', width = 1)),
-                       hoverinfo = 'label+value') %>%
-          config(displayModeBar = F) %>%
-          
-          layout(title = title_name, font = title_f, showlegend = F,
-                 annotations = list(
-                   showarrow = FALSE,
-                   text = '',
-                   font = list(color = '#1F2023',
-                               family = 'sans serif')), 
-                 xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-                 yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
-        
-        p1
-      } else {
-        
-        year_value <- paste0(year_value, collapse = ', ')
-        title_name <- paste0('Average for years:  ', year_value)
-        
-        title_f <- list(
-          family = "Ubuntu",
-          size = 11,
-          color = "#1F2023"
-        )
-        # plot dataseries="[{targetAxisIndex:0, 
-        cols <- c('#28B463',"#9999CC", "grey" )
-        g <- ggplot(data = temp_dat,
-                    aes(x = year,
-                        y = pop_per,
-                        fill = variable, 
-                        text = paste('Total population 15-19 year old: ', tot_pop,
-                                     '<br>', pop_per , '%', as.factor(variable)))) +
-          geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) +
-          scale_y_continuous(labels = scales::percent) +
-          # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
-          labs(x = '', y = ' ') + scale_fill_manual(name = '',
-                                                    values = cols)
-        g <- g  + theme_bw(base_size = 12, base_family = 'Ubuntu') 
-        
-        plotly::ggplotly(g, tooltip = 'text') %>%
-          config(displayModeBar = F) %>%
-          layout( 
-            legend = list(
-              orientation = "l",
-              x = 0,
-              y = -0.6))
-      }
-      
-      
-    }
+      plotly::ggplotly(g, tooltip = 'text') %>%
+        config(displayModeBar = F) %>%
+        layout( 
+          legend = list(
+            orientation = "l",
+            x = 0,
+            y = -0.6))
+  
     
     
   })
