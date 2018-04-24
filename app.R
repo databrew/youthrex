@@ -377,6 +377,7 @@ server <- function(input, output) {
   
   # Observe ANY change to any of the checkboxes, and update accordingly
   observe({
+    lc <- location_choices()
     ip <- input
     ip <- reactiveValuesToList(ip)
     # Keep only those values preceded by location_
@@ -386,13 +387,11 @@ server <- function(input, output) {
     names(ip) <- gsub('location_', '', names(ip))
     df <- data.frame(key = names(ip),
                      value = ip)
-    df <- df %>% filter(value == TRUE)
+    df <- df %>% filter(value == TRUE,
+                        key %in% lc)
     out <- df$key
     out <- sort(as.character(out))
     locations(out)
-    message('The locations() object is-----------------------------------')
-    print(locations())
-    message('------------------------------------------------------------')
   })
   
   census_reactive <- reactive({
