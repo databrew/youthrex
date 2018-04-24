@@ -20,7 +20,7 @@ leaf <- function(x,
                  show_legend = TRUE,
                  years,
                  title = NULL){
- 
+  
   # This function expects "x" to be a dataframe with a column named "geo_code" (a 4 character string)
   # and another named "value"
   # Keep only the numbered values
@@ -56,7 +56,7 @@ leaf <- function(x,
   # Create a popup
   popper <- paste0(shp@data$NAME_2, ': ',
                    round(shp@data$per_youth, 2), '% Youth in ', years)
-
+  
   
   
   # Create map
@@ -86,13 +86,13 @@ leaf <- function(x,
                 #   bringToFront = TRUE),
                 label = popper,
                 labelOptions = labelOptions(#noHide = T, 
-                                            direction = "auto",
-                                            style = list(
-                                              "color" = "#191A1C",
-                                              "box-shadow" = "3px 3px rgba(0,0,0,0.25)",
-                                              "font-size" = "12px",
-                                              "border-color" = "rgba(0,0,0,0.5)"
-                                            ))) 
+                  direction = "auto",
+                  style = list(
+                    "color" = "#191A1C",
+                    "box-shadow" = "3px 3px rgba(0,0,0,0.25)",
+                    "font-size" = "12px",
+                    "border-color" = "rgba(0,0,0,0.5)"
+                  ))) 
   # %>% 
   #   setView(lng = -84.3232, lat = 53.25, zoom = 6)
   return(l)
@@ -161,24 +161,24 @@ prettify <- function (the_table, remove_underscores_columns = TRUE, cap_columns 
                                               text = "Download"))), rownames = FALSE, extensions = "Buttons")
       } else {
         the_table <- DT::datatable(the_table, fillContainer = F,options = list(pageLength = nrows,
-                                                             # scrollY = '300px', paging = FALSE,
-                                                             dom = "Bfrtip", 
-                                                             buttons = list("copy",
-list(extend = "collection",buttons = "csv",   text = "Download", sDom  = '<"top">lrt<"bottom">ip'))), rownames = FALSE, extensions = "Buttons")
+                                                                               # scrollY = '300px', paging = FALSE,
+                                                                               dom = "Bfrtip", 
+                                                                               buttons = list("copy",
+                                                                                              list(extend = "collection",buttons = "csv",   text = "Download", sDom  = '<"top">lrt<"bottom">ip'))), rownames = FALSE, extensions = "Buttons")
       }
       
     }  
-
+    
     else {
       if(no_scroll){
         the_table <- DT::datatable(the_table, fillContainer = F,options = list(sDom  = '<"top">lrt<"bottom">ip',#pageLength = nrows,
-          scrollY = '300px', paging = FALSE,
-          columnDefs = list(list(className = "dt-right",
-                                 targets = 0:(ncol(the_table) - 1)))), rownames = FALSE)
+                                                                               scrollY = '300px', paging = FALSE,
+                                                                               columnDefs = list(list(className = "dt-right",
+                                                                                                      targets = 0:(ncol(the_table) - 1)))), rownames = FALSE)
       } else {
         the_table <- DT::datatable(the_table, fillContainer = F,options = list(pageLength = nrows,
-                                                             columnDefs = list(list(className = "dt-right",sDom  = '<"top">lrt<"bottom">ip',
-                                                                                    targets = 0:(ncol(the_table) - 1)))), rownames = FALSE)
+                                                                               columnDefs = list(list(className = "dt-right",sDom  = '<"top">lrt<"bottom">ip',
+                                                                                                      targets = 0:(ncol(the_table) - 1)))), rownames = FALSE)
       }
     }
   }
@@ -280,147 +280,296 @@ prettify_scroll <- function (the_table, remove_underscores_columns = TRUE, cap_c
 #8c564b or rgb(140, 86, 75)
 
 
-# barplot with ggplotly
+# # # barplot with ggplotly
 # temp_dat <- temp
-bar_plotly_demo <- function(temp_dat, no_legend){
-  # rename variable fo plotting 
-  var_lab <- colnames(temp_dat)[2]
-  
-  colnames(temp_dat)[2] <- 'V2'
-  
-  temp_dat <- as.data.frame(temp_dat)
-  
-  temp_dat <- temp_dat %>%
-    group_by(year) %>%
-    mutate(tot_pop = sum(Population))  %>%
-    group_by(year, V2) %>%
-    mutate(pop_per =round(Population/tot_pop,  2))
-  temp_dat$year <- as.factor(temp_dat$year)
-  
-  if(length(unique(temp_dat$V2)) == 2) {
-    cols <- c('#1f77b4', '#2ca02c')
-  } else {
-    # plot data
-    cols <- colorRampPalette(brewer.pal(9, 'Greens'))(length(unique(temp_dat$V2)))
-  }
-  
-  # get title based on var_lab 
-  title_name <- paste0('% of youth population by ', var_lab)
+# hole_value = 0.4
+# geo_names <- unique(temp$Geography)
+# var_lab = 'Sex'
+
+plotly_demo <- function(temp_dat, 
+                        hole_value, 
+                        geo_names, 
+                        var_lab,
+                        by_geo){
   
   
-  g <- ggplot(data = temp_dat,
-              aes(x = year,
-                  y = pop_per,
-                  fill = V2, 
-                  text = paste('Population', Population,
-                               '<br>', V2,
-                               '<br>Year: ', as.factor(year)))) +
-    geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) +
-    theme(legend.position = 'bottom') + scale_y_continuous(labels = scales::percent) +
-    # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
-    labs(x = '', y = ' ', title = title_name) +  theme(plot.title = element_text(size=12)) 
+  # get year and remove column
+  year_value <- as.character(temp_dat$year)
+  temp_dat$year <- NULL
   
-    g <- g + scale_fill_manual(name = '',
-                               values = cols) + theme_bw(base_size = 13, base_family = 'Ubuntu') 
-    
-    
-     
-    g_plotly <- plotly::ggplotly(g, tooltip = 'text') 
-    
-    if(var_lab == 'Visible minority'){
-      g_plotly <- g_plotly %>% config(displayModeBar = F) %>%
-        layout(showlegend = F)
-      
-    } else {
-      g_plotly <- g_plotly %>% config(displayModeBar = F) %>%
-        layout(legend = list(
-          orientation = "h",
-          y = -0.1))
-    }
+  # # get font list
+  # title_name <- paste0('% youth in ', year_value)
+  # title_f <- list(
+  #   family = "Ubuntu",
+  #   size = 12,
+  #   color = "#1F2023"
+  # )
+  # 
+  title_name <- ''
+ 
   
-    
-  
-  
-  return(g_plotly)
-  
-}
-pie_plotly_demo <- function(temp_dat, hole_value){
-  # get font list
-  
-  year_value <- unique(temp_dat$year)
-  
-  if(length(year_value) == 1){
-    title_name <- year_value
-    title_f <- list(
-      family = "Ubuntu",
-      size = 12,
-      color = "#1F2023"
-    )
+  if(by_geo){
+    temp_dat <- temp_dat %>%
+      group_by(Geography) %>%
+      mutate(tot_pop = sum(Population))  %>%
+      group_by(Geography, V2) %>%
+      mutate(pop_per =round((Population/tot_pop)*100,  2))    
+    # reset geo_names so it is forced to my pie chart
+    if(length(unique(temp_dat$Geography)))
+    geo_names <- c('one')
     
     
   } else {
-    year_value <- paste0(year_value, collapse = ', ')
-    title_name <- paste0('Average for years:  ', year_value)
+    # rename variable fo plotting 
+    colnames(temp_dat)[2] <- 'V2'
     
-    title_f <- list(
-      family = "Ubuntu",
-      size = 11,
-      color = "#1F2023"
-    )
-    
+    temp_dat <- temp_dat %>%
+      group_by(Geography) %>%
+      mutate(tot_pop = sum(Population))  %>%
+      group_by(Geography, V2) %>%
+      mutate(pop_per =round(Population/tot_pop,  2))
   }
-
-  # rename variable fo plotting 
-  colnames(temp_dat)[2] <- 'V2'
+ 
   
-   temp_dat <- temp_dat %>%
-    group_by(year) %>%
-    mutate(tot_pop = sum(Population))  %>%
-    group_by(year, V2) %>%
-    mutate(pop_per =round((Population/tot_pop)*100,  2))
-   
-   # get avg population and percentage
-   temp_dat <- temp_dat %>%
-     group_by(V2) %>%
-     summarise(mean_pop = mean(Population, na.rm = T),
-               mean_per = mean(pop_per, na.rm = T))
-
   f <- list(
     family = "Ubuntu",
     size = 20,
     color = "white"
   )
- 
-  p1 <-  plot_ly(temp_dat,labels = ~V2, values = ~mean_pop,
-                 type ='pie',
-                 hole = hole_value,
-                 textposition = 'inside',
-                 textinfo = 'percent',
-                 insidetextfont = f,
-                 hoverinfo = 'label+value')  %>%
-    
-    config(displayModeBar = F) %>%
-    
-    layout(title = title_name, font = title_f, showlegend = F,
-           annotations = list(
-             showarrow = FALSE,
-             text = '',
-             font = list(color = '#1F2023',
-                         family = 'sans serif')), 
-           xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
-           yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
   
-  return(p1)
+  if(length(geo_names) == 1){
+    plotly_plot <-  plot_ly(temp_dat,labels = ~V2, values = ~pop_per,
+                            type ='pie',
+                            hole = hole_value,
+                            textposition = 'inside',
+                            textinfo = 'percent',
+                            insidetextfont = f,
+                            hoverinfo = 'label+value')  %>%
+      
+      config(displayModeBar = F) %>%
+      
+      layout(title ='' , font = '', showlegend = T,
+             annotations = list(
+               showarrow = FALSE,
+               text = '',
+               font = list(color = '#1F2023',
+                           family = 'sans serif')), 
+             xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+             yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+    
+  } else {
+    if(length(unique(temp_dat$V2)) == 2) {
+      cols <- c('#1f77b4', '#2ca02c')
+    } else {
+      # plot data
+      cols <- colorRampPalette(brewer.pal(9, 'Greens'))(length(unique(temp_dat$V2)))
+    }
+    
+    # # get title based on var_lab
+    # title_name <- paste0('% of youth population by ', var_lab)
 
+    
+    g <- ggplot(data = temp_dat,
+                aes(x = Geography,
+                    y = pop_per,
+                    fill = V2, 
+                    text = paste('Population', Population,
+                                 '<br>', V2,
+                                 '<br>Location: ', as.factor(Geography)))) +
+      geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) +
+      theme(legend.position = 'bottom') + scale_y_continuous(labels = scales::percent) +
+      # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
+      labs(x = '', y = ' ', title = '') +  theme(plot.title = element_text(size=12)) 
+    
+    g <- g + scale_fill_manual(name = '',
+                               values = cols) + theme_bw(base_size = 13, base_family = 'Ubuntu') 
+    
+    
+    
+    plotly_plot <- plotly::ggplotly(g, tooltip = 'text') 
+    
+    if(var_lab == 'Visible minority'){
+      plotly_plot <- plotly_plot %>% config(displayModeBar = F) %>%
+        layout(showlegend = F)
+      
+    } else {
+      plotly_plot <- plotly_plot %>% config(displayModeBar = F) %>%
+        layout(legend = list(
+          orientation = "h",
+          y = -0.1))
+    }
+    
+  }
+  
+  
+  return(plotly_plot)
+  
+}
+
+
+demo_table <- function(temp_dat, 
+                       geo_names, 
+                       var_lab,
+                       by_geo){
+  
+
+  # get year and remove column
+  year_value <- as.character(temp_dat$year)
+  temp_dat$year <- NULL
+  
+  # get v2
+  colnames(temp_dat)[2] <- 'V2'
+  
+  temp_dat <- temp_dat %>%
+    group_by(Geography) %>%
+    mutate(`Total population` = sum(Population))  %>%
+    group_by(Geography, V2) %>%
+    mutate(`Percent youth` =round((Population/`Total population`)*100,  2))    
+ 
+    colnames(temp_dat)[colnames(temp_dat) == 'Population'] <- 'Youth population'
+ 
+  return(temp_dat)
+  
+}
+
+
+
+#1f77b4 or rgb(31, 119, 180)
+#ff7f0e or rgb(255, 127, 14)
+#2ca02c or rgb(44, 160, 44)
+#d62728 or rgb(214, 39, 40)
+#9467bd or rgb(148, 103, 189)
+#8c564b or rgb(140, 86, 75)
+# function for first plot - demo percent age by geography
+plot_age_demo <- function(location, years){
+  
+  demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex",
+                 "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
+  new_census <- census[ , demo_vars]
+  
+  if(length(location) == 1){
+    # add ontario 
+    all_locations <- unique(census$Geography)
+    all_locations <- all_locations[all_locations != location]
+    location <- c(location, all_locations)
+    location <- location[location != 'Ontario']
+    
+    temp <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% filter(grepl('Total',`Age group`)) %>%
+      filter(grepl('Total',`Sex`)) %>% filter(grepl('Total',`Place of Birth`)) %>%
+      filter(grepl('Total',`Visible minority`)) %>% filter(grepl('Total',`Aboriginal identity`))
+    
+    
+    # grpup by groups and get mean percentage 
+    # keep only age group, year, and population
+    temp <- temp[, c('Geography', 'geo_code','year','Population')]
+    # 
+    temp$year <- as.character(temp$year)
+    census_pop$year <- as.character(census_pop$year)
+    
+    
+    temp <- inner_join(temp, census_pop, by = c('year', 'geo_code', 'Geography'))
+    
+    # get group by indicator
+    temp$Geography <- ifelse(temp$Geography == location[1], location[1], 'Rest of Ontario')
+    
+    temp <- temp %>% 
+      group_by(Geography) %>% 
+      summarise(sum_youth = sum(Population))
+    
+    temp$total <- sum(temp$sum_youth)
+    
+    temp$percent_youth <- round((temp$sum_youth/temp$total)*100, 2)
+    
+    # get title based on var_lab 
+    title_name <- paste0('% youth in ', years)
+    
+    
+    f <- list(
+      family = "Ubuntu",
+      size = 20,
+      color = "white"
+    )
+    
+    g <-  plot_ly(temp,labels = ~Geography, values = ~percent_youth,
+                   type ='pie',
+                   hole = 0.4,
+                   textposition = 'inside',
+                   textinfo = 'percent',
+                   insidetextfont = f,
+                   hoverinfo = 'label+value')  %>%
+      
+      config(displayModeBar = F) %>%
+      
+      layout(title = '', font = '', showlegend = F,
+             annotations = list(
+               showarrow = FALSE,
+               text = '',
+               font = list(color = '#1F2023',
+                           family = 'sans serif')), 
+             xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+             yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+    
+    
+    
+  } else {
+    # 
+    temp <- new_census %>% filter(Geography %in% location) %>%
+      filter(!Geography %in% 'Ontario') %>%
+      filter(year %in% years)
+    
+    
+    # 
+    temp <- temp %>% filter(grepl('Total',`Age group`)) %>%
+      filter(grepl('Total',`Sex`)) %>% filter(grepl('Total',`Place of Birth`)) %>%
+      filter(grepl('Total',`Visible minority`)) %>% filter(grepl('Total',`Aboriginal identity`))
+    # 
+    # keep only age group, year, and population
+    temp <- temp[, c('Geography', 'geo_code','year','Population')]
+    # 
+    temp$year <- as.character(temp$year)
+    census_pop$year <- as.character(census_pop$year)
+    # 
+    temp <- inner_join(temp, census_pop, by = c('year', 'geo_code'))
+    # make percentage youth variable
+    temp$per_youth <- round(temp$Population/temp$`Total population`, 2)
+    
+    temp$Geography.y <- NULL
+    
+    # get title based on var_lab 
+    title_name <- ''
+    
+    
+    g <- ggplot(data = temp,
+                aes(x = Geography.x,
+                    y = per_youth,
+                    text = paste('Population', `Total population`,
+                                 '<br>', paste0((per_youth)*100, ' %'),
+                                 '<br>Location: ', as.factor(Geography.x)))) +
+      geom_bar(stat = 'identity', colour = 'black', fill = '#1f77b4', alpha = 0.7) +
+      theme(legend.position = 'bottom') + scale_y_continuous(labels = scales::percent) +
+      # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
+      labs(x = '', y = ' ', title = '') +  theme(plot.title = element_text(size=12)) 
+    
+    g <- g + scale_fill_manual(name = '',
+                               values = cols) + theme_bw(base_size = 13, base_family = 'Ubuntu') 
+    
+    
+    g <- plotly::ggplotly(g, tooltip = 'text')
+    
+    
+  }
+  return(g)
+  
 }
 
 
 leaf_income <- function(x, 
-                 tile = 'OpenStreetMap', 
-                 palette = 'Oranges',
-                 income_status_map_demo_filter,
-                 show_legend = TRUE,
-                 title = NULL){
+                        tile = 'OpenStreetMap', 
+                        palette = 'Oranges',
+                        income_status_map_demo_filter,
+                        show_legend = TRUE,
+                        title = NULL){
   
   # This function expects "x" to be a dataframe with a column named "geo_code" (a 4 character string)
   # and another named "value"
@@ -449,7 +598,7 @@ leaf_income <- function(x,
   
   # Create a popup
   popper <- paste0(shp@data$NAME_2, ': ', round(shp@data$`Percent low income status`, 2),'%')
-
+  
   # Create map
   l <- leaf_basic_income(shp = shp, tile, palette = palette)
   # l <- leaflet(data = shp) %>%
@@ -490,7 +639,7 @@ leaf_income <- function(x,
 }
 
 leaf_basic_income <- function(shp = ont2, tile, palette){
-
+  
   l <- leaflet(data = shp) %>%
     addProviderTiles(tile) 
   return(l)
@@ -748,5 +897,5 @@ leaf_region <- function(region_map, index = 1:4){
                     "font-size" = "12px",
                     "border-color" = "rgba(0,0,0,0.5)"
                   )))
-
+  
 }
