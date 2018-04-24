@@ -881,7 +881,9 @@ leaf_region <- function(region_map, index = 1:4){
   }
   
   x <- region_map
-  leaflet(x) %>%
+  leaflet(x, option=leafletOptions(zoomControl=FALSE)) %>%
+    addTiles(options=tileOptions(minZoom=4, maxZoom=4,
+                                 opacity = 0)) %>%
     addPolygons(fillColor = cols,
                 fillOpacity = 1,
                 opacity = 1,
