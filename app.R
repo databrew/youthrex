@@ -64,7 +64,7 @@ ui <- material_page(
                       
                       
                       material_switch(input_id = 'location_switch',
-                                            label = '',
+                                      label = '',
                                       off_label = 'Select none',
                                       on_label = 'Select all',
                                       initial_value = TRUE),
@@ -89,52 +89,52 @@ ui <- material_page(
                                                        ))),
                     # DEMOGRAPHIC SECTION
                     material_tab_content('demo',
-                                         material_card(
-                                           align = 'center',
-                                           title = '% of population aged 15 to 29',
-                                           material_tabs(c('Plot' = 'plotter', 'Table'= 'tabler' ), color = 'blue'),
-                                           material_tab_content('plotter',
-                                                                material_card(
-                                                                  plotlyOutput(outputId = 'demo_plot_pie')
-                                                                )),
-                                           material_tab_content('tabler',
-                                                                material_card(
-                                                                  DT::dataTableOutput('pie_table')
-                                                                )) 
-                                           
-                                         ),
-                                           material_row(
-                                             material_column(width = 9,
-                                                             material_card(title = "Demographic breakdown",
-                                                                           depth = 4,
-                                                                           material_switch('demo_show_table',
-                                                                                           'View as table',
-                                                                                           off_label = '',
-                                                                                           on_label = ''),
-                                                                           uiOutput(outputId = 'demo_var'))
-                                                             
-                                             ),
-                                          
+                                         align = 'center',
+                                         h4('Youth demographics'),
+                                         material_tabs(c('Plot' = 'plotter', 'Table'= 'tabler' ), color = 'blue'),
+                                         material_tab_content('plotter',
+                                                              material_card(
+                                                                plotlyOutput(outputId = 'demo_plot_pie')
+                                                              )),
+                                         material_tab_content('tabler',
+                                                              material_card(
+                                                                DT::dataTableOutput('pie_table')
+                                                              )),
                                          
-                                        
-                                     
-                                           material_column(width = 2,
-                                                           material_radio_button('demo_variable',
-                                                                                 '',
-                                                                                 choices=  c('Sex',
-                                                                                             'Place of Birth',
-                                                                                             'Visible minority',
-                                                                                             'Aboriginal identity'), color = 'blue')
+                                         
+                                         material_row(
+                                           material_column(width = 9,
+                                                           material_card(title = "Demographic breakdown",
+                                                                         depth = 4,
+                                                                         material_switch('demo_show_table',
+                                                                                         'View as table',
+                                                                                         off_label = '',
+                                                                                         on_label = ''),
+                                                                         uiOutput(outputId = 'demo_var'))
+                                                           
+                                           ),
+                                           
+                                           
+                                           
+                                           
+                                           material_column(width = 3,
+                                                           material_card(
+                                                              title = 'Examine by: ',
+                                                             material_radio_button('demo_variable',
+                                                                                   '',
+                                                                                   choices=  c('Sex',
+                                                                                               'Place of Birth',
+                                                                                               'Visible minority',
+                                                                                               'Aboriginal identity'), color = 'blue')
+                                                           )
+                                                           
                                                            
                                            )
                                            
-                    )    
-                                           
-                                           
+                                         )    
                                          
                                          
-                                         
-                                         
+                 
                     )
                     
                     
@@ -347,7 +347,7 @@ server <- function(input, output) {
     
     the_choices <- sort(the_choices)
     the_selected <- sort(the_selected)
-
+    
     if(!input$location_switch){
       the_selected <- c()
     }
@@ -355,12 +355,12 @@ server <- function(input, output) {
     out_list <- list()
     for(i in 1:length(the_choices)){
       out_list[[i]] <- paste0("material_checkbox(input_id = 'location_",the_choices[i], "',
-        label = '", the_choices[i] ,"',
-        initial_value = ",the_choices[i] %in% the_selected,")")
+                              label = '", the_choices[i] ,"',
+                              initial_value = ",the_choices[i] %in% the_selected,")")
     }
     out <- paste0('fluidPage(', paste0(out_list, collapse =',\n'),
                   ')', collapse = '')
-
+    
     eval(parse(text = out))
     
     # Checkbox group input does not work with material design
@@ -370,7 +370,7 @@ server <- function(input, output) {
     #             selected = the_selected %in% the_choices, 
     #             inline = FALSE
     # )
-  })
+    })
   
   # Reactive object containing the selected location(s)
   locations <- reactiveVal(value = sort(geo_dict$region[geo_dict$region != 'Ontario']))
@@ -401,14 +401,23 @@ server <- function(input, output) {
   
   # demo_plot_pie
   output$demo_plot_pie <- renderPlotly({
+    location <- NULL
     
-    location <- c('Toronto')
-    years <- 2016
-    # # subset data by inputs
     years <- input$years
-    location <- input$location
+    location <- locations()
     
-    plot_age_demo(location, years)
+    if(length(location) > 0){
+      print(location)
+      plot_age_demo(location, years)
+    } else {
+      
+      g <-  ggplot() + 
+        theme_base() +
+        labs(title = 'You must select a location plot')
+      
+      ggplotly(g)
+    }
+    
     
   })
   
@@ -417,10 +426,8 @@ server <- function(input, output) {
   output$pie_table <- renderDataTable({
     
     
-    location <- c('Toronto')
-    years <- 2016
     # same idea as above.
-    location <- input$location
+    location <- locations()
     years <- input$years
     
     demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 'Population')
@@ -453,7 +460,7 @@ server <- function(input, output) {
   output$demo_chart <- renderPlotly({
     
     
-    location <- input$location
+    location <- locations()
     years <- input$years
     
     # variable to examine
@@ -536,12 +543,7 @@ server <- function(input, output) {
   # 'Aboriginal identity'
   output$demo_table <- renderDataTable({
     
-    
-    # subset data by inputs
-    location <- c('Ottawa', 'Toronto')
-    years <- c(2016)
-    demo_variable <- 'Place of Birth'
-    location <- input$location
+    location <- locations()
     years <- input$years
     demo_variable <- input$demo_variable
     
@@ -1637,7 +1639,7 @@ server <- function(input, output) {
       )
     line
     # 
-})
+  })
   
   output$emp_table_age <- renderDataTable({
     location <- 'Ontario'
