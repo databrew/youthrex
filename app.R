@@ -51,7 +51,7 @@ ui <- material_page(
   material_row(
     material_column(width = 3,
                     material_card(
-                      title = 'Choose year and location',
+                      title = 'Choose year and location(s)',
                       depth = 3,
                       
                       # years
@@ -63,7 +63,12 @@ ui <- material_page(
                       ),
                       
                       
-                      # first dropdown for location
+                      material_switch(input_id = 'location_switch',
+                                            label = '',
+                                      off_label = 'Select none',
+                                      on_label = 'Select all',
+                                      initial_value = TRUE),
+                      # checkboxes for location
                       uiOutput('location_ui')
                       
                     )
@@ -375,7 +380,7 @@ server <- function(input, output) {
     
     }
   )
-
+  
 
   output$location_ui <- renderUI({
     the_choices <- location_choices()
@@ -384,13 +389,55 @@ server <- function(input, output) {
     } else {
       the_selected <- the_choices
     }
+    
+    the_choices <- sort(the_choices)
+    the_selected <- sort(the_selected)
 
-    selectInput("location",
-                label = "",
-                choices = the_choices,
-                selected = the_selected, 
-                multiple = TRUE
-    )
+    if(!input$location_switch){
+      the_selected <- c()
+    }
+    
+    out_list <- list()
+    for(i in 1:length(the_choices)){
+      out_list[[i]] <- paste0("material_checkbox(input_id = 'location_",the_choices[i], "',
+        label = '", the_choices[i] ,"',
+        initial_value = ",the_choices[i] %in% the_selected,")")
+    }
+    out <- paste0('fluidPage(', paste0(out_list, collapse =',\n'),
+                  ')', collapse = '')
+
+    eval(parse(text = out))
+    
+    # Checkbox group input does not work with material design
+    # checkboxGroupInput("location",
+    #             label = "",
+    #             choices = the_choices,
+    #             selected = the_selected %in% the_choices, 
+    #             inline = FALSE
+    # )
+  })
+  
+  # Reactive object containing the selected location(s)
+  locations <- reactiveVal(value = sort(geo_dict$region[geo_dict$region != 'Ontario']))
+  
+  # Observe ANY change to any of the checkboxes, and update accordingly
+  observe({
+    ip <- input
+    ip <- reactiveValuesToList(ip)
+    # Keep only those values preceded by location_
+    ip <- unlist(ip)
+    ip <- ip[grepl('location_', names(ip))]
+    ip <- ip[!grepl('switch', names(ip))]
+    names(ip) <- gsub('location_', '', names(ip))
+    df <- data.frame(key = names(ip),
+                     value = ip)
+    df <- df %>% filter(value == TRUE)
+    out <- df$key
+    out <- sort(as.character(out))
+    locations(out)
+    message('The locations() object is-----------------------------------')
+    print(locations())
+    message('------------------------------------------------------------')
   })
   
   # -----------------------------------------------------------------------------
