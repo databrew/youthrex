@@ -13,7 +13,6 @@ library(memisc)
 library(stringdist)
 library(reshape2)
 
-
 leaf <- function(x, 
                  tile = 'OpenStreetMap', 
                  palette = 'Oranges',
@@ -523,7 +522,8 @@ plot_age_demo <- function(location, years){
     temp <- temp %>% filter(grepl('Total',`Age group`)) %>%
       filter(grepl('Total',`Sex`)) %>% filter(grepl('Total',`Place of Birth`)) %>%
       filter(grepl('Total',`Visible minority`)) %>% filter(grepl('Total',`Aboriginal identity`))
-    # 
+    
+    
     # keep only age group, year, and population
     temp <- temp[, c('Geography', 'geo_code','year','Population')]
     # 
@@ -540,8 +540,9 @@ plot_age_demo <- function(location, years){
     title_name <- ''
     
     
+    
     g <- ggplot(data = temp,
-                aes(x = Geography.x,
+                aes(x = reorder(Geography.x, -per_youth),
                     y = per_youth,
                     text = paste('Population', `Total population`,
                                  '<br>', paste0((per_youth)*100, ' %'),

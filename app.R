@@ -138,7 +138,7 @@ ui <- material_page(
                     ),
                     # FAMILY SECTION
                     material_tab_content('family',
-                                         material_tabs(c('Youth as children (15-19)' = 'kids', 'Youth as parents (25-29)'= 'parents' ), color = 'deep-orange'),
+                                         material_tabs(c('Youth as children (15-19)' = 'kids', 'Youth as parents (25-29)'= 'parents' ), color = 'blue'),
                                       
                                          material_tab_content('parents',
                                                               title = '',
@@ -162,16 +162,17 @@ ui <- material_page(
                                                                                                                   color = '#28B463' ),
                                                                                             plotlyOutput('fam_plot_kids')))
                                                               
-                                         ),
-                                                       
-      
-                                         
+                                         ), 
+                                       
                                          material_row(material_column(width = 6,
+                                                                      br(),br(), 
+                                                                      
                                                                       selectInput('which_fam_type',
                                                                                   'Parental type by visible minority',
                                                                                   choices = c('Spouses and common law partners', 'Lone parents'),
                                                                                   selected = 'Lone parents')),
                                                       material_column(width = 6,
+                                                                      br(), br(), 
                                                                       material_checkbox('fam_chart_table',
                                                                                         'View as table',
                                                                                         initial_value = FALSE,
@@ -645,15 +646,13 @@ server <- function(input, output) {
   
   output$fam_plot_parents <- renderPlotly({
   
-      
-      # subset data by inputs
-      location <- c('Toronto', 'Ottawa')
-      years <- c(2001, 2006, 2011,2016)
-      fam_type <- 'Spouses and common law partners'
-      
-      location <- locations()
-      # years <- input$years
-      fam_type <- input$fam_type
+    location <- locations()
+    years <- input$years
+    
+    # years <- input$years
+    fam_type <- input$fam_type
+    
+    if(length(location) > 0){
       
       demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", fam_type,'Population')
       new_census <- census[ , demo_vars]
@@ -667,13 +666,13 @@ server <- function(input, output) {
       temp$`Age group` <- temp$geo_code <- temp$Sex <-
         temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
       
-     
+      
       # # get percentages
       temp <- as.data.frame(temp)
       colnames(temp)[3] <- paste0('Total ', fam_type)
       
       temp$Percent <- round(temp[,3]/temp$Population, 2)
-
+      
       # plot all vm
       cols <- colorRampPalette(brewer.pal(9, 'Blues'))(length(unique(temp$Geography)))
       g <- ggplot(data = temp,
@@ -682,15 +681,23 @@ server <- function(input, output) {
                       group = Geography,
                       colour = Geography,
                       text = paste0('Location: ', Geography,
-                                   '<br>', (Percent)*100 , '% ', fam_type))) +
-        geom_point(size = 2, alpha = 0.4) + geom_line(size = 1, alpha = 0.6, linetype = 'dotdash') + scale_color_manual(name = '',
-                                                                                     values = cols) + theme_bw(base_size = 16, base_family = 'Ubuntu')  +
+                                    '<br>', (Percent)*100 , '% ', fam_type))) +
+        geom_point(size = 2, alpha = 0.4, position = 'jitter') + geom_line(size = 1, alpha = 0.6, linetype = 'dotdash') + scale_color_manual(name = '',
+                                                                                                                        values = cols) + theme_bw(base_size = 16, base_family = 'Ubuntu')  +
         labs(x = '', y = ' ') + 
         scale_y_continuous(labels = scales::percent)
       g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') 
       
       p1 <- plotly::ggplotly(g, tooltip = 'text') %>% config(displayModeBar = F) %>%
         layout(showlegend = F)
+    } else {
+      g <-  ggplot() + 
+        theme_base() +
+        labs(title = 'You must select a location plot')
+    }
+      
+    
+     return(g)
      
 
     })
@@ -698,55 +705,224 @@ server <- function(input, output) {
   
   output$fam_plot_kids <- renderPlotly({
     
-      # subset data by inputs
-      location <- c('Toronto', 'Ottawa')
-      years <- ( 2016)
-      fam_type_kids <- "Children in couple families"
       location <- locations()
       years <- input$years
       fam_type_kids <- input$fam_type_kids
       
       
-      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 
-                     fam_type_kids,'Population')
-      new_census <- census[ , demo_vars]
-      
-      temp <- new_census %>% filter(Geography %in% location) %>%
-        filter(year %in% years) %>% filter(grepl("15 to 19 years",`Age group`)) %>%
-        filter(grepl('Total', `Sex`)) %>%
-        filter(grepl('Total', `Place of Birth`)) %>%
-        filter(grepl('Total', `Visible minority`)) %>%
-        filter(grepl('Total', `Aboriginal identity`))
-      temp$`Age group` <- temp$geo_code <- temp$Sex <-
-        temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
-      
-    
-      names(temp)[3] <- 'V2'
-      temp$Percent <- round(temp$V2/temp$Population, 2)
-      # plot dataseries="[{targetAxisIndex:0, 
-      cols <- colorRampPalette(brewer.pal(9, 'Purples'))(length(unique(temp$Geography)))
-      g <- ggplot(data = temp, 
-                  aes(x = Geography, 
-                      y = Percent,
-                      text = paste('Location: ', Geography,
-                                   '<br>', (Percent)*100 , '% ', as.factor(fam_type_kids)))) +
-        geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) +
-        scale_y_continuous(labels = scales::percent) +
-        labs(x = '', y = ' ') 
-      g <- g  + theme_bw(base_size = 12, base_family = 'Ubuntu')  + theme(axis.text.x = element_text(size = 10, angle = 45, vjust = 0.5, hjust=1))
-      
-      plotly::ggplotly(g, tooltip = 'text') %>%
-        config(displayModeBar = F) %>%
-        layout( 
-          legend = list(
-            orientation = "l",
-            x = 0,
-            y = -0.6))
+      if(length(location) > 0){
+        demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 
+                       fam_type_kids,'Population')
+        new_census <- census[ , demo_vars]
+        
+        temp <- new_census %>% filter(Geography %in% location) %>%
+          filter(year %in% years) %>% filter(grepl("15 to 19 years",`Age group`)) %>%
+          filter(grepl('Total', `Sex`)) %>%
+          filter(grepl('Total', `Place of Birth`)) %>%
+          filter(grepl('Total', `Visible minority`)) %>%
+          filter(grepl('Total', `Aboriginal identity`))
+        temp$`Age group` <- temp$geo_code <- temp$Sex <-
+          temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
+        
+        
+        names(temp)[3] <- 'V2'
+        temp$Percent <- round(temp$V2/temp$Population, 2)
+        # plot dataseries="[{targetAxisIndex:0, 
+        cols <- colorRampPalette(brewer.pal(9, 'Purples'))(length(unique(temp$Geography)))
+        g <- ggplot(data = temp, 
+                    aes(x = Geography, 
+                        y = Percent,
+                        text = paste('Location: ', Geography,
+                                     '<br>', (Percent)*100 , '% ', as.factor(fam_type_kids)))) +
+          geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) +
+          scale_y_continuous(labels = scales::percent) +
+          labs(x = '', y = ' ') 
+        g <- g  + theme_bw(base_size = 12, base_family = 'Ubuntu')  + theme(axis.text.x = element_text(size = 10, angle = 45, vjust = 0.5, hjust=1))
+        
+        g <- plotly::ggplotly(g, tooltip = 'text') %>%
+          config(displayModeBar = F) %>%
+          layout( 
+            legend = list(
+              orientation = "l",
+              x = 0,
+              y = -0.6))
+        
+      } else {
+        g <-  ggplot() + 
+          theme_base() +
+          labs(title = 'You must select a location plot')
+      }
+
+     return(g)
   
+  })
+  
+  
+
+  
+  output$fam_plot_vismin <- renderPlotly({
+    
+      # # subset data by inputs
+      location <- c('Toronto', 'Ottawa')
+      years <- c(2016)
+      which_fam_type <- 'Lone parents'
+      fam_chart_table_all_or_vm <- FALSE
+      which_fam_type <- input$which_fam_type
+      location <- locations()
+      years <- input$years
+      fam_chart_table_all_or_vm <- input$fam_chart_table_all_or_vm
+      
+      if(length(location) > 0){
+        demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 
+                       which_fam_type,'Population')
+        new_census <- census[ , demo_vars]
+        
+        temp <- new_census %>% filter(Geography %in% location) %>%
+          filter(year %in% years) %>% filter(grepl("25 to 29 years",`Age group`)) %>%
+          filter(grepl('Total', `Sex`)) %>%
+          filter(grepl('Total', `Place of Birth`)) %>%
+          filter(!grepl('Total', `Visible minority`)) %>%
+          filter(grepl('Total', `Aboriginal identity`))
+        temp$`Age group`  <- temp$geo_code <- temp$Sex <-
+          temp$`Aboriginal identity` <- temp$`Place of Birth`  <-   NULL
+        
+        # make an "Other" column that makes up the rest between the addtion of our two variables and total population for 
+        # that age group.
+        
+        # remove Arab/West Asian from data
+        temp <- temp %>% filter(!`Visible minority` %in% 'Arab/West Asian')
+        
+        # get two datasets: all other vs all vm, and only within vm.
+        temp_all <- temp %>% filter(grepl('All', temp$`Visible minority`))
+        temp_vm <- temp %>% filter(!grepl('All', temp$`Visible minority`))
+        
+        # make data frmae
+        temp_all <- as.data.frame(temp_all)
+        temp_vm <- as.data.frame(temp_vm)
+        
+        # get percentage 
+        colnames(temp_all)[4] <- 'V2'
+        colnames(temp_vm)[4] <- 'V2'
+        
+        temp_all$per <- round(temp_all$V2/temp_all$Population,2 )
+        temp_vm$per <- round(temp_vm$V2/temp_vm$Population,2 )
+        
+        
+        if(fam_chart_table_all_or_vm){
+          # plot all vm
+          print(temp_all)
+          cols <- c('darkgreen', "#9999CC")
+          g <- ggplot(data = temp_all,
+                      aes(x = Geography,
+                          y = per,
+                          fill = `Visible minority`,
+                          text = paste('Total population of', `Visible minority`, ': ', Population,
+                                       '<br>', (per)*100 , '% ', which_fam_type))) +
+           
+            geom_jitter(aes(size = Population), width = 0.2, colour ='black') +
+            scale_fill_manual(name = '', 
+                               values = cols) + 
+            scale_size_continuous(name = '') +
+            labs(x = '', y = ' ') +  
+            scale_y_continuous(labels = scales::percent)
+          g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') 
+          
+          p1 <- plotly::ggplotly(g, tooltip = 'text') %>% config(displayModeBar = F) 
+        } else {
+          
+          # plot data
+          cols <- colorRampPalette(brewer.pal(9, 'Set1'))(length(unique(temp_vm$`Visible minority`)))
+          g <- ggplot(data = temp_vm,
+                      aes(x = Geography,
+                          y = per,
+                          fill = `Visible minority`,
+                          text = paste('Total population of', `Visible minority`, ': ', Population,
+                                       '<br>', (per)*100 , '% ', which_fam_type ))) + 
+            geom_jitter(aes(size = Population), width = 0.2, colour = 'black') +
+            scale_fill_manual(name = '', 
+                              values = cols) + 
+            scale_size_continuous(name = '') + theme_bw(base_size = 14, base_family = 'Ubuntu')  +
+            scale_y_continuous(labels = scales::percent) +
+            labs(x = '', y = ' ') 
+          
+          p1 <- plotly::ggplotly(g, tooltip = 'text')  %>% config(displayModeBar = F)
+        }
+        
+      } else {
+       p1 <-  ggplot() + 
+          theme_base() +
+          labs(title = 'You must select a location plot')
+      }
+        
+    
+      return(p1)
+   
+  })
+  
+  
+  output$fam_table_vismin <- DT::renderDataTable({
+    
+      # # subset data by inputs
+      # location <- 'Ontario'
+      # years <- c(2001, 2006, 2011, 2016)
+      # which_fam_type <- 'Lone parents'
+      # fam_chart_table_all_or_vm <- FALSE
+      which_fam_type <- input$which_fam_type
+      location <- locations()
+      years <- input$years
+      fam_chart_table_all_or_vm <- input$fam_chart_table_all_or_vm
+      
+      if(length(location) > 0){
+        demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                       "Place of Birth","Visible minority", "Aboriginal identity", 
+                       which_fam_type,'Population')
+        new_census <- census[ , demo_vars]
+        
+        temp <- new_census %>% filter(Geography %in% location) %>%
+          filter(year %in% years) %>% filter(grepl("25 to 29 years",`Age group`)) %>%
+          filter(grepl('Total', `Sex`)) %>%
+          filter(grepl('Total', `Place of Birth`)) %>%
+          filter(!grepl('Total', `Visible minority`)) %>%
+          filter(grepl('Total', `Aboriginal identity`))
+        temp$`Age group` <- temp$geo_code <- temp$Sex <-
+          temp$`Aboriginal identity` <- temp$`Place of Birth`  <-   NULL
+        
+        # make an "Other" column that makes up the rest between the addtion of our two variables and total population for 
+        # that age group.
+        
+        # remove Arab/West Asian from data
+        temp <- temp %>% filter(!`Visible minority` %in% 'Arab/West Asian')
+        
+        # get two datasets: all other vs all vm, and only within vm.
+        temp_all <- temp %>% filter(grepl('All', temp$`Visible minority`))
+        temp_vm <- temp %>% filter(!grepl('All', temp$`Visible minority`))
+        
+        # get percentage 
+        colnames(temp_all)[4] <- 'V2'
+        colnames(temp_vm)[4] <- 'V2'
+        
+        temp_all$Percent <- round((temp_all$V2/temp_all$Population)*100, 2)
+        temp_vm$Percent <- round((temp_vm$V2/temp_vm$Population)*100, 2)
+        
+        # get percentage 
+        colnames(temp_all)[4] <- which_fam_type
+        colnames(temp_vm)[4] <- which_fam_type
+        
+        if(fam_chart_table_all_or_vm){
+          return(prettify(temp_all))
+        } else {
+          return(prettify(temp_vm))
+        }
+        
+      } else {
+        NULL
+      }
+        
+      
+     
     
     
   })
-  
   
   output$fam_plot_table_vismin <- renderUI({
     if(input$fam_chart_table){
@@ -757,193 +933,6 @@ server <- function(input, output) {
     
   })
   
-  
-  output$fam_plot_vismin <- renderPlotly({
-    if(is.null(input$years_fam) | is.null(input$location_fam) | is.null(input$fam_chart_table_all_or_vm)) {
-      return(NULL)
-    } else {
-      # subset data by inputs
-      location <- 'Ontario'
-      years <- c(2016)
-      which_fam_type <- 'Lone parents'
-      fam_chart_table_all_or_vm <- FALSE
-      which_fam_type <- input$which_fam_type
-      location <- input$location_fam
-      years <- input$years_fam
-      fam_chart_table_all_or_vm <- input$fam_chart_table_all_or_vm
-      
-      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", "Place of Birth","Visible minority", "Aboriginal identity", 
-                     which_fam_type,'Population')
-      new_census <- census[ , demo_vars]
-      
-      temp <- new_census %>% filter(Geography %in% location) %>%
-        filter(year %in% years) %>% filter(grepl("25 to 29 years",`Age group`)) %>%
-        filter(grepl('Total', `Sex`)) %>%
-        filter(grepl('Total', `Place of Birth`)) %>%
-        filter(!grepl('Total', `Visible minority`)) %>%
-        filter(grepl('Total', `Aboriginal identity`))
-      temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
-        temp$`Aboriginal identity` <- temp$`Place of Birth`  <-   NULL
-      
-      # make an "Other" column that makes up the rest between the addtion of our two variables and total population for 
-      # that age group.
-      
-      # remove Arab/West Asian from data
-      temp <- temp %>% filter(!`Visible minority` %in% 'Arab/West Asian')
-      
-      # get two datasets: all other vs all vm, and only within vm.
-      temp_all <- temp %>% filter(grepl('All', temp$`Visible minority`))
-      temp_vm <- temp %>% filter(!grepl('All', temp$`Visible minority`))
-      
-      # make data frmae
-      temp_all <- as.data.frame(temp_all)
-      temp_vm <- as.data.frame(temp_vm)
-      
-      # get percentage 
-      colnames(temp_all)[3] <- 'V2'
-      colnames(temp_vm)[3] <- 'V2'
-      
-      temp_all$per <- round(temp_all$V2/temp_all$Population,2 )
-      temp_vm$per <- round(temp_vm$V2/temp_vm$Population,2 )
-      
-      
-      if(length(years)==1){
-        if(fam_chart_table_all_or_vm){
-          # plot all vm
-          cols <- c('darkgreen', "#9999CC")
-          g <- ggplot(data = temp_all,
-                      aes(x = `Visible minority`,
-                          y = per,
-                          text = paste('Total population of', `Visible minority`, ': ', Population,
-                                       '<br>', (per)*100, '%'))) +
-            geom_bar(stat = 'identity', alpha = 0.7,fill = 'darkgreen') + theme_bw(base_size = 16, base_family = 'Ubuntu')  +
-            labs(x = '', y = ' ') + ggtitle(paste0('Youth (25 to 29) ', which_fam_type)) + 
-            scale_y_continuous(labels = scales::percent)
-          
-          g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') 
-          
-          p1 <- plotly::ggplotly(g, tooltip = 'text') %>% config(displayModeBar = F) 
-        } else {
-          temp_vm$`Visible minority` <- gsub('Visible minority, n.i.e.', 'VM N.I.E', temp_vm$`Visible minority`)
-          temp_vm$`Visible minority`<- gsub('Multiple visible minority', 'Multiple VM', temp_vm$`Visible minority`)
-          
-          cols <- colorRampPalette(brewer.pal(9, 'Set1'))(length(unique(temp_vm$`Visible minority`)))
-          g <- ggplot(data = temp_vm,
-                      aes(x = as.factor(`Visible minority`),
-                          y = per,
-                          text = paste('Total population of', `Visible minority`, ': ', Population,
-                                       '<br>', (per)*100 , '%'))) +  theme_bw(base_size = 8, base_family = 'Ubuntu') +
-            geom_bar(stat = 'identity', alpha = 0.7,fill = cols) + 
-            labs(x = '', y = ' ') + ggtitle(paste0('Youth (25 to 29) ', which_fam_type)) + 
-            scale_y_continuous(labels = scales::percent)
-          
-          
-          p1 <- plotly::ggplotly(g, tooltip = 'text') %>% config(displayModeBar = F)
-        }
-        
-      } else {
-        if(fam_chart_table_all_or_vm){
-          # plot all vm
-          cols <- c('darkgreen', "#9999CC")
-          g <- ggplot(data = temp_all,
-                      aes(x = year,
-                          y = per,
-                          group = `Visible minority`,
-                          colour = `Visible minority`,
-                          text = paste('Total population of', `Visible minority`, ': ', Population,
-                                       '<br>', (per)*100 , '%'))) +
-            geom_point(size = 6) + geom_line(size = 2, alpha = 0.6) + scale_color_manual(name = '',
-                                                                                         values = cols) + theme_bw(base_size = 16, base_family = 'Ubuntu')  +
-            labs(x = '', y = ' ') + ggtitle(paste0('Youth (25 to 29) ', which_fam_type)) + 
-            scale_y_continuous(labels = scales::percent)
-          g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') 
-          
-          p1 <- plotly::ggplotly(g, tooltip = 'text') %>% config(displayModeBar = F) 
-        } else {
-          # plot data
-          cols <- colorRampPalette(brewer.pal(9, 'Set1'))(length(unique(temp_vm$`Visible minority`)))
-          g <- ggplot(data = temp_vm,
-                      aes(x = year,
-                          y = per,
-                          group = `Visible minority`,
-                          colour = `Visible minority`,
-                          text = paste('Total population of', `Visible minority`, ': ', Population,
-                                       '<br>', (per)*100 , '%'))) + 
-            geom_point(size = 6) + geom_line(size = 2, alpha = 0.6) + scale_color_manual(name = '',
-                                                                                         values = cols) + theme_bw(base_size = 14, base_family = 'Ubuntu')  +
-            scale_y_continuous(labels = scales::percent) +
-            labs(x = '', y = ' ') + ggtitle(paste0('Youth (25 to 29) ', which_fam_type))
-          
-          p1 <- plotly::ggplotly(g, tooltip = 'text')  %>% config(displayModeBar = F)
-        }
-      }
-      
-      
-      return(p1)
-      
-    }
-    
-  })
-  
-  
-  output$fam_table_vismin <- DT::renderDataTable({
-    if(is.null(input$years_fam) | is.null(input$location_fam) | is.null(input$fam_chart_table_all_or_vm)) {
-      return(NULL)
-    } else {
-      # subset data by inputs
-      location <- 'Ontario'
-      years <- c(2001, 2006, 2011, 2016)
-      which_fam_type <- 'Lone parents'
-      fam_chart_table_all_or_vm <- FALSE
-      which_fam_type <- input$which_fam_type
-      location <- input$location_fam
-      years <- input$years_fam
-      fam_chart_table_all_or_vm <- input$fam_chart_table_all_or_vm
-      
-      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
-                     "Place of Birth","Visible minority", "Aboriginal identity", 
-                     which_fam_type,'Population')
-      new_census <- census[ , demo_vars]
-      
-      temp <- new_census %>% filter(Geography %in% location) %>%
-        filter(year %in% years) %>% filter(grepl("25 to 29 years",`Age group`)) %>%
-        filter(grepl('Total', `Sex`)) %>%
-        filter(grepl('Total', `Place of Birth`)) %>%
-        filter(!grepl('Total', `Visible minority`)) %>%
-        filter(grepl('Total', `Aboriginal identity`))
-      temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
-        temp$`Aboriginal identity` <- temp$`Place of Birth`  <-   NULL
-      
-      # make an "Other" column that makes up the rest between the addtion of our two variables and total population for 
-      # that age group.
-      
-      # remove Arab/West Asian from data
-      temp <- temp %>% filter(!`Visible minority` %in% 'Arab/West Asian')
-      
-      # get two datasets: all other vs all vm, and only within vm.
-      temp_all <- temp %>% filter(grepl('All', temp$`Visible minority`))
-      temp_vm <- temp %>% filter(!grepl('All', temp$`Visible minority`))
-      
-      # get percentage 
-      colnames(temp_all)[3] <- 'V2'
-      colnames(temp_vm)[3] <- 'V2'
-      
-      temp_all$per <- round((temp_all$V2/temp_all$Population)*100, 2)
-      temp_vm$per <- round((temp_vm$V2/temp_vm$Population)*100, 2)
-      
-      # get percentage 
-      colnames(temp_all)[3] <- which_fam_type
-      colnames(temp_vm)[3] <- which_fam_type
-      
-      if(fam_chart_table_all_or_vm){
-        prettify(temp_all)
-      } else {
-        prettify(temp_vm)
-      }
-      
-    }
-    
-  })
   
   
   #----------------------------------------------------------------------------------------------------------
