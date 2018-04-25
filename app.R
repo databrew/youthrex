@@ -62,12 +62,12 @@ ui <- material_page(
                         
                       ),
                       
-                      
-                      material_switch(input_id = 'location_switch',
-                                      label = '',
-                                      off_label = 'Select none',
-                                      on_label = 'Select all',
-                                      initial_value = TRUE),
+                      material_button(input_id = 'location_button_none',
+                                      label = 'Select none',
+                                      icon = icon('close')),
+                      material_button(input_id = 'location_button_all',
+                                      label = 'Select all',
+                                      icon = icon('people')),
                       # checkboxes for location
                       uiOutput('location_ui')
                       
@@ -280,6 +280,7 @@ server <- function(input, output) {
   
   clicky <- reactiveVal(value=NULL)
   location_choices <- reactiveVal(value = sort(unique(census$Geography[census$Geography != 'Ontario'])))
+  location_selected <- reactiveVal(value = sort(unique(census$Geography[census$Geography != 'Ontario']))[1:2])
   
   # observe the shape click and update the left choices and map
   observeEvent(input$the_map_shape_click,{
@@ -314,12 +315,17 @@ server <- function(input, output) {
     
     # Update the reactive location_choices object
     if(length(val) == 0){
-      location_choices(sort(unique(census$Geography[census$Geography != 'Ontario'])))
+      lc <- sort(unique(census$Geography[census$Geography != 'Ontario']))
+      lc <- sort(lc)
+      location_choices(lc)
+      location_selected(lc[1:2])
     } else {
       new_choices <- geo_dict %>%
         filter(region %in% val) %>%
         .$Geography
+      new_choices <- sort(new_choices)
       location_choices(new_choices)
+      location_selected(new_choices[1:2])
     }
     
     
@@ -339,19 +345,9 @@ server <- function(input, output) {
   
   output$location_ui <- renderUI({
     the_choices <- location_choices()
-    if('Ontario' %in% the_choices){
-      the_selected <- the_choices[1]
-    } else {
-      the_selected <- the_choices
-    }
-    
     the_choices <- sort(the_choices)
-    the_selected <- sort(the_selected)
-    
-    if(!input$location_switch){
-      the_selected <- c()
-    }
-    
+    the_selected <- location_selected()
+
     out_list <- list()
     for(i in 1:length(the_choices)){
       out_list[[i]] <- paste0("material_checkbox(input_id = 'location_",the_choices[i], "',
@@ -374,6 +370,16 @@ server <- function(input, output) {
   
   # Reactive object containing the selected location(s)
   locations <- reactiveVal(value = sort(geo_dict$region[geo_dict$region != 'Ontario']))
+  
+  observeEvent(input$location_button_all, {
+    lc <- location_choices()
+    location_selected(lc)
+    locations(lc)
+  })
+  observeEvent(input$location_button_none, {
+    location_selected(c())
+    locations(c())
+  })
   
   # Observe ANY change to any of the checkboxes, and update accordingly
   observe({
