@@ -716,6 +716,16 @@ server <- function(input, output) {
                        fam_type_kids,'Population')
         new_census <- census[ , demo_vars]
         
+        if(length(location) == 1) {
+          location <- c('Ontario', location)
+          
+          f <- list(
+            family = "Ubuntu",
+            size = 20,
+            color = "white"
+          )
+        }
+        
         temp <- new_census %>% filter(Geography %in% location) %>%
           filter(year %in% years) %>% filter(grepl("15 to 19 years",`Age group`)) %>%
           filter(grepl('Total', `Sex`)) %>%
@@ -725,23 +735,47 @@ server <- function(input, output) {
         temp$`Age group` <- temp$geo_code <- temp$Sex <-
           temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
         
-        colnames(temp)[3] <- 'V3'
-         temp$Percent <- as.numeric(round((temp$V3/temp$Population)*100, 2))
-        
+      
          
-        g  <- plot_ly(temp, x = ~Percent, y = ~reorder(Geography, Percent), 
-                      type = 'bar', orientation = 'h',
-                      marker = list(color = 'rgba(50, 171, 96, 0.6)',
-                                    line = list(color = 'black', width = 1))) %>%
-          layout(title = fam_type_kids,
-                 yaxis = list(title = '', showgrid = FALSE, showline = FALSE, showticklabels = TRUE, domain= c(0, 0.85)),
-                 xaxis = list(zeroline = FALSE, showline = FALSE, showticklabels = TRUE, showgrid = TRUE)) %>%
-          add_annotations(xref = 'x1', yref = 'y',
-                          x = temp$Percent + 2.5,  y = temp$Geography,
-                          text = paste(round(temp$Percent, 2), '%'),
-                          font = list(family = 'Ubuntu', size = 12, color = 'black'),
-                          showarrow = FALSE)
-          
+         if(length(unique(temp$Geography)) == 2){
+
+           colnames(temp)[3] <- 'V3'
+           temp$Percent <- as.numeric(round(temp$V3/temp$Population, 2))
+           temp$Geography <- gsub('Ontario', 'Average in Ontario', temp$Geography)
+           # plot data
+           g <- ggplot(data = temp,
+                       aes(x = as.factor(Geography),
+                           y = Percent,
+                           text = paste('Total population for age group: ', Population,
+                                        '<br>', (Percent)*100 , '%', as.factor(Geography)))) + 
+             scale_y_continuous(labels = scales::percent) +
+             geom_bar(position = 'dodge', stat = 'identity', colour = 'darkgrey', fill = 'rgba(50, 171, 96, 0.6)', alpha = 0.8) + 
+             theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = ' ', title = fam_type_kids)
+           
+           
+           g <-  plotly::ggplotly(g, tooltip = 'text') %>%
+             config(displayModeBar = F) %>%
+             layout( 
+               legend = list(
+                 orientation = "l",
+                 x = 0,
+                 y = -0.3))
+         } else {
+           colnames(temp)[3] <- 'V3'
+           temp$Percent <- as.numeric(round((temp$V3/temp$Population)*100, 2))
+           g  <- plot_ly(temp, x = ~Percent, y = ~reorder(Geography, Percent), 
+                         type = 'bar', orientation = 'h',
+                         marker = list(color = 'rgba(50, 171, 96, 0.6)',
+                                       line = list(color = 'black', width = 1))) %>%
+             layout(title = fam_type_kids,
+                    yaxis = list(title = '', showgrid = FALSE, showline = FALSE, showticklabels = TRUE, domain= c(0, 0.85)),
+                    xaxis = list(zeroline = FALSE, showline = FALSE, showticklabels = TRUE, showgrid = TRUE)) %>%
+             add_annotations(xref = 'x1', yref = 'y',
+                             x = temp$Percent + 2.5,  y = temp$Geography,
+                             text = paste(round(temp$Percent, 2), '%'),
+                             font = list(family = 'Ubuntu', size = 12, color = 'black'),
+                             showarrow = FALSE)
+         }
         
       } else {
         g <-  ggplot() + 
