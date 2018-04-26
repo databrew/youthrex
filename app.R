@@ -191,7 +191,23 @@ ui <- material_page(
                                          
                                          
                                          
+                    ),
+                    # EDUCATION SECTION: textOuput: ed_text_college (25-29), ed_text_highschool (20-24), ed_text_all (by gender) (20-29)
+
+                    material_tab_content('edu',
+                                         material_row(material_column(width = 4,
+                                                                       uiOutput('ed_1')
+                                                                      ),
+                                                      material_column(width = 4,
+                                                                      uiOutput('ed_2')
+                                                      ),
+                                                      material_column(width = 4,
+                                                                      uiOutput('ed_3')
+                                                      )
+                                                  )
+                                         
                     )
+                    
                     
                     
                     
@@ -200,14 +216,10 @@ ui <- material_page(
   )
   
   
-  
   #   
   
   #   
-  #   # EDUCATION SECTION
-  #   material_tab_content('edu'
-  #                        
-  #   ),
+  #   
   #   
   #   # EMPLOYMENT SECTION
   #   material_tab_content('emp'
@@ -647,7 +659,7 @@ server <- function(input, output) {
   output$fam_plot_parents <- renderPlotly({
   
     location <- locations()
-    years <- c('2001', '2006', '2011', '2017')
+    years <- c('2001', '2006', '2011', '2016')
     
     # years <- input$years
     fam_type <- input$fam_type
@@ -971,6 +983,18 @@ server <- function(input, output) {
   # textOuput: ed_text_college (25-29), ed_text_highschool (20-24), ed_text_all (by gender) (20-29)
   
   
+  
+  # # ed_1 or ed_text_highschool
+  output$ed_1 <- renderUI({
+
+    
+    material_modal(modal_id = 'ed_1',
+                   button_text ='HS or equivalent',
+                   button_icon = 'directions_bus',
+                   color = "#9999CC",
+                   tags$p('the content'))
+  })
+
   output$ed_text_highschool <- renderText({
     # subset data by inputs
     location <- 'Ontario'
