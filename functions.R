@@ -532,32 +532,44 @@ plot_age_demo <- function(location, years){
     # 
     temp <- inner_join(temp, census_pop, by = c('year', 'geo_code'))
     # make percentage youth variable
-    temp$per_youth <- round(temp$Population/temp$`Total population`, 2)
+    temp$Percent <- round((temp$Population/temp$`Total population`)*100, 2)
     
     temp$Geography.y <- NULL
     
-    # get title based on var_lab 
-    title_name <- ''
     
+    g  <- plot_ly(temp, x = ~Percent, y = ~reorder(Geography.x, Percent), 
+                  type = 'bar', orientation = 'h',
+                  marker = list(color = 'rgb(44, 119, 226, 0.6)',
+                                line = list(color = 'black', width = 2))) %>%
+      layout(title = '% youth aged 15 to 29',
+             yaxis = list(title = '', showgrid = FALSE, showline = FALSE, showticklabels = TRUE, domain= c(0, 0.85)),
+             xaxis = list(zeroline = FALSE, showline = FALSE, showticklabels = TRUE, showgrid = TRUE)) %>%
+      add_annotations(xref = 'x1', yref = 'y',
+                      x = temp$Percent + 2.5,  y = temp$Geography.x,
+                      text = paste(round(temp$Percent, 2), '%'),
+                      font = list(family = 'Ubuntu', size = 12, color = 'black'),
+                      showarrow = FALSE)
     
-    
-    g <- ggplot(data = temp,
-                aes(x = reorder(Geography.x, -per_youth),
-                    y = per_youth,
-                    text = paste('Population', `Total population`,
-                                 '<br>', paste0((per_youth)*100, ' %'),
-                                 '<br>Location: ', as.factor(Geography.x)))) +
-      geom_bar(stat = 'identity', colour = 'black', fill = '#1f77b4', alpha = 0.7) +
-      theme(legend.position = 'bottom') + scale_y_continuous(labels = scales::percent) +
-      # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
-      labs(x = '', y = ' ', title = '') 
-    
-    g <- g + scale_fill_manual(name = '',
-                               values = cols) + theme_bw(base_size = 13, base_family = 'Ubuntu') + 
-      theme(axis.text.x = element_text(size = 10, angle = 45, vjust = 0.5, hjust=1))  
-    
-    
-    g <- plotly::ggplotly(g, tooltip = 'text')
+    # # get title based on var_lab 
+    # title_name <- ''
+    # 
+    # g <- ggplot(data = temp,
+    #             aes(x = reorder(Geography.x, -per_youth),
+    #                 y = per_youth,
+    #                 text = paste('Population', `Total population`,
+    #                              '<br>', paste0((per_youth)*100, ' %'),
+    #                              '<br>Location: ', as.factor(Geography.x)))) +
+    #   geom_bar(stat = 'identity', colour = 'black', fill = '#1f77b4', alpha = 0.7) +
+    #   theme(legend.position = 'bottom') + scale_y_continuous(labels = scales::percent) +
+    #   # geom_text(aes(label = pop_per), position = position_dodge(width = 1), vjust = -0.5) +
+    #   labs(x = '', y = ' ', title = '') 
+    # 
+    # g <- g + scale_fill_manual(name = '',
+    #                            values = cols) + theme_bw(base_size = 13, base_family = 'Ubuntu') + 
+    #   theme(axis.text.x = element_text(size = 10, angle = 45, vjust = 0.5, hjust=1))  
+    # 
+    # 
+    # g <- plotly::ggplotly(g, tooltip = 'text')
     
     
   }

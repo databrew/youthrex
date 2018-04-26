@@ -647,7 +647,7 @@ server <- function(input, output) {
   output$fam_plot_parents <- renderPlotly({
   
     location <- locations()
-    years <- input$years
+    years <- c('2001', '2006', '2011', '2017')
     
     # years <- input$years
     fam_type <- input$fam_type
@@ -673,31 +673,32 @@ server <- function(input, output) {
       
       temp$Percent <- round(temp[,3]/temp$Population, 2)
       
+      temp$year <- as.factor(temp$year)
       # plot all vm
-      cols <- colorRampPalette(brewer.pal(9, 'Blues'))(length(unique(temp$Geography)))
+      cols <- colorRampPalette(brewer.pal(9, 'Set1'))(length(unique(temp$Geography)))
       g <- ggplot(data = temp,
                   aes(x = year,
                       y = Percent,
                       group = Geography,
                       colour = Geography,
                       text = paste0('Location: ', Geography,
-                                    '<br>', (Percent)*100 , '% ', fam_type))) +
-        geom_point(size = 2, alpha = 0.4, position = 'jitter') + geom_line(size = 1, alpha = 0.6, linetype = 'dotdash') + scale_color_manual(name = '',
+                                    '<br>', (Percent)*100 , '% ', fam_type))) + ggtitle(fam_type) +
+        geom_point(size = 2, alpha = 0.6) + geom_line(size = 1, alpha = 0.8, linetype = 'dotdash') + scale_color_manual(name = '',
                                                                                                                         values = cols) + theme_bw(base_size = 16, base_family = 'Ubuntu')  +
         labs(x = '', y = ' ') + 
         scale_y_continuous(labels = scales::percent)
-      g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu') 
+      g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu')
       
-      p1 <- plotly::ggplotly(g, tooltip = 'text') %>% config(displayModeBar = F) %>%
+      plotly_plot <- plotly::ggplotly(g, tooltip = 'text') %>% config(displayModeBar = F) %>%
         layout(showlegend = F)
     } else {
-      g <-  ggplot() + 
+      plotly_plot <-  ggplot() + 
         theme_base() +
         labs(title = 'You must select a location plot')
     }
       
     
-     return(g)
+     return(plotly_plot)
      
 
     })
@@ -724,28 +725,23 @@ server <- function(input, output) {
         temp$`Age group` <- temp$geo_code <- temp$Sex <-
           temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
         
+        colnames(temp)[3] <- 'V3'
+         temp$Percent <- as.numeric(round((temp$V3/temp$Population)*100, 2))
         
-        names(temp)[3] <- 'V2'
-        temp$Percent <- round(temp$V2/temp$Population, 2)
-        # plot dataseries="[{targetAxisIndex:0, 
-        cols <- colorRampPalette(brewer.pal(9, 'Purples'))(length(unique(temp$Geography)))
-        g <- ggplot(data = temp, 
-                    aes(x = Geography, 
-                        y = Percent,
-                        text = paste('Location: ', Geography,
-                                     '<br>', (Percent)*100 , '% ', as.factor(fam_type_kids)))) +
-          geom_bar(position = 'dodge', stat = 'identity', colour = 'black', alpha = 0.8) +
-          scale_y_continuous(labels = scales::percent) +
-          labs(x = '', y = ' ') 
-        g <- g  + theme_bw(base_size = 12, base_family = 'Ubuntu')  + theme(axis.text.x = element_text(size = 10, angle = 45, vjust = 0.5, hjust=1))
-        
-        g <- plotly::ggplotly(g, tooltip = 'text') %>%
-          config(displayModeBar = F) %>%
-          layout( 
-            legend = list(
-              orientation = "l",
-              x = 0,
-              y = -0.6))
+         
+        g  <- plot_ly(temp, x = ~Percent, y = ~reorder(Geography, Percent), 
+                      type = 'bar', orientation = 'h',
+                      marker = list(color = 'rgba(50, 171, 96, 0.6)',
+                                    line = list(color = 'black', width = 1))) %>%
+          layout(title = fam_type_kids,
+                 yaxis = list(title = '', showgrid = FALSE, showline = FALSE, showticklabels = TRUE, domain= c(0, 0.85)),
+                 xaxis = list(zeroline = FALSE, showline = FALSE, showticklabels = TRUE, showgrid = TRUE)) %>%
+          add_annotations(xref = 'x1', yref = 'y',
+                          x = temp$Percent + 2.5,  y = temp$Geography,
+                          text = paste(round(temp$Percent, 2), '%'),
+                          font = list(family = 'Ubuntu', size = 12, color = 'black'),
+                          showarrow = FALSE)
+          
         
       } else {
         g <-  ggplot() + 
@@ -819,7 +815,7 @@ server <- function(input, output) {
                           text = paste('Total population of', `Visible minority`, ': ', Population,
                                        '<br>', (per)*100 , '% ', which_fam_type))) +
            
-            geom_jitter(aes(size = Population), width = 0.2, colour ='black') +
+            geom_jitter(aes(size = Population), width = 0.2, height = 0, colour ='black') +
             scale_fill_manual(name = '', 
                                values = cols) + 
             scale_size_continuous(name = '') +
@@ -838,7 +834,7 @@ server <- function(input, output) {
                           fill = `Visible minority`,
                           text = paste('Total population of', `Visible minority`, ': ', Population,
                                        '<br>', (per)*100 , '% ', which_fam_type ))) + 
-            geom_jitter(aes(size = Population), width = 0.2, colour = 'black') +
+            geom_jitter(aes(size = Population), width = 0.2, height = 0, colour = 'black') +
             scale_fill_manual(name = '', 
                               values = cols) + 
             scale_size_continuous(name = '') + theme_bw(base_size = 14, base_family = 'Ubuntu')  +
