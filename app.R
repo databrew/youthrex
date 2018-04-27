@@ -192,20 +192,31 @@ ui <- material_page(
                                          
                                          
                     ),
-                    # EDUCATION SECTION: textOuput: ed_text_college (25-29), ed_text_highschool (20-24), ed_text_all (by gender) (20-29)
+                    # EDUCATION SECTION: textOuput: ed_hs_sex, ed_hs_pob, ed_hs_vm (20-24) and ed_college_sex, ed_college_pob, ed_college_vm (25)
 
                     material_tab_content('edu',
-                                         material_row(material_column(width = 4,
-                                                                       uiOutput('ed_1')
-                                                                      ),
-                                                      material_column(width = 4,
-                                                                      uiOutput('ed_2')
+                                         material_row(material_column(width = 6,
+                                                                       plotlyOutput('ed_hs_sex')),
+                                                      material_column(width = 6,
+                                                                      plotlyOutput('ed_hs_pob'))
                                                       ),
-                                                      material_column(width = 4,
-                                                                      uiOutput('ed_3')
-                                                      )
-                                                  )
+                                         material_row(
+                                           material_column(width = 10,
+                                                           plotlyOutput('ed_hs_vm'))
+                                                    
+                                                      ),
+                                         material_row(material_column(width = 6,
+                                                                      plotlyOutput('ed_college_sex')),
+                                                      material_column(width = 6,
+                                                                      plotlyOutput('ed_college_pob'))
+                                         ),
+                                         material_row(
+                                           material_column(width = 10,
+                                                           plotlyOutput('ed_college_vm'))
+                                           
+                                         )
                                          
+                            
                     )
                     
                     
@@ -980,65 +991,34 @@ server <- function(input, output) {
   #----------------------------------------------------------------------------------------------------------
   #----------------------------------------------------------------------------------------------------------
   # education 
-  # textOuput: ed_text_college (25-29), ed_text_highschool (20-24), ed_text_all (by gender) (20-29)
+
+  # EDUCATION SECTION: textOuput: ed_hs_sex, ed_hs_pob, ed_hs_vm (20-24) and ed_college_sex, ed_college_pob, ed_college_vm (25-29)
   
   
   
   # # ed_1 or ed_text_highschool
-  output$ed_1 <- renderUI({
-
-    
-    material_modal(modal_id = 'ed_1',
-                   button_text ='HS or equivalent',
-                   button_icon = 'directions_bus',
-                   color = "#9999CC",
-                   tags$p('the content'))
-  })
-
-  output$ed_text_highschool <- renderText({
+  output$ed_hs_sex <- renderPlotly({
     # subset data by inputs
-    location <- 'Ontario'
-    years <- c(2001, 2006, 2011, 2016)
-    location <- input$location
+    location <- c('Toronto', 'Ottawa', 'Hamilton')
+    years <- c(2016)
+    location <- locations()
     years <- input$years
     
-    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
-                   "Place of Birth","Visible minority", "Aboriginal identity", 
-                   "High school or equivalent",'Population')
-    new_census <- census[ , demo_vars]
-    
-    temp <- new_census %>% filter(Geography %in% location) %>%
-      filter(year %in% years) %>% filter(grepl("20 to 24 years",`Age group`)) %>%
-      filter(grepl('Total', `Sex`)) %>%
-      filter(grepl('Total', `Place of Birth`)) %>%
-      filter(grepl('Total', `Visible minority`)) %>%
-      filter(grepl('Total', `Aboriginal identity`))
-    temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
-      temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
-      temp$`Visible minority` <- NULL
-    temp$per <- round((temp$`High school or equivalent`/temp$Population)*100, 2)
-    
-    if(length(years) == 1){
-      paste0('in ', years,' , ' , temp$per, '% of ', 'Youth aged 20-24 in ', location ,' had earned a highschool degree or equivalent')
+    if(length(location) > 0){
+      g <- ed_candle_plot(ed_var =  "High school or equivalent",
+                          title = "% HS degree of equivalent",
+                          age_text = '20 to 24 years')
+      
     } else {
-      first_year_per <- temp$per[temp$year == min(temp$year)]
-      last_year_per <- temp$per[temp$year == max(temp$year)]
-      
-      first_year <- temp$year[temp$year == min(temp$year)]
-      last_year <- temp$year[temp$year == max(temp$year)]
-      
-      if(first_year_per > last_year_per) {
-        increase_decrease  <- 'decreased'
-      } else if(first_year_per < last_year_per) {
-        increase_decrease  <- 'increased'
-      } else {
-        increase_decrease <- 'stayed the same'
-      }
-      
-      paste0('The % of youth aged 20-24, earning a HS degree or equivalent in ',location , ' has ', increase_decrease,' from ',first_year_per, '% in ', first_year,' to ', last_year_per, '% in ', last_year)
-      
+      g <-  ggplot() + 
+        theme_base() +
+        labs(title = 'You must select a location plot')
     }
+    return(g_plot)
+  
   })
+
+  
   
   output$ed_text_college <- renderText({
     # subset data by inputs
@@ -1238,10 +1218,7 @@ server <- function(input, output) {
     
     
   })
-  
-  
-  
-  
+ 
   # plot of highschool 20-29, gender
   output$ed_plot_sex <- renderPlotly({
     location <- 'Ontario'

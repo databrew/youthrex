@@ -688,6 +688,51 @@ emp_line <- function(temp_dat) {
   return(g)
 }
 
+
+ed_candle_plot <- function(ed_var, age_text, title) {
+  
+  demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                 "Place of Birth","Visible minority", "Aboriginal identity", 
+                 ed_var,'Population')
+  new_census <- census[ , demo_vars]
+  
+  temp <- new_census %>% filter(Geography %in% location) %>%
+    filter(year %in% years) %>% filter(grepl(age_text,`Age group`)) %>%
+    filter(!grepl('Total', `Sex`)) %>%
+    filter(grepl('Total', `Place of Birth`)) %>%
+    filter(grepl('Total', `Visible minority`)) %>%
+    filter(grepl('Total', `Aboriginal identity`))
+  temp$`Age group` <- temp$geo_code  <-
+    temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
+    temp$`Visible minority` <- NULL
+  temp$per <- round(temp$`High school or equivalent`/temp$Population, 2)
+  
+  # candle chartr
+  # Plot
+  cols <- colorRampPalette(brewer.pal(9, 'Set1'))(length(unique(temp$Sex)))
+  cols <- adjustcolor(cols, alpha.f = 0.7)
+  g <- ggplot(temp, aes(x=Geography, 
+                        y=per,
+                        text = paste('Total population aged ', age_text, ' : ', Population,
+                                     '<br>', (per)*100, '% ',ed_var))) + 
+    geom_point(size=5, aes(color = Sex)) + 
+    geom_segment(aes(x=Geography, 
+                     xend=Geography, 
+                     y=0, 
+                     yend=per)) + 
+    theme_bw(base_size = 14, base_family = 'Ubuntu')  +
+    scale_color_manual(name = '', 
+                      values = cols) +
+    scale_y_continuous(labels = scales::percent) + 
+    theme(axis.text.x = element_text(size = 10, angle=45, vjust=0.6)) +
+    labs(title=title, x = '', y = ' ') 
+  
+  g_plot <- plotly::ggplotly(g, tooltip = 'text')  %>% config(displayModeBar = F)
+  
+  return(g_plot)
+}
+
+
 # # get data by year 
 # temp_2011 <- temp_melt[temp_melt$year == '2011',]
 # temp_2016 <- temp_melt[temp_melt$year == '2016',]
