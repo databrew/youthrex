@@ -688,6 +688,48 @@ emp_line <- function(temp_dat) {
   return(g)
 }
 
+
+ed_candle_plot <- function(temp_dat, ed_var, title, color_palette, location, years) {
+  
+  
+  # Plot
+  cols <- color_palette
+  cols <- adjustcolor(cols, alpha.f = 0.7)
+  g <- ggplot(temp_dat, aes(x=Geography, 
+                        y=per,
+                        text = paste(Geography, ' ', V2,
+                                     '<br>', (per)*100, '% ',ed_var))) + 
+    geom_point(size=5, aes(color = V2)) + 
+    geom_segment(aes(x=Geography, 
+                     xend=Geography, 
+                     y=0, 
+                     yend=per)) + 
+    theme_bw(base_size = 14, base_family = 'Ubuntu')  +
+    scale_color_manual(name = '', 
+                      values = cols) +
+    scale_y_continuous(labels = scales::percent) + 
+    theme(axis.title.x=element_blank(),
+          axis.text.x=element_blank(),
+          axis.ticks.x=element_blank()) +
+    labs(title=title, x = '', y = ' ') 
+  
+  if(length(unique(temp_dat$V2)) > 5) {
+    g_plot <- plotly::ggplotly(g, tooltip = 'text')  %>% config(displayModeBar = F) 
+      
+  } else {
+    g_plot <- plotly::ggplotly(g, tooltip = 'text')  %>% config(displayModeBar = F) %>%
+      layout( 
+        legend = list(
+          orientation = "l",
+          x = 0,
+          y = -0.3))
+  }
+ 
+  
+  return(g_plot)
+}
+
+
 # # get data by year 
 # temp_2011 <- temp_melt[temp_melt$year == '2011',]
 # temp_2016 <- temp_melt[temp_melt$year == '2016',]
