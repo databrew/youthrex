@@ -195,34 +195,53 @@ ui <- material_page(
                     # EDUCATION SECTION: textOuput: ed_hs_sex, ed_hs_pob, ed_hs_vm (20-24) and ed_college_sex, ed_college_pob, ed_college_vm (25)
 
                     material_tab_content('edu',
-                                         material_row(material_column(width = 6,
-                                                                       plotlyOutput('ed_hs_sex')),
-                                                      material_column(width = 6,
-                                                                      plotlyOutput('ed_hs_pob'))
-                                                      ),
-                                         material_row(
-                                           material_column(width = 10,
-                                                           plotlyOutput('ed_hs_vm'))
-                                                    
-                                                      ),
-                                         material_row(material_column(width = 6,
-                                                                      plotlyOutput('ed_college_sex')),
-                                                      material_column(width = 6,
-                                                                      plotlyOutput('ed_college_pob'))
-                                         ),
-                                         material_row(
-                                           material_column(width = 10,
-                                                           plotlyOutput('ed_college_vm'))
-                                           
+                                         material_tabs(c('High school' = 'hs',
+                                                         'College' = 'college')),
+                                         material_tab_content('hs',
+                                                              material_card(
+                                                                title = 'High school degree or equivalent', 
+                                                                helpText('For ages 20-24'),
+                                                                material_row(material_column(width = 6,
+                                                                                             uiOutput('ed_hs_sex')),
+                                                                             material_column(width = 6,
+                                                                                             uiOutput('ed_hs_pob')),
+                                                                             material_column(width = 4, 
+                                                                                             material_switch('ed_hs_as_table',
+                                                                                                             label = 'View as table',
+                                                                                                             off_label = '',
+                                                                                                             on_label = ''))
+                                                                ),
+                                                                material_row(
+                                                                  material_column(width = 12,
+                                                                                  uiOutput('ed_hs_vm'))
+                                                                  
+                                                                )
+                                                              )
+                                                              ),
+                                         material_tab_content('college',
+                                                              material_card(
+                                                                title = "University certificate, diploma or degree" , 
+                                                                helpText('For ages 25-29'),
+                                                                material_row(material_column(width = 6,
+                                                                                             uiOutput('ed_college_sex')),
+                                                                             material_column(width = 6,
+                                                                                             uiOutput('ed_college_pob')),
+                                                                             material_column(width = 4, 
+                                                                                             material_switch('ed_college_as_table',
+                                                                                                             label = 'View as table',
+                                                                                                             off_label = '',
+                                                                                                             on_label = ''))
+                                                                ),
+                                                                material_row(
+                                                                  material_column(width = 12,
+                                                                                  uiOutput('ed_college_vm'))
+                                                                  
+                                                                )
+                                                              )
                                          )
-                                         
-                            
+                    
                     )
-                    
-                    
-                    
-                    
-                    
+            
     )
   )
   
@@ -992,378 +1011,586 @@ server <- function(input, output) {
   #----------------------------------------------------------------------------------------------------------
   # education 
 
+  ###########################################
+  # HIGH SCHOOL
   # EDUCATION SECTION: textOuput: ed_hs_sex, ed_hs_pob, ed_hs_vm (20-24) and ed_college_sex, ed_college_pob, ed_college_vm (25-29)
-  
+  output$ed_hs_sex <- renderUI({
+    if(!input$ed_hs_as_table){
+      plotlyOutput('ed_hs_sex_plot')
+      
+    } else {
+      DT::dataTableOutput('ed_hs_sex_table')
+    }
+    
+  })
   
   
   # # ed_1 or ed_text_highschool
-  output$ed_hs_sex <- renderPlotly({
+  output$ed_hs_sex_plot <- renderPlotly({
     # subset data by inputs
     location <- c('Toronto', 'Ottawa', 'Hamilton')
     years <- c(2016)
     location <- locations()
     years <- input$years
+    print(location)
     
     if(length(location) > 0){
-      g <- ed_candle_plot(ed_var =  "High school or equivalent",
-                          title = "% HS degree of equivalent",
-                          age_text = '20 to 24 years')
+      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                     "Place of Birth","Visible minority", "Aboriginal identity", 
+                     "High school or equivalent",'Population')
+      
+      new_census <- census[ , demo_vars]
+      
+      temp <- new_census %>% filter(Geography %in% location) %>%
+        filter(year %in% years) %>% 
+        filter(grepl('20 to 24', `Age group`)) %>%
+        filter(!grepl('Total', `Sex`)) %>%
+        filter(grepl('Total', `Place of Birth`)) %>%
+        filter(grepl('Total', `Visible minority`)) %>%
+        filter(grepl('Total', `Aboriginal identity`))
+      
+      temp$`Age group` <- temp$geo_code  <-
+        temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
+        temp$`Visible minority` <- NULL
+      temp$per <- round(temp$`High school or equivalent`/temp$Population, 2)
+      
+      names(temp)[3] <- 'V2'
+      
+      color_palette <- colorRampPalette(brewer.pal(9, 'Set2'))(length(unique(temp$V2)))
+      
+      g_plot <- ed_candle_plot(temp_dat = temp,
+                               ed_var = "High school or equivalent" ,
+                               title = "",
+                               color_palette = color_palette,
+                               location = location,
+                               years = years)
       
     } else {
-      g <-  ggplot() + 
+      g_plot <-  ggplot() + 
         theme_base() +
         labs(title = 'You must select a location plot')
     }
     return(g_plot)
-  
-  })
-
-  
-  
-  output$ed_text_college <- renderText({
-    # subset data by inputs
-    location <- 'Ontario'
-    years <- c(2001, 2006, 2011, 2016)
-    location <- input$location
-    years <- input$years
     
+  })
+  
+  
+  # # ed_1 or ed_text_highschool
+  output$ed_hs_sex_table <- renderDataTable({
+    # subset data by inputs
+    location <- c('Toronto', 'Ottawa', 'Hamilton')
+    years <- c(2016)
+    location <- locations()
+    years <- input$years
+    print(location)
+  
     demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
                    "Place of Birth","Visible minority", "Aboriginal identity", 
-                   "College, CEGEP or other non-university certificate or diploma" ,'Population')
+                   "High school or equivalent",'Population')
+    
     new_census <- census[ , demo_vars]
     
     temp <- new_census %>% filter(Geography %in% location) %>%
-      filter(year %in% years) %>% filter(grepl("25 to 29 years",`Age group`)) %>%
-      filter(grepl('Total', `Sex`)) %>%
+      filter(year %in% years) %>% 
+      filter(grepl('20 to 24', `Age group`)) %>%
+      filter(!grepl('Total', `Sex`)) %>%
       filter(grepl('Total', `Place of Birth`)) %>%
       filter(grepl('Total', `Visible minority`)) %>%
       filter(grepl('Total', `Aboriginal identity`))
-    temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
+    
+    temp$`Age group` <- temp$geo_code  <-
       temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
       temp$`Visible minority` <- NULL
-    temp$per <- round((temp$`College, CEGEP or other non-university certificate or diploma`/temp$Population)*100, 2)
+    temp$Percent <- round(temp$`High school or equivalent`/temp$Population, 2)
     
-    if(length(years) == 1){
-      paste0('in ', years,' , ' , temp$per, '% of ', 'Youth aged 25-29 in ', location ,' had earned a College, CEGEP or other non-university certificate or diploma')
+   return(prettify(temp, comma_numbers = TRUE, download_options = TRUE))
+  })
+  
+  
+  #########################3
+  output$ed_hs_pob <- renderUI({
+    if(!input$ed_hs_as_table){
+      plotlyOutput('ed_hs_pob_plot')
+      
     } else {
-      first_year_per <- temp$per[temp$year == min(temp$year)]
-      last_year_per <- temp$per[temp$year == max(temp$year)]
-      
-      first_year <- temp$year[temp$year == min(temp$year)]
-      last_year <- temp$year[temp$year == max(temp$year)]
-      
-      if(first_year_per > last_year_per) {
-        increase_decrease  <- 'decreased'
-      } else if(first_year_per < last_year_per) {
-        increase_decrease  <- 'increased'
-      } else {
-        increase_decrease <- 'stayed the same'
-      }
-      
-      paste0('The % of youth aged 25-29, earning a College, CEGEP or other non-university certificate or diploma in ',location , ' has ', increase_decrease,' from ',first_year_per, '% in ', first_year,' to ', last_year_per, '% in ', last_year)
-      
+      DT::dataTableOutput('ed_hs_pob_table')
     }
     
   })
   
-  output$ed_text_university <- renderText({
+  
+  # # ed_1 or ed_text_highschool
+  output$ed_hs_pob_plot <- renderPlotly({
     # subset data by inputs
-    location <- 'Ontario'
-    years <- c(2001, 2006, 2011, 2016)
-    location <- input$location
+    location <- c('Toronto', 'Ottawa', 'Hamilton')
+    years <- c(2016)
+    location <- locations()
     years <- input$years
+    print(location)
+    
+    if(length(location) > 0){
+      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                     "Place of Birth","Visible minority", "Aboriginal identity", 
+                     "High school or equivalent",'Population')
+      
+      new_census <- census[ , demo_vars]
+      
+      temp <- new_census %>% filter(Geography %in% location) %>%
+        filter(year %in% years) %>% 
+        filter(grepl('20 to 24', `Age group`)) %>%
+        filter(grepl('Total', `Sex`)) %>%
+        filter(!grepl('Total', `Place of Birth`)) %>%
+        filter(grepl('Total', `Visible minority`)) %>%
+        filter(grepl('Total', `Aboriginal identity`))
+      
+      temp$`Age group` <- temp$geo_code  <-
+        temp$`Aboriginal identity` <- temp$Sex  <-
+        temp$`Visible minority` <- NULL
+      temp$per <- round(temp$`High school or equivalent`/temp$Population, 2)
+      
+     names(temp)[3] <- 'V2'
+      
+     color_palette <- colorRampPalette(brewer.pal(9, 'Set1'))(length(unique(temp$V2)))
+     
+      g_plot <- ed_candle_plot(temp_dat = temp,
+                               ed_var = "High school or equivalent" ,
+                               title = "",
+                               color_palette = color_palette,
+                               location = location,
+                               years = years)
+      
+    } else {
+      g_plot <-  ggplot() + 
+        theme_base() +
+        labs(title = 'You must select a location plot')
+    }
+    return(g_plot)
+    
+
+  })
+  
+  
+  
+  
+  # # ed_1 or ed_text_highschool
+  output$ed_hs_pob_table <- renderDataTable({
+    # subset data by inputs
+    location <- c('Toronto', 'Ottawa', 'Hamilton')
+    years <- c(2016)
+    location <- locations()
+    years <- input$years
+    print(location)
+  
+    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                   "Place of Birth","Visible minority", "Aboriginal identity", 
+                   "High school or equivalent",'Population')
+    
+    new_census <- census[ , demo_vars]
+    
+    temp <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% 
+      filter(grepl('20 to 24', `Age group`)) %>%
+      filter(grepl('Total', `Sex`)) %>%
+      filter(!grepl('Total', `Place of Birth`)) %>%
+      filter(grepl('Total', `Visible minority`)) %>%
+      filter(grepl('Total', `Aboriginal identity`))
+    
+    temp$`Age group` <- temp$geo_code  <-
+      temp$`Aboriginal identity` <- temp$Sex  <-
+      temp$`Visible minority` <- NULL
+    temp$Percent <- round(temp$`High school or equivalent`/temp$Population, 2)
+
+  return(prettify(temp, comma_numbers = TRUE, download_options = TRUE))
+  
+    
+  })
+  
+  
+  #########################3
+  output$ed_hs_vm <- renderUI({
+    if(!input$ed_hs_as_table){
+      plotlyOutput('ed_hs_vm_plot')
+      
+    } else {
+      DT::dataTableOutput('ed_hs_vm_table')
+    }
+    
+  })
+  
+  # # ed_1 or ed_text_highschool
+  output$ed_hs_vm_plot <- renderPlotly({
+    # subset data by inputs
+    location <- c('Toronto', 'Ottawa', 'Hamilton')
+    years <- c(2016)
+    location <- locations()
+    years <- input$years
+    print(location)
+    
+    if(length(location) > 0){
+      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                     "Place of Birth","Visible minority", "Aboriginal identity", 
+                     "High school or equivalent",'Population')
+      
+      new_census <- census[ , demo_vars]
+      
+      temp <- new_census %>% filter(Geography %in% location) %>%
+        filter(year %in% years) %>% 
+        filter(grepl('20 to 24', `Age group`)) %>%
+        filter(grepl('Total', `Sex`)) %>%
+        filter(grepl('Total', `Place of Birth`)) %>%
+        filter(!grepl('Total', `Visible minority`)) %>%
+        filter(grepl('Total', `Aboriginal identity`))
+      
+      temp$`Age group` <- temp$geo_code  <-
+        temp$`Aboriginal identity` <- temp$Sex  <-
+        temp$`Place of Birth` <- NULL
+      temp$per <- round(temp$`High school or equivalent`/temp$Population, 2)
+      
+      names(temp)[3] <- 'V2'
+      
+      color_palette <- colorRampPalette(brewer.pal(9, 'Dark2'))(length(unique(temp$V2)))
+      
+      g_plot <- ed_candle_plot(temp_dat = temp,
+                               ed_var = "High school or equivalent" ,
+                               title = "",
+                               color_palette = color_palette,
+                               location = location,
+                               years = years)
+      
+    } else {
+      g_plot <-  ggplot() + 
+        theme_base() +
+        labs(title = 'You must select a location plot')
+    }
+    return(g_plot)
+    
+    
+  })
+  
+
+  # # ed_1 or ed_text_highschool
+  output$ed_hs_vm_table <- renderDataTable({
+    # subset data by inputs
+    location <- c('Toronto', 'Ottawa', 'Hamilton')
+    years <- c(2016)
+    location <- locations()
+    years <- input$years
+    print(location)
+  
+    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                   "Place of Birth","Visible minority", "Aboriginal identity", 
+                   "High school or equivalent",'Population')
+    
+    new_census <- census[ , demo_vars]
+    
+    temp <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% 
+      filter(grepl('20 to 24', `Age group`)) %>%
+      filter(grepl('Total', `Sex`)) %>%
+      filter(grepl('Total', `Place of Birth`)) %>%
+      filter(!grepl('Total', `Visible minority`)) %>%
+      filter(grepl('Total', `Aboriginal identity`))
+    
+    temp$`Age group` <- temp$geo_code  <-
+      temp$`Aboriginal identity` <- temp$Sex  <-
+      temp$`Place of Birth` <- NULL
+    temp$Percent <- round(temp$`High school or equivalent`/temp$Population, 2)
+   
+  return(prettify(temp, comma_numbers = TRUE, download_options = TRUE))
+  
+    
+  })
+  
+  
+  
+  ###########################################
+  # COLLLEGE
+  # EDUCATION SECTION: textOuput: ed_hs_sex, ed_hs_pob, ed_hs_vm (20-24) and ed_college_sex, ed_college_pob, ed_college_vm (25-29)
+  output$ed_college_sex <- renderUI({
+    if(!input$ed_college_as_table){
+      plotlyOutput('ed_college_sex_plot')
+      
+    } else {
+      DT::dataTableOutput('ed_college_sex_table')
+    }
+    
+  })
+  
+  
+  # # ed_1 or ed_text_highschool
+  output$ed_college_sex_plot <- renderPlotly({
+    # subset data by inputs
+    location <- c('Toronto', 'Ottawa', 'Hamilton')
+    years <- c(2016)
+    location <- locations()
+    years <- input$years
+    print(location)
+    
+    if(length(location) > 0){
+      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                     "Place of Birth","Visible minority", "Aboriginal identity", 
+                     "University certificate, diploma or degree" ,'Population')
+      
+      new_census <- census[ , demo_vars]
+      
+      temp <- new_census %>% filter(Geography %in% location) %>%
+        filter(year %in% years) %>% 
+        filter(grepl('25 to 29', `Age group`)) %>%
+        filter(!grepl('Total', `Sex`)) %>%
+        filter(grepl('Total', `Place of Birth`)) %>%
+        filter(grepl('Total', `Visible minority`)) %>%
+        filter(grepl('Total', `Aboriginal identity`))
+      
+      temp$`Age group` <- temp$geo_code  <-
+        temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
+        temp$`Visible minority` <- NULL
+      temp$per <- round(temp$`University certificate, diploma or degree`/temp$Population, 2)
+      
+      names(temp)[3] <- 'V2'
+      
+      color_palette <- colorRampPalette(brewer.pal(9, 'Spectral'))(length(unique(temp$V2)))
+      
+      g_plot <- ed_candle_plot(temp_dat = temp,
+                               ed_var = "University certificate, diploma or degree"  ,
+                               title = "",
+                               color_palette = color_palette,
+                               location = location,
+                               years = years)
+      
+    } else {
+      g_plot <-  ggplot() + 
+        theme_base() +
+        labs(title = 'You must select a location plot')
+    }
+    return(g_plot)
+    
+  })
+  
+  
+  # # ed_1 or ed_text_highschool
+  output$ed_college_sex_table <- renderDataTable({
+    # subset data by inputs
+    location <- c('Toronto', 'Ottawa', 'Hamilton')
+    years <- c(2016)
+    location <- locations()
+    years <- input$years
+    print(location)
     
     demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
                    "Place of Birth","Visible minority", "Aboriginal identity", 
                    "University certificate, diploma or degree" ,'Population')
+    
     new_census <- census[ , demo_vars]
     
     temp <- new_census %>% filter(Geography %in% location) %>%
-      filter(year %in% years) %>% filter(grepl("25 to 29 years",`Age group`)) %>%
-      filter(grepl('Total', `Sex`)) %>%
+      filter(year %in% years) %>% 
+      filter(grepl('25 to 29', `Age group`)) %>%
+      filter(!grepl('Total', `Sex`)) %>%
       filter(grepl('Total', `Place of Birth`)) %>%
       filter(grepl('Total', `Visible minority`)) %>%
       filter(grepl('Total', `Aboriginal identity`))
-    temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
+    
+    temp$`Age group` <- temp$geo_code  <-
       temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
       temp$`Visible minority` <- NULL
-    temp$per <- round((temp$`University certificate, diploma or degree`/temp$Population)*100, 2)
+    temp$Percent <- round(temp$`University certificate, diploma or degree` /temp$Population, 2)
     
-    if(length(years) == 1){
-      paste0('in ', years,' , ' , temp$per, '% of ', 'Youth aged 25-29 in ', location ,' had earned a University certificate, diploma or degree')
-    } else {
-      first_year_per <- temp$per[temp$year == min(temp$year)]
-      last_year_per <- temp$per[temp$year == max(temp$year)]
-      
-      first_year <- temp$year[temp$year == min(temp$year)]
-      last_year <- temp$year[temp$year == max(temp$year)]
-      
-      if(first_year_per > last_year_per) {
-        increase_decrease  <- 'decreased'
-      } else if(first_year_per < last_year_per) {
-        increase_decrease  <- 'increased'
-      } else {
-        increase_decrease <- 'stayed the same'
-      }
-      
-      paste0('The % of youth aged 25-29, earning a University certificate, diploma or degree in ',location , ' has ', increase_decrease,' from ',first_year_per, '% in ', first_year,' to ', last_year_per, '% in ', last_year)
-      
-    }
+    return(prettify(temp, comma_numbers = TRUE, download_options = TRUE))
   })
   
   
-  output$ed_plot_table_age <- renderUI({
-    if(!input$ed_plot_or_table_age){
-      plotlyOutput('ed_plot_age')
+  #########################3
+  output$ed_college_pob <- renderUI({
+    if(!input$ed_college_as_table){
+      plotlyOutput('ed_college_pob_plot')
       
     } else {
-      DT::dataTableOutput('ed_table_age')
+      DT::dataTableOutput('ed_college_pob_table')
     }
     
   })
   
-  output$ed_plot_table_sex <- renderUI({
-    if(!input$ed_plot_or_table_sex){
-      plotlyOutput('ed_plot_sex')
-      
-    } else {
-      DT::dataTableOutput('ed_table_sex')
-    }
-    
-  })
   
-  # plot of highschool 20-29, gender
-  output$ed_plot_age <- renderPlotly({
-    location <- 'Ontario'
-    years <- c(2001, 2006, 2011,2016)
-    location <- input$location
+  # # ed_1 or ed_text_highschool
+  output$ed_college_pob_plot <- renderPlotly({
+    # subset data by inputs
+    location <- c('Toronto', 'Ottawa', 'Hamilton')
+    years <- c(2016)
+    location <- locations()
     years <- input$years
+    print(location)
+    
+    if(length(location) > 0){
+      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                     "Place of Birth","Visible minority", "Aboriginal identity", 
+                     "University certificate, diploma or degree" ,'Population')
+      
+      new_census <- census[ , demo_vars]
+      
+      temp <- new_census %>% filter(Geography %in% location) %>%
+        filter(year %in% years) %>% 
+        filter(grepl('25 to 29', `Age group`)) %>%
+        filter(grepl('Total', `Sex`)) %>%
+        filter(!grepl('Total', `Place of Birth`)) %>%
+        filter(grepl('Total', `Visible minority`)) %>%
+        filter(grepl('Total', `Aboriginal identity`))
+      
+      temp$`Age group` <- temp$geo_code  <-
+        temp$`Aboriginal identity` <- temp$Sex  <-
+        temp$`Visible minority` <- NULL
+      temp$per <- round(temp$`University certificate, diploma or degree`/temp$Population, 2)
+      
+      names(temp)[3] <- 'V2'
+      
+      color_palette <- colorRampPalette(brewer.pal(9, 'Paired'))(length(unique(temp$V2)))
+      
+      g_plot <- ed_candle_plot(temp_dat = temp,
+                               ed_var = "University certificate, diploma or degree"  ,
+                               title = "",
+                               color_palette = color_palette,
+                               location = location,
+                               years = years)
+      
+    } else {
+      g_plot <-  ggplot() + 
+        theme_base() +
+        labs(title = 'You must select a location plot')
+    }
+    return(g_plot)
+    
+    
+  })
+  
+  
+  
+  
+  # # ed_1 or ed_text_highschool
+  output$ed_college_pob_table <- renderDataTable({
+    # subset data by inputs
+    location <- c('Toronto', 'Ottawa', 'Hamilton')
+    years <- c(2016)
+    location <- locations()
+    years <- input$years
+    print(location)
     
     demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
                    "Place of Birth","Visible minority", "Aboriginal identity", 
-                   "High school or equivalent" ,'Population')
+                   "University certificate, diploma or degree" ,'Population')
+    
     new_census <- census[ , demo_vars]
     
-    
-    # get age data
-    temp_age <- new_census %>% filter(Geography %in% location) %>%
+    temp <- new_census %>% filter(Geography %in% location) %>%
       filter(year %in% years) %>% 
-      filter(!grepl("Total|15",`Age group`)) %>%
+      filter(grepl('25 to 29', `Age group`)) %>%
+      filter(grepl('Total', `Sex`)) %>%
+      filter(!grepl('Total', `Place of Birth`)) %>%
+      filter(grepl('Total', `Visible minority`)) %>%
+      filter(grepl('Total', `Aboriginal identity`))
+    
+    temp$`Age group` <- temp$geo_code  <-
+      temp$`Aboriginal identity` <- temp$Sex  <-
+      temp$`Visible minority` <- NULL
+    temp$Percent <- round(temp$`University certificate, diploma or degree`/temp$Population, 2)
+    
+    return(prettify(temp, comma_numbers = TRUE, download_options = TRUE))
+    
+    
+  })
+  
+  
+  #########################3
+  output$ed_college_vm <- renderUI({
+    if(!input$ed_college_as_table){
+      plotlyOutput('ed_college_vm_plot')
+      
+    } else {
+      DT::dataTableOutput('ed_college_vm_table')
+    }
+    
+  })
+  
+  # # ed_1 or ed_text_highschool
+  output$ed_college_vm_plot <- renderPlotly({
+    # subset data by inputs
+    location <- c('Toronto', 'Ottawa', 'Hamilton')
+    years <- c(2016)
+    location <- locations()
+    years <- input$years
+    print(location)
+    
+    if(length(location) > 0){
+      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                     "Place of Birth","Visible minority", "Aboriginal identity", 
+                     "University certificate, diploma or degree" ,'Population')
+      
+      new_census <- census[ , demo_vars]
+      
+      temp <- new_census %>% filter(Geography %in% location) %>%
+        filter(year %in% years) %>% 
+        filter(grepl('25 to 29', `Age group`)) %>%
+        filter(grepl('Total', `Sex`)) %>%
+        filter(grepl('Total', `Place of Birth`)) %>%
+        filter(!grepl('Total', `Visible minority`)) %>%
+        filter(grepl('Total', `Aboriginal identity`))
+      
+      temp$`Age group` <- temp$geo_code  <-
+        temp$`Aboriginal identity` <- temp$Sex  <-
+        temp$`Place of Birth` <- NULL
+      temp$per <- round(temp$`University certificate, diploma or degree`/temp$Population, 2)
+      
+      names(temp)[3] <- 'V2'
+      
+      color_palette <- colorRampPalette(brewer.pal(9, 'Set1'))(length(unique(temp$V2)))
+      
+      g_plot <- ed_candle_plot(temp_dat = temp,
+                               ed_var = "University certificate, diploma or degree"  ,
+                               title = "",
+                               color_palette = color_palette,
+                               location = location,
+                               years = years)
+      
+    } else {
+      g_plot <-  ggplot() + 
+        theme_base() +
+        labs(title = 'You must select a location plot')
+    }
+    return(g_plot)
+    
+    
+  })
+  
+  
+  # # ed_1 or ed_text_highschool
+  output$ed_college_vm_table <- renderDataTable({
+    # subset data by inputs
+    location <- c('Toronto', 'Ottawa', 'Hamilton')
+    years <- c(2016)
+    location <- locations()
+    years <- input$years
+    print(location)
+    
+    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                   "Place of Birth","Visible minority", "Aboriginal identity", 
+                   "University certificate, diploma or degree",'Population')
+    
+    new_census <- census[ , demo_vars]
+    
+    temp <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% 
+      filter(grepl('25 to 29', `Age group`)) %>%
       filter(grepl('Total', `Sex`)) %>%
       filter(grepl('Total', `Place of Birth`)) %>%
-      filter(grepl('Total', `Visible minority`)) %>%
+      filter(!grepl('Total', `Visible minority`)) %>%
       filter(grepl('Total', `Aboriginal identity`))
-    temp_age$Geography <- temp_age$geo_code  <- temp_age$Sex <- 
-      temp_age$`Aboriginal identity` <- temp_age$`Place of Birth`  <-
-      temp_age$`Visible minority` <- NULL
     
-    temp_age$per <- round((temp_age$`High school or equivalent`/temp_age$Population),2)
+    temp$`Age group` <- temp$geo_code  <-
+      temp$`Aboriginal identity` <- temp$Sex  <-
+      temp$`Place of Birth` <- NULL
+    temp$Percent <- round(temp$`"University certificate, diploma or degree`/temp$Population, 2)
     
-    
-    if(length(years) == 1){
-      year_value <- unique(temp_age$year)
-      title_name <- paste0('By age:  ', year_value)
-      
-      # plot1 - by age group (20-24) vs (25-29) (bar)
-      # plot data
-      cols <- c('green3', 'deepskyblue')
-      g <- ggplot(data = temp_age,
-                  aes(x = as.factor(year),
-                      y = per,
-                      fill = `Age group`,
-                      text = paste('Total population for age group: ', Population,
-                                   '<br>', (per)*100 , '%', as.factor(`Age group`)))) +
-        scale_fill_manual(name = '',
-                          values = cols) + scale_y_continuous(labels = scales::percent) +
-        geom_bar(position = 'dodge', stat = 'identity', colour = 'darkgrey',alpha = 0.8) + 
-        theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = ' ', title = title_name)
-      
-      
-      age_plot <-  plotly::ggplotly(g, tooltip = 'text') %>%
-        config(displayModeBar = F) %>%
-        layout( 
-          legend = list(
-            orientation = "l",
-            x = 0,
-            y = -0.3))
-      
-      
-    } else {
-      year_value <- unique(temp_age$year)
-      year_value <- paste0(year_value, collapse = ', ')
-      title_name <- paste0('By age:  ', year_value)
-      # plot1 - by age group (20-24) vs (25-29)
-      # bar plot with year by percent, grouped by age and gender
-      cols <- c('green3', 'deepskyblue')
-      # plot data
-      g <- ggplot(data = temp_age,
-                  aes(x = year,
-                      y =per,
-                      group = `Age group`,
-                      colour = `Age group`,
-                      text = paste('<br>', as.factor(`Age group`),': ', (per)*100, '%',
-                                   '<br> With highschool degree of equivalent'))) +
-        geom_point(size = 4) +
-        geom_line(size = 1, alpha = 0.8,linetype = 'dashed') +
-        geom_smooth(alpha = 0.4, size = 1) +     theme_bw(base_size = 13, base_family = 'Ubuntu') +
-        scale_color_manual(name = '', 
-                           values = cols) + theme(legend.position="none") +
-        labs(x = '', y = ' ', title = title_name) + scale_y_continuous(labels=scales::percent) 
-      
-      age_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
-        config(displayModeBar = F)  
-      
-    }
-    age_plot
+    return(prettify(temp, comma_numbers = TRUE, download_options = TRUE))
     
     
-  })
- 
-  # plot of highschool 20-29, gender
-  output$ed_plot_sex <- renderPlotly({
-    location <- 'Ontario'
-    years <- c(2001, 2006, 2011, 2016)
-    location <- input$location
-    years <- input$years
-    
-    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
-                   "Place of Birth","Visible minority", "Aboriginal identity", 
-                   "High school or equivalent" ,'Population')
-    new_census <- census[ , demo_vars]
-    
-    
-    # get sex data
-    temp_sex <- new_census %>% filter(Geography %in% location) %>%
-      filter(year %in% years) %>% 
-      filter(grepl("Total",`Age group`)) %>%
-      filter(!grepl('Total', `Sex`)) %>%
-      filter(grepl('Total', `Place of Birth`)) %>%
-      filter(grepl('Total', `Visible minority`)) %>%
-      filter(grepl('Total', `Aboriginal identity`))
-    temp_sex$Geography <- temp_sex$geo_code  <-temp_sex$`Age group` <- 
-      temp_sex$`Aboriginal identity` <- temp_sex$`Place of Birth`  <-
-      temp_sex$`Visible minority` <- NULL
-    
-    temp_sex$per <- round((temp_sex$`High school or equivalent`/temp_sex$Population),2)
-    
-    # if one year, both charts become bar charts 
-    
-    if(length(years) == 1){
-      year_value <- unique(temp_sex$year)
-      title_name <- paste0('By sex:  ', year_value)
-      # plot 2 - by sex bar
-      cols <- c('green3', 'deepskyblue')
-      g <- ggplot(data = temp_sex,
-                  aes(x = as.factor(year),
-                      y = per,
-                      fill = Sex,
-                      text = paste('Total population for age group: ', Population,
-                                   '<br>', (per)*100 , '%', as.factor(Sex)))) +
-        scale_fill_manual(name = '',
-                          values = cols) + scale_y_continuous(labels = scales::percent) +
-        geom_bar(position = 'dodge', stat = 'identity', colour = 'darkgrey',alpha = 0.8) + 
-        theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = ' ', title = title_name)
-      
-      
-      sex_plot <-  plotly::ggplotly(g, tooltip = 'text') %>%
-        config(displayModeBar = F) %>%
-        layout( 
-          legend = list(
-            orientation = "l",
-            x = 0,
-            y = -0.3))
-      
-      
-    } else {
-      year_value <- unique(temp_sex$year)
-      
-      year_value <- paste0(year_value, collapse = ', ')
-      title_name <- paste0('By Sex :  ', year_value)
-      
-      cols <- c('green3', 'deepskyblue')
-      # plot data
-      g <- ggplot(data = temp_sex,
-                  aes(x = year,
-                      y =per,
-                      group = Sex,
-                      colour = Sex,
-                      text = paste('<br>', as.factor(Sex),': ', (per)*100, '%',
-                                   '<br> With highschool degree of equivalent'))) +
-        geom_point(size = 4) +
-        geom_line(size = 1, alpha = 0.8,linetype = 'dashed') +
-        geom_smooth(alpha = 0.4, size = 1) +   theme_bw(base_size = 13, base_family = 'Ubuntu') +
-        scale_color_manual(name = '', 
-                           values = cols) + theme(legend.position="none") +
-        labs(x = '', y = ' ', title = title_name) + scale_y_continuous(labels=scales::percent) 
-      
-      sex_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
-        config(displayModeBar = F)  
-      
-    }
-    
-    sex_plot
-    
-  })
-  
-  # table of highschool 20-29, gender
-  output$ed_table_age <- renderDataTable({
-    location <- 'Ontario'
-    years <- c(2001, 2006, 2011,2016)
-    location <- input$location
-    years <- input$years
-    
-    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
-                   "Place of Birth","Visible minority", "Aboriginal identity", 
-                   "High school or equivalent" ,'Population')
-    new_census <- census[ , demo_vars]
-    
-    
-    # get age data
-    temp_age <- new_census %>% filter(Geography %in% location) %>%
-      filter(year %in% years) %>% 
-      filter(!grepl("Total|15",`Age group`)) %>%
-      filter(grepl('Total', `Sex`)) %>%
-      filter(grepl('Total', `Place of Birth`)) %>%
-      filter(grepl('Total', `Visible minority`)) %>%
-      filter(grepl('Total', `Aboriginal identity`))
-    temp_age$Geography <- temp_age$geo_code  <- temp_age$Sex <- 
-      temp_age$`Aboriginal identity` <- temp_age$`Place of Birth`  <-
-      temp_age$`Visible minority` <- NULL
-    
-    temp_age$per <- round((temp_age$`High school or equivalent`/temp_age$Population),2)
-    
-    prettify(temp_age, download_options = TRUE, round_digits = TRUE)
-  })
-  
-  
-  # table of highschool 20-29, gender
-  output$ed_table_sex <- renderDataTable({
-    location <- 'Ontario'
-    years <- c(2001, 2006, 2011, 2016)
-    location <- input$location
-    years <- input$years
-    
-    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
-                   "Place of Birth","Visible minority", "Aboriginal identity", 
-                   "High school or equivalent" ,'Population')
-    new_census <- census[ , demo_vars]
-    
-    
-    # get sex data
-    temp_sex <- new_census %>% filter(Geography %in% location) %>%
-      filter(year %in% years) %>% 
-      filter(grepl("Total",`Age group`)) %>%
-      filter(!grepl('Total', `Sex`)) %>%
-      filter(grepl('Total', `Place of Birth`)) %>%
-      filter(grepl('Total', `Visible minority`)) %>%
-      filter(grepl('Total', `Aboriginal identity`))
-    temp_sex$Geography <- temp_sex$geo_code  <-temp_sex$`Age group` <- 
-      temp_sex$`Aboriginal identity` <- temp_sex$`Place of Birth`  <-
-      temp_sex$`Visible minority` <- NULL
-    
-    temp_sex$per <- round((temp_sex$`High school or equivalent`/temp_sex$Population),2)
-    
-    prettify(temp_sex, download_options = TRUE, round_digits = TRUE)
   })
   
   

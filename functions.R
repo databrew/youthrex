@@ -689,33 +689,17 @@ emp_line <- function(temp_dat) {
 }
 
 
-ed_candle_plot <- function(ed_var, age_text, title) {
+ed_candle_plot <- function(temp_dat, ed_var, title, color_palette, location, years) {
   
-  demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
-                 "Place of Birth","Visible minority", "Aboriginal identity", 
-                 ed_var,'Population')
-  new_census <- census[ , demo_vars]
   
-  temp <- new_census %>% filter(Geography %in% location) %>%
-    filter(year %in% years) %>% filter(grepl(age_text,`Age group`)) %>%
-    filter(!grepl('Total', `Sex`)) %>%
-    filter(grepl('Total', `Place of Birth`)) %>%
-    filter(grepl('Total', `Visible minority`)) %>%
-    filter(grepl('Total', `Aboriginal identity`))
-  temp$`Age group` <- temp$geo_code  <-
-    temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
-    temp$`Visible minority` <- NULL
-  temp$per <- round(temp$`High school or equivalent`/temp$Population, 2)
-  
-  # candle chartr
   # Plot
-  cols <- colorRampPalette(brewer.pal(9, 'Set1'))(length(unique(temp$Sex)))
+  cols <- color_palette
   cols <- adjustcolor(cols, alpha.f = 0.7)
-  g <- ggplot(temp, aes(x=Geography, 
+  g <- ggplot(temp_dat, aes(x=Geography, 
                         y=per,
-                        text = paste('Total population aged ', age_text, ' : ', Population,
+                        text = paste(Geography, ' ', V2,
                                      '<br>', (per)*100, '% ',ed_var))) + 
-    geom_point(size=5, aes(color = Sex)) + 
+    geom_point(size=5, aes(color = V2)) + 
     geom_segment(aes(x=Geography, 
                      xend=Geography, 
                      y=0, 
@@ -724,10 +708,23 @@ ed_candle_plot <- function(ed_var, age_text, title) {
     scale_color_manual(name = '', 
                       values = cols) +
     scale_y_continuous(labels = scales::percent) + 
-    theme(axis.text.x = element_text(size = 10, angle=45, vjust=0.6)) +
+    theme(axis.title.x=element_blank(),
+          axis.text.x=element_blank(),
+          axis.ticks.x=element_blank()) +
     labs(title=title, x = '', y = ' ') 
   
-  g_plot <- plotly::ggplotly(g, tooltip = 'text')  %>% config(displayModeBar = F)
+  if(length(unique(temp_dat$V2)) > 5) {
+    g_plot <- plotly::ggplotly(g, tooltip = 'text')  %>% config(displayModeBar = F) 
+      
+  } else {
+    g_plot <- plotly::ggplotly(g, tooltip = 'text')  %>% config(displayModeBar = F) %>%
+      layout( 
+        legend = list(
+          orientation = "l",
+          x = 0,
+          y = -0.3))
+  }
+ 
   
   return(g_plot)
 }
