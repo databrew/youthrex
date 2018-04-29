@@ -243,15 +243,25 @@ ui <- material_page(
                     ),
                     material_tab_content('emp',
                                          material_card(title = 'Youth unemployment rate over time',
-                                                       material_column(width = 9,
-                                                                      material_dropdown(input_id = 'emp_age_group',
-                                                                                        'Choose youth age group',
-                                                                                        choices = c('15 to 19 years', '20 to 24 years', '25 to 29 years'), 
-                                                                                        selected = '25 to 29 years'),
-                                                                      material_switch('emp_age_as_table',
-                                                                                      'View the table'),
-                                                                      uiOutput('emp_rate_age'))
-                                                      
+                                                       material_row(
+                                                         material_column(width = 12,
+                                                                         material_dropdown(input_id = 'emp_age_group',
+                                                                                           'Choose youth age group',
+                                                                                           choices = c('15 to 19 years', '20 to 24 years', '25 to 29 years'), 
+                                                                                           selected = '25 to 29 years'),
+                                                                         material_switch('emp_age_as_table',
+                                                                                         'View the table'),
+                                                                         uiOutput('emp_rate_age'))
+                                                       ),
+                                                       
+                                                       material_row(
+                                                         material_column(width = 12,
+                                                                         material_switch('emp_rate_all_as_table',
+                                                                                         'View the table'),
+                                                                         uiOutput('emp_rate_all'))
+                                                        
+                                                       )
+                                                    
                                                        )
                                                         
                                         )
@@ -1672,19 +1682,23 @@ server <- function(input, output) {
     
     cols<- colorRampPalette(brewer.pal(9, 'Set1'))(length(unique(temp$Geography)))
     
+    temp <- as.data.frame(temp)
+    
     # plot data
     g <- ggplot(data = temp,
                 aes(x = year,
-                    y = `Unemployment rate %`,
+                    y = (`Unemployment rate %`)/100,
                     group = Geography,
                     color = Geography,
-                    text = paste('<br>', `Unemployment rate %` , as.factor(Geography)))) +
-      geom_line(size = 1, alpha = 0.4,linetype = 'dashed') +
-      geom_smooth() + 
+                    text = paste('<br>', `Unemployment rate %` ,' % ', as.factor(Geography)))) +
+      geom_line(size = 1, alpha = 0.8) +
+      geom_smooth(method = 'gam', se = F, linetype = 'dashed') + 
+      geom_point(size = 2, alpha = 0.7)+
       theme_bw(base_size = 13, base_family = 'Ubuntu') +
       scale_color_manual(name = '', 
                          values = cols) + 
-      labs(x = '', y = '', title ='') 
+      scale_y_continuous(name = '', labels = scales::percent) +
+      labs(x = '', y = ' ', title ='') 
     
     g_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
       config(displayModeBar = F) 
@@ -1716,6 +1730,110 @@ server <- function(input, output) {
     
     prettify(temp, download_options = TRUE)
   })
+  
+  ##########
+  # emp_all
+  output$emp_rate_all <- renderUI({
+    if(!input$emp_rate_all_as_table){
+      ggiraphOutput('emp_rate_all_plot')
+      
+    } else {
+      DT::dataTableOutput('emp_rate_all_table')
+    }
+    
+  })
+  
+  output$emp_rate_all_plot <- renderggiraph({
+    
+    location <- unique(census$Geography)
+    location <- location[location != 'Ontario']
+    years <- 2016
+    years <- input$years
+
+    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                   "Place of Birth","Visible minority", "Aboriginal identity", 
+                   "Unemployment rate %" ,"Unemployed")
+    new_census <- census[ , demo_vars]
+    
+    temp <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% filter(grepl("Total",`Age group`)) %>%
+      filter(grepl('Total', `Sex`)) %>%
+      filter(grepl('Total', `Place of Birth`)) %>%
+      filter(grepl('Total', `Visible minority`)) %>%
+      filter(grepl('Total', `Aboriginal identity`))
+    temp$geo_code  <- temp$Sex <- temp$`Age group` <- 
+      temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
+      temp$`Visible minority` <- NULL
+    
+    temp$year <- as.factor(temp$year)
+    
+    colnames(temp)[3] <- 'value'
+    # double axis chart
+    # Add a column with the text you want to display for each bubble:
+    temp$text=paste("Unemployment rate:", round(temp$value,2), '%')
+    
+    # Generate the layout
+    packing <- circleProgressiveLayout(temp$value, sizetype = 'area')
+    temp = cbind(temp, packing)
+    temp.gg <- circleLayoutVertices(packing, npoints=50)
+  
+    
+    # Make the plot with a few differences compared to the static version:
+    p=ggplot() + 
+      geom_polygon_interactive(data = temp.gg, aes(x, y, group = id, fill=id, 
+                               tooltip = temp$text[id], data_id = id), colour = "black", 
+                               alpha = 0.6) +
+      scale_fill_viridis() +
+      geom_text(data = temp, aes(x, y, label = Geography, size=1, color="black"), color = 'black') +
+      theme_void() + 
+      theme(legend.position="none", plot.margin=unit(c(0,0,0,0),"cm")) +
+      ggtitle('Unemployment by location in ', years)
+      coord_equal()
+    
+
+  
+    ggiraph(ggobj = p, width_svg = 10, height_svg = 10)
+    
+    
+    
+    
+  })
+  
+  
+  output$emp_rate_all_table <- renderDataTable({
+    
+    location <- unique(census$Geography)
+    location <- location[location != 'Ontario']
+    years <- 2016
+    years <- input$years
+    
+    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
+                   "Place of Birth","Visible minority", "Aboriginal identity", 
+                   "Unemployment rate %" ,"Unemployed")
+    new_census <- census[ , demo_vars]
+    
+    temp <- new_census %>% filter(Geography %in% location) %>%
+      filter(year %in% years) %>% filter(grepl("Total",`Age group`)) %>%
+      filter(grepl('Total', `Sex`)) %>%
+      filter(grepl('Total', `Place of Birth`)) %>%
+      filter(grepl('Total', `Visible minority`)) %>%
+      filter(grepl('Total', `Aboriginal identity`))
+    temp$geo_code  <- temp$Sex <- temp$`Age group` <- 
+      temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
+      temp$`Visible minority` <- NULL
+    
+    temp$year <- as.factor(temp$year)
+    temp$`Unemployment rate %` <- round(temp$`Unemployment rate %`, 2)
+    
+    return(prettify(temp, cap_columns = TRUE, comma_numbers = TRUE, download_options = TRUE))
+    
+    
+    
+  })
+  
+  
+ 
+
   
   
   # -----------------------------------------------------------------------------------------------------------------
