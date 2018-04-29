@@ -240,9 +240,22 @@ ui <- material_page(
                                                               )
                                          )
                     
-                    )
-            
-    )
+                    ),
+                    material_tab_content('emp',
+                                         material_card(title = 'Youth unemployment rate over time',
+                                                       material_column(width = 9,
+                                                                      material_dropdown(input_id = 'emp_age_group',
+                                                                                        'Choose youth age group',
+                                                                                        choices = c('15 to 19 years', '20 to 24 years', '25 to 29 years'), 
+                                                                                        selected = '25 to 29 years'),
+                                                                      material_switch('emp_age_as_table',
+                                                                                      'View the table'),
+                                                                      uiOutput('emp_rate_age'))
+                                                      
+                                                       )
+                                                        
+                                        )
+                              )
   )
   
   
@@ -1599,45 +1612,45 @@ server <- function(input, output) {
   #------------------------------------------------------------------------------------------------------
   #--------------------------------------------------------------------------------------------------------
   #employment - em_plot_or_table_age - unemployment rate
-  output$emp_header <- renderText({
-    location <- input$location
-    years <- input$years
-    if(length(years) == 2) {
-      years_final <- paste0(years, collapse = ' & ')
-    } else if(length(years) == 3) {
-      years_2 <- paste0(years[1:2], collapse = ', ')
-      years_final <- paste0(years_2, ' & ', years[3])
-    } else if(length(years) == 4) {
-      years_3 <- paste0(years[1:3], collapse = ', ')
-      years_final <- paste0(years_3, ' & ', years[4])
-    } else {
-      years_final <- years
-    }
-    
-    paste0('Examine unemployment across age groups and gender in ', location, ' for ', years_final)
-  })
-  
+  # output$emp_header <- renderText({
+  #   location <- input$location
+  #   years <- input$years
+  #   if(length(years) == 2) {
+  #     years_final <- paste0(years, collapse = ' & ')
+  #   } else if(length(years) == 3) {
+  #     years_2 <- paste0(years[1:2], collapse = ', ')
+  #     years_final <- paste0(years_2, ' & ', years[3])
+  #   } else if(length(years) == 4) {
+  #     years_3 <- paste0(years[1:3], collapse = ', ')
+  #     years_final <- paste0(years_3, ' & ', years[4])
+  #   } else {
+  #     years_final <- years
+  #   }
+  #   
+  #   paste0('Examine unemployment across age groups and gender in ', location, ' for ', years_final)
+  # })
+  # aterial_tab_content('emp',
+
   ##########
   # age 
-  output$emp_plot_table_age <- renderUI({
-    if(!input$emp_plot_or_table_age){
-      htmlOutput('emp_plot_age')
+  output$emp_rate_age <- renderUI({
+    if(!input$emp_age_as_table){
+      plotlyOutput('emp_rate_age_plot')
       
     } else {
-      DT::dataTableOutput('emp_table_age')
+      DT::dataTableOutput('emp_rate_age_table')
     }
     
   })
   
   
-  output$emp_plot_age <- renderGvis({
-    location <- 'Ontario'
+  output$emp_rate_age_plot <- renderPlotly({
+    location <- c('Toronto', 'Ottawa')
     years <- c(2001, 2006, 2011, 2016)
     age_group <- '25 to 29 years'
     age_group <- input$emp_age_group
-    location <- input$location
-    years <- input$years
-    
+    location <- locations()
+
     demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
                    "Place of Birth","Visible minority", "Aboriginal identity", 
                    "Unemployment rate %" ,"Unemployed")
@@ -1649,7 +1662,7 @@ server <- function(input, output) {
       filter(grepl('Total', `Place of Birth`)) %>%
       filter(grepl('Total', `Visible minority`)) %>%
       filter(grepl('Total', `Aboriginal identity`))
-    temp$Geography <- temp$geo_code  <- temp$Sex <- 
+  temp$geo_code  <- temp$Sex <- 
       temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
       temp$`Visible minority` <- NULL
     
@@ -1657,49 +1670,33 @@ server <- function(input, output) {
     temp$year <- as.factor(temp$year)
     # double axis chart
     
-    if(length(temp$year) == 1){
-      point_size <- 40
-    } else {
-      point_size <- 15
-    }
-    line <-
-      gvisLineChart(temp, xvar="year", yvar=c('Unemployed', 'Unemployment rate %'),
-                    options=list(title=paste0(age_group, ' years old'),
-                                 titleTextStyle="{color:'black',
-                                 fontName:'Ubuntu',
-                                 fontSize:18}",
-                                 curveType="function",
-                                 pointSize=point_size,
-                                 series="[{targetAxisIndex:0,
-                                 color:'#FFA500'},
-                                 {targetAxisIndex:1,
-                                 color:'#000080'}]",
-                                 vAxes="[{title:'Total unemployed',
-                                 format:'##,###',
-                                 titleTextStyle: {color: '#FFA500'},
-                                 textStyle:{color: '#FFA500'},
-                                 textPosition: 'out'},
-                                 {title:'Unemployment rate',
-                                 format:'#.##',
-                                 titleTextStyle: {color: '#000080'},
-                                 textStyle:{color: '#000080'},
-                                 textPosition: 'out'}]",
-                                 hAxes="[{title:'Year',
-                                 textPosition: 'out'}]",
-                                 width=475, height=550
-                    ),
-                    chartid="twoaxislinechart"
-      )
-    line
-    # 
+    cols<- colorRampPalette(brewer.pal(9, 'Set1'))(length(unique(temp$Geography)))
+    
+    # plot data
+    g <- ggplot(data = temp,
+                aes(x = year,
+                    y = `Unemployment rate %`,
+                    group = Geography,
+                    color = Geography,
+                    text = paste('<br>', `Unemployment rate %` , as.factor(Geography)))) +
+      geom_line(size = 1, alpha = 0.4,linetype = 'dashed') +
+      geom_smooth() + 
+      theme_bw(base_size = 13, base_family = 'Ubuntu') +
+      scale_color_manual(name = '', 
+                         values = cols) + 
+      labs(x = '', y = '', title ='') 
+    
+    g_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
+      config(displayModeBar = F) 
+    
+    return(g_plot)
   })
   
-  output$emp_table_age <- renderDataTable({
+  output$emp_rate_age_table <- renderDataTable({
     location <- 'Ontario'
     years <- c(2001, 2006, 2011, 2016)
     age_group <- '25 to 29 years'
-    location <- input$location
-    years <- input$years
+    location <- locations()
     
     demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
                    "Place of Birth","Visible minority", "Aboriginal identity", 
@@ -1712,7 +1709,7 @@ server <- function(input, output) {
       filter(grepl('Total', `Place of Birth`)) %>%
       filter(grepl('Total', `Visible minority`)) %>%
       filter(grepl('Total', `Aboriginal identity`))
-    temp$Geography <- temp$geo_code  <- temp$Sex <- 
+   temp$geo_code  <- temp$Sex <- 
       temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
       temp$`Visible minority` <- NULL
     temp <- temp %>% filter(`Age group` %in% age_group)
@@ -1720,206 +1717,6 @@ server <- function(input, output) {
     prettify(temp, download_options = TRUE)
   })
   
-  #############
-  # gender
-  ##########
-  output$emp_plot_table_gen <- renderUI({
-    if(!input$emp_plot_or_table_gen){
-      htmlOutput('emp_plot_gen')
-    } else {
-      DT::dataTableOutput('emp_table_gen')
-    }
-    
-  })
-  
-  output$emp_plot_gen <- renderGvis({
-    location <- 'Ontario'
-    years <- c(2001, 2006, 2011, 2016)
-    gen_group <- 'Male'
-    gen_group <- input$emp_gen
-    location <- input$location
-    years <- input$years
-    
-    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
-                   "Place of Birth","Visible minority", "Aboriginal identity", 
-                   "Unemployment rate %" ,"Unemployed")
-    new_census <- census[ , demo_vars]
-    
-    temp <- new_census %>% filter(Geography %in% location) %>%
-      filter(year %in% years) %>% filter(grepl("Total",`Age group`)) %>%
-      filter(!grepl('Total', `Sex`)) %>%
-      filter(grepl('Total', `Place of Birth`)) %>%
-      filter(grepl('Total', `Visible minority`)) %>%
-      filter(grepl('Total', `Aboriginal identity`))
-    temp$Geography <- temp$geo_code   <- temp$`Age group` <-
-      temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
-      temp$`Visible minority` <- NULL
-    
-    temp <- temp %>% filter(Sex %in% gen_group)
-    temp$`Unemployment rate %` <- round(temp$`Unemployment rate %`, 2)
-    temp$year <- as.factor(temp$year)
-    
-    if(length(temp$year) == 1){
-      point_size <- 40
-    } else {
-      point_size <- 15
-    }# double axis chart
-    
-    
-    line_gen <-
-      gvisLineChart(temp, xvar="year", yvar=c('Unemployed', 'Unemployment rate %'),
-                    options=list(title=paste0(gen_group),
-                                 titleTextStyle="{color:'black',
-                                 fontName:'Ubuntu',
-                                 fontSize:18}",
-                                 curveType="function",
-                                 pointSize=point_size,
-                                 series="[{targetAxisIndex:0,
-                                 color:'#1799B5'},
-                                 {targetAxisIndex:1,
-                                 color:'#A9A9A9'}]",
-                                 vAxes="[{title:'Total unemployed',
-                                 format:'##,###',
-                                 titleTextStyle: {color: '#1799B5'},
-                                 textStyle:{color: '#1799B5'},
-                                 textPosition: 'out'},
-                                 {title:'Unemployment rate',
-                                 format:'#.##',
-                                 titleTextStyle: {color: '#A9A9A9'},
-                                 textStyle:{color: '#A9A9A9'},
-                                 textPosition: 'out'}]",
-                                 hAxes="[{title:'Year',
-                                 textPosition: 'out'}]",
-                                 width=475, height=550
-                    ),
-                    chartid="twoaxislinechart_gen"
-      )
-    line_gen
-    # 
-  })
-  
-  output$emp_table_gen <- renderDataTable({
-    location <- 'Ontario'
-    years <- c(2001, 2006, 2011, 2016)
-    gen_group <- 'Male'
-    gen_group <- input$emp_gen
-    location <- input$location
-    years <- input$years
-    
-    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
-                   "Place of Birth","Visible minority", "Aboriginal identity", 
-                   "Unemployment rate %" ,"Unemployed")
-    new_census <- census[ , demo_vars]
-    
-    temp <- new_census %>% filter(Geography %in% location) %>%
-      filter(year %in% years) %>% filter(grepl("Total",`Age group`)) %>%
-      filter(!grepl('Total', `Sex`)) %>%
-      filter(grepl('Total', `Place of Birth`)) %>%
-      filter(grepl('Total', `Visible minority`)) %>%
-      filter(grepl('Total', `Aboriginal identity`))
-    temp$Geography <- temp$geo_code   <- temp$`Age group` <-
-      temp$`Aboriginal identity` <- temp$`Place of Birth`  <-
-      temp$`Visible minority` <- NULL
-    
-    temp <- temp %>% filter(Sex %in% gen_group)
-    temp$`Unemployment rate %` <- round(temp$`Unemployment rate %`, 2)
-    
-    prettify(temp, download_options = TRUE, no_scroll = FALSE)
-  })
-  
-  
-  output$emp_ab_text <- renderText({
-    # subset data by inputs
-    location <- 'Ontario'
-    years <- c(2001, 2006, 2011, 2016)
-    location <- input$location
-    years <- input$years
-    
-    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
-                   "Place of Birth","Visible minority", "Aboriginal identity", 
-                   "Unemployment rate %")
-    new_census <- census[ , demo_vars]
-    
-    temp <- new_census %>% filter(Geography %in% location) %>%
-      filter(year %in% years) %>% filter(grepl("Total",`Age group`)) %>%
-      filter(grepl('Total', `Sex`)) %>%
-      filter(grepl('Total', `Place of Birth`)) %>%
-      filter(grepl('Total', `Visible minority`)) %>%
-      filter(!grepl('Total|Non', `Aboriginal identity`))
-    temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
-      temp$`Place of Birth`  <- temp$`Visible minority` <- NULL
-    
-    temp$`Unemployment rate %` <- round(temp$`Unemployment rate %`,2)
-    
-    if(length(years) == 1){
-      paste0('Unemployment rate = ', temp$`Unemployment rate %`, '% in ', location, ' for ', years)
-    } else {
-      first_year_rate <- temp$`Unemployment rate %`[temp$year == min(temp$year)]
-      last_year_rate <- temp$`Unemployment rate %`[temp$year == max(temp$year)]
-      
-      first_year <- temp$year[temp$year == min(temp$year)]
-      last_year <- temp$year[temp$year == max(temp$year)]
-      
-      if(first_year_rate > last_year_rate) {
-        increase_decrease  <- 'decreased'
-      } else if(first_year_rate < last_year_rate) {
-        increase_decrease  <- 'increased'
-      } else {
-        increase_decrease <- 'stayed the same'
-      }
-      
-      paste0(increase_decrease,' in ',location, ' from ',first_year_rate, '% in ', first_year, 
-             ' to ', last_year_rate, '% in ', last_year)
-      
-    }
-    
-  })
-  
-  output$emp_non_text <- renderText({
-    location <- 'Ontario'
-    years <- c(2001, 2006, 2011, 2016)
-    location <- input$location
-    years <- input$years
-    
-    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex", 
-                   "Place of Birth","Visible minority", "Aboriginal identity", 
-                   "Unemployment rate %")
-    new_census <- census[ , demo_vars]
-    
-    temp <- new_census %>% filter(Geography %in% location) %>%
-      filter(year %in% years) %>% filter(grepl("Total",`Age group`)) %>%
-      filter(grepl('Total', `Sex`)) %>%
-      filter(grepl('Total', `Place of Birth`)) %>%
-      filter(grepl('Total', `Visible minority`)) %>%
-      filter(grepl('Non', `Aboriginal identity`))
-    temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
-      temp$`Place of Birth`  <- temp$`Visible minority` <- NULL
-    
-    temp$`Unemployment rate %` <- round(temp$`Unemployment rate %`,2)
-    
-    if(length(years) == 1){
-      paste0('Unemployment rate = ', temp$`Unemployment rate %`, '% in ', location, ' for ', years)
-    } else {
-      first_year_rate <- temp$`Unemployment rate %`[temp$year == min(temp$year)]
-      last_year_rate <- temp$`Unemployment rate %`[temp$year == max(temp$year)]
-      
-      first_year <- temp$year[temp$year == min(temp$year)]
-      last_year <- temp$year[temp$year == max(temp$year)]
-      
-      if(first_year_rate > last_year_rate) {
-        increase_decrease  <- 'decreased'
-      } else if(first_year_rate < last_year_rate) {
-        increase_decrease  <- 'increased'
-      } else {
-        increase_decrease <- 'stayed the same'
-      }
-      
-      paste0(increase_decrease,' in ',location, ' from ',first_year_rate, '% in ', first_year, 
-             ' to ', last_year_rate, '% in ', last_year)
-      
-    }
-    
-  })
   
   # -----------------------------------------------------------------------------------------------------------------
   # -----------------------------------------------------------------------------------------------------------------
