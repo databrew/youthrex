@@ -12,6 +12,10 @@ library(feather)
 library(memisc)
 library(stringdist)
 library(reshape2)
+library(packcircles)
+library(viridis)
+library(ggiraph)
+
 
 leaf <- function(x, 
                  tile = 'OpenStreetMap', 
