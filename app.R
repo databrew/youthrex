@@ -266,7 +266,7 @@ ui <- material_page(
                                                         
                                         ),
                     
-                    material_tab_content(tab_id = 'house',
+                    material_tab_content(tab_id = 'housing',
                                          align = 'center',
                                          material_card(title = 'Youth housing',
                                            material_row(material_column(width = 12,
@@ -282,16 +282,20 @@ ui <- material_page(
                                                                                                                        selected = 'All youth'))
                                                                                                      ),
                                                                                     
-                                                                                    
-                                                                        material_tabs(c('Plot' = 'house_plot',
-                                                                                      'Table' = 'house_table')),
-                                                                        material_tab_content('house_plot',
-                                                                                             uiOutput('owner_plot_vm_filter'),
-                                                                                             plotlyOutput('owner_plot')
-                                                                        ),
-                                                                        material_tab_content('house_table',
-                                                                                             DT::dataTableOutput('owner_table')
+                                                                        
+                                                                        material_row(
+                                                                          material_tabs(c('Plot' = 'house_plot',
+                                                                                          'Table' = 'house_table')),
+                                                                          material_tab_content('house_plot',
+                                                                                               uiOutput('owner_plot_vm_filter'),
+                                                                                               plotlyOutput('owner_plot')
+                                                                          ),
+                                                                          material_tab_content('house_table',
+                                                                                               DT::dataTableOutput('owner_table')
+                                                                          )
                                                                         )
+                                                                                    
+                                                                        
                                                                         
                                                                         
                                            ))
@@ -1928,8 +1932,11 @@ server <- function(input, output) {
     house_own_sub <- input$house_own_sub
   
     
+    
     if(is.null(input$house_demo_variable) | length(location) == 0){
-      NULL
+      final_plot <-  ggplot() + 
+        theme_base() +
+        labs(title = 'You must select a location plot')
     } else {
       # avg_years <- input$demo_chart_avg
       if(house_own_sub){
@@ -2549,374 +2556,7 @@ server <- function(input, output) {
   })
   #   
   # 
-  #####
-  # subsidized housing
-  
-  # ownder occupied vs rented 
-  # owner_rented_table_plot, sub_table_plot
-  
-  output$sub_plot_vm_filter <- renderUI({
-    
-    if(input$sub_demo_variable !='Visible minority' | is.null(input$sub_demo_variable)){
-      NULL
-    } else {
-      choice_vm <- unique(census$`Visible minority`)
-      choice_vm <- choice_vm[!grepl('Arab/West|Total', choice_vm)]
-      selectInput('owner_plot_vm_filter',
-                  'Take a closer look',
-                  choices = choice_vm,
-                  selected = 'All visible minorities',
-                  multiple = TRUE)
-    }
-  })
-  
-  # by gender 
-  output$sub_plot <- renderPlotly({
-    
-    
-    # subset data by inputs
-    location <- 'Ontario'
-    years <- 2016
-    sub_demo_variable <- 'Sex'
-    # avg_years <- TRUE
-    
-    location <- input$location
-    years <- input$years
-    sub_demo_variable <- input$sub_demo_variable
-    
-    if(is.null(input$sub_demo_variable)){
-      NULL
-    } else {
-      # avg_years <- input$demo_chart_avg
-      
-      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex",
-                     "Place of Birth","Visible minority", "Aboriginal identity",
-                     "Subsidized housing", "Non-subsidized housing",
-                     "Living in rented dwelling")
-      new_census <- census[ , demo_vars]
-      
-      new_census <- new_census %>% filter(Geography %in% location) %>%
-        filter(year %in% years) %>% filter(grepl('Total',`Age group`))
-      
-      # remove na 
-      new_census <- new_census[complete.cases(new_census$`Subsidized housing`),]
-      
-      if(sub_demo_variable == 'All youth'){
-        # get data
-        temp <- new_census %>%
-          filter(grepl('Total', `Sex`)) %>%
-          filter(grepl('Total', `Place of Birth`)) %>%
-          filter(grepl('Total', `Visible minority`)) %>%
-          filter(grepl('Total', `Aboriginal identity`))
-        temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
-          temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
-        
-        # get percentages 
-        temp$`Subsidized` <- round(temp$`Subsidized housing`/temp$`Living in rented dwelling`,2)
-        temp$`Not subisdized` <- round(temp$`Non-subsidized housing`/temp$`Living in rented dwelling`,2)
-        temp$`Subsidized housing` <- temp$`Non-subsidized housing` <- temp$`Living in rented dwelling` <- NULL
-        temp_melt <- melt(temp, id.vars = 'year')
-        
-        temp_melt$year <- as.factor(temp_melt$year)
-        
-        temp_plot <- emp_line(temp_melt)
-        g <- temp_plot 
-        
-        sub_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
-          config(displayModeBar = F) %>% 
-          layout( 
-            legend = list(
-              orientation = "l",
-              x = 0,
-              y = -0.4))
-        
-        
-      }
-      
-      if(sub_demo_variable == 'Sex') {
-        # get data
-        # get data
-        temp <- new_census %>%
-          filter(!grepl('Total', `Sex`)) %>%
-          filter(grepl('Total', `Place of Birth`)) %>%
-          filter(grepl('Total', `Visible minority`)) %>%
-          filter(grepl('Total', `Aboriginal identity`))
-        temp$`Age group` <- temp$Geography <- temp$geo_code <- 
-          temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
-        
-        # get percentages 
-        temp$`Subsidized` <- round(temp$`Subsidized housing`/temp$`Living in rented dwelling`,2)
-        temp$`Not subisdized` <- round(temp$`Non-subsidized housing`/temp$`Living in rented dwelling`,2)
-        temp$`Subsidized housing` <- temp$`Non-subsidized housing` <- temp$`Living in rented dwelling` <- NULL
-        temp_melt <- melt(temp, id.vars =c('year', 'Sex'))
-        
-        temp_melt$year <- as.factor(temp_melt$year)
-        
-        
-        # set condition for if only 1 year chosen, then set x lab to that year, otherwise blank, and add the extra theme, otherwise dont
-        
-        temp_plot <- emp_line(temp_melt)
-        g <- temp_plot + facet_wrap(~Sex)
-        
-        sub_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
-          config(displayModeBar = F) %>% 
-          layout( 
-            legend = list(
-              orientation = "l",
-              x = 0,
-              y = -0.4))
-        
-      }
-      
-      if(sub_demo_variable == 'Place of Birth') {
-        # get data
-        # get data
-        temp <- new_census %>%
-          filter(grepl('Total', `Sex`)) %>%
-          filter(!grepl('Total', `Place of Birth`)) %>%
-          filter(grepl('Total', `Visible minority`)) %>%
-          filter(grepl('Total', `Aboriginal identity`))
-        temp$`Age group` <- temp$Geography <- temp$geo_code <- 
-          temp$`Aboriginal identity` <- temp$`Sex` <- temp$`Visible minority` <-   NULL
-        
-        # get percentages 
-        temp$`Subsidized` <- round(temp$`Subsidized housing`/temp$`Living in rented dwelling`,2)
-        temp$`Not subisdized` <- round(temp$`Non-subsidized housing`/temp$`Living in rented dwelling`,2)
-        temp$`Subsidized housing` <- temp$`Non-subsidized housing` <- temp$`Living in rented dwelling` <- NULL
-        temp_melt <- melt(temp, id.vars =c('year', 'Place of Birth'))
-        
-        temp_melt$year <- as.factor(temp_melt$year)
-        
-        temp_plot <- emp_line(temp_melt)
-        g <- temp_plot + facet_wrap(~`Place of Birth`)
-        
-        sub_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
-          config(displayModeBar = F) %>% 
-          layout( 
-            legend = list(
-              orientation = "l",
-              x = 0,
-              y = -0.4))
-      }
-      
-      if(sub_demo_variable == 'Visible minority') {
-        
-        if(is.null(input$owner_plot_vm_filter)) {
-          return(NULL)
-        } else {
-          owner_plot_vm_filter <- input$owner_plot_vm_filter
-          # get data
-          # get data
-          temp <- new_census %>%
-            filter(grepl('Total', `Sex`)) %>%
-            filter(grepl('Total', `Place of Birth`)) %>%
-            filter(!grepl('Total', `Visible minority`)) %>%
-            filter(grepl('Total', `Aboriginal identity`))
-          temp$`Age group` <- temp$Geography <- temp$geo_code <- 
-            temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Sex` <-   NULL
-          
-          # get percentages 
-          temp$`Subsidized` <- round(temp$`Subsidized housing`/temp$`Living in rented dwelling`,2)
-          temp$`Not subisdized` <- round(temp$`Non-subsidized housing`/temp$`Living in rented dwelling` ,2)
-          temp$`Subsidized housing` <- temp$`Non-subsidized housing` <- temp$`Living in rented dwelling` <- NULL
-          # remove Arab/West Asian
-          temp <- temp[temp$`Visible minority` != 'Arab/West Asian',]
-          temp_melt <- melt(temp, id.vars =c('year', 'Visible minority'))
-          temp_melt <- temp_melt %>% filter(`Visible minority`%in% owner_plot_vm_filter)
-          
-          
-          temp_melt$year <- as.factor(temp_melt$year)
-          
-          temp_plot <- emp_line(temp_melt)
-          g <- temp_plot +
-            facet_wrap(~`Visible minority`)
-          
-          sub_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
-            config(displayModeBar = F) %>% 
-            layout( 
-              legend = list(
-                orientation = "l",
-                x = 0,
-                y = -0.4))
-          
-        }
-        
-      }
-      
-    }
-    
-    if(sub_demo_variable == 'Aboriginal identity') {
-      # get data
-      
-      # get data
-      temp <- new_census %>%
-        filter(grepl('Total', `Sex`)) %>%
-        filter(grepl('Total', `Place of Birth`)) %>%
-        filter(grepl('Total', `Visible minority`)) %>%
-        filter(!grepl('Total', `Aboriginal identity`))
-      temp$`Age group` <- temp$Geography <- temp$geo_code <- 
-        temp$`Sex` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
-      
-      # get percentages 
-      temp$`% Subsidized` <- round(temp$`Subsidized housing`/temp$`Living in rented dwelling`,2)
-      temp$`% Not subisdized` <- round(temp$`Non-subsidized housing`/temp$`Living in rented dwelling`,2)
-      temp$`Subsidized housing` <- temp$`Non-subsidized housing` <- temp$`Living in rented dwelling` <- NULL
-      temp_melt <- melt(temp, id.vars =c('year', 'Aboriginal identity'))
-      
-      temp_melt$year <- as.factor(temp_melt$year)
-      
-      temp_plot <- emp_line(temp_melt)
-      g <- temp_plot + facet_wrap(~`Aboriginal identity`)
-      sub_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
-        config(displayModeBar = F) %>% 
-        layout( 
-          legend = list(
-            orientation = "l",
-            x = 0,
-            y = -0.4))
-    }
-    
-    sub_plot
-    
-  })
-  
-  # #
-  output$sub_table <- DT::renderDataTable({
-    
-    # subset data by inputs
-    location <- 'Ontario'
-    years <- c(2001, 2006, 2011, 2016)
-    sub_demo_variable <- 'All youth'
-    # avg_years <- TRUE
-    
-    location <- input$location
-    years <- input$years
-    sub_demo_variable <- input$sub_demo_variable
-    
-    if(is.null(input$sub_demo_variable)){
-      NULL
-    } else {
-      # avg_years <- input$demo_chart_avg
-      
-      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex",
-                     "Place of Birth","Visible minority", "Aboriginal identity",
-                     "Subsidized housing", "Non-subsidized housing",
-                     "Living in rented dwelling")
-      new_census <- census[ , demo_vars]
-      
-      new_census <- new_census %>% filter(Geography %in% location) %>%
-        filter(year %in% years) %>% filter(grepl('Total',`Age group`))
-      
-      # remove na 
-      new_census <- new_census[complete.cases(new_census$`Subsidized housing`),]
-      
-      if(sub_demo_variable == 'All youth'){
-        # get data
-        temp <- new_census %>%
-          filter(grepl('Total', `Sex`)) %>%
-          filter(grepl('Total', `Place of Birth`)) %>%
-          filter(grepl('Total', `Visible minority`)) %>%
-          filter(grepl('Total', `Aboriginal identity`))
-        temp$`Age group` <- temp$Geography <- temp$geo_code <- temp$Sex <-
-          temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
-        
-        # get percentages 
-        temp$`% Subsidized` <- round((temp$`Subsidized housing`/temp$`Living in rented dwelling`)*100,2)
-        temp$`% Not subisdized` <- round((temp$`Non-subsidized housing`/temp$`Living in rented dwelling`)*100,2)
-        temp$`Subsidized housing` <- temp$`Non-subsidized housing` <- temp$`Living in rented dwelling` <- NULL
-        
-      }
-      
-      if(sub_demo_variable == 'Sex') {
-        # get data
-        # get data
-        temp <- new_census %>%
-          filter(!grepl('Total', `Sex`)) %>%
-          filter(grepl('Total', `Place of Birth`)) %>%
-          filter(grepl('Total', `Visible minority`)) %>%
-          filter(grepl('Total', `Aboriginal identity`))
-        temp$`Age group` <- temp$Geography <- temp$geo_code <- 
-          temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
-        
-        # get percentages 
-        temp$`% Subsidized` <- round((temp$`Subsidized housing`/temp$`Living in rented dwelling`)*100,2)
-        temp$`% Not subisdized` <- round((temp$`Non-subsidized housing`/temp$`Living in rented dwelling`)*100,2)
-        temp$`Subsidized housing` <- temp$`Non-subsidized housing` <- temp$`Living in rented dwelling` <- NULL
-      }
-      
-      if(sub_demo_variable == 'Place of Birth') {
-        # get data
-        # get data
-        temp <- new_census %>%
-          filter(grepl('Total', `Sex`)) %>%
-          filter(!grepl('Total', `Place of Birth`)) %>%
-          filter(grepl('Total', `Visible minority`)) %>%
-          filter(grepl('Total', `Aboriginal identity`))
-        temp$`Age group` <- temp$Geography <- temp$geo_code <- 
-          temp$`Aboriginal identity` <- temp$`Sex` <- temp$`Visible minority` <-   NULL
-        
-        # get percentages 
-        temp$`% Subsidized` <- round((temp$`Subsidized housing`/temp$`Living in rented dwelling`)*100,2)
-        temp$`% Not subisdized` <- round((temp$`Non-subsidized housing`/temp$`Living in rented dwelling`)*100,2)
-        temp$`Subsidized housing` <- temp$`Non-subsidized housing` <- temp$`Living in rented dwelling` <- NULL
-        
-      }
-      
-      if(sub_demo_variable == 'Visible minority') {
-        
-        if(is.null(input$owner_plot_vm_filter)) {
-          return(NULL)
-        } else {
-          owner_plot_vm_filter <- input$owner_plot_vm_filter
-          # get data
-          # get data
-          temp <- new_census %>%
-            filter(grepl('Total', `Sex`)) %>%
-            filter(grepl('Total', `Place of Birth`)) %>%
-            filter(!grepl('Total', `Visible minority`)) %>%
-            filter(grepl('Total', `Aboriginal identity`))
-          temp$`Age group` <- temp$Geography <- temp$geo_code <- 
-            temp$`Aboriginal identity` <- temp$`Place of Birth` <- temp$`Sex` <-   NULL
-          
-          # get percentages 
-          temp$`% Subsidized` <- round((temp$`Subsidized housing`/temp$`Living in rented dwelling`)*100,2)
-          temp$`% Not subisdized` <- round((temp$`Non-subsidized housing`/temp$`Living in rented dwelling`)*100,2)
-          temp$`Subsidized housing` <- temp$`Non-subsidized housing` <- temp$`Living in rented dwelling` <- NULL
-          # remove Arab/West Asian
-          temp <- temp[temp$`Visible minority` != 'Arab/West Asian',]
-          
-        }
-        
-      }
-      
-    }
-    
-    if(sub_demo_variable == 'Aboriginal identity') {
-      # get data
-      
-      # get data
-      temp <- new_census %>%
-        filter(grepl('Total', `Sex`)) %>%
-        filter(grepl('Total', `Place of Birth`)) %>%
-        filter(grepl('Total', `Visible minority`)) %>%
-        filter(!grepl('Total', `Aboriginal identity`))
-      temp$`Age group` <- temp$Geography <- temp$geo_code <- 
-        temp$`Sex` <- temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
-      
-      # get percentages 
-      temp$`% Subsidized` <- round((temp$`Subsidized housing`/temp$`Living in rented dwelling`)*100,2)
-      temp$`% Not subisdized` <- round((temp$`Non-subsidized housing`/temp$`Living in rented dwelling`)*100,2)
-      temp$`Subsidized housing` <- temp$`Non-subsidized housing` <- temp$`Living in rented dwelling` <- NULL
-      
-      
-      
-      
-    }
-    
-    prettify(temp, cap_columns = TRUE, comma_numbers = TRUE, nrows = 5, download_options = TRUE)
-    
-  })
-  # 
+ 
   
   
   #------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -2938,351 +2578,351 @@ server <- function(input, output) {
   #               multiple = TRUE)
   #   
   # })
-  
-  output$income_plot_all_geo <- renderPlotly({
-    
-    
-    location <- input$location
-    years <- input$years
-    add_location <- input$income_add_location
-    
-    # avg_years <- input$demo_chart_avg
-    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex",
-                   "Place of Birth","Visible minority", "Aboriginal identity",
-                   "Average household income before tax $")
-    new_census <- census[ , demo_vars]
-    
-    # combine location and add_locaiton
-    location <- c(location, add_location)
-    
-    temp <- new_census %>%
-      filter(year %in% years) %>% 
-      filter(Geography %in% location) %>%
-      filter(grepl('Total',`Age group`)) %>% 
-      filter(grepl('Total', `Sex`)) %>%
-      filter(grepl('Total', `Place of Birth`)) %>%
-      filter(grepl('Total', `Visible minority`)) %>%
-      filter(grepl('Total', `Aboriginal identity`))
-    temp$`Age group`  <- temp$geo_code <- temp$Sex <- temp$`Aboriginal identity` <- 
-      temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
-    temp$`Average household income before tax $` <- round(temp$`Average household income before tax $`)
-    
-    temp$`Average household income before tax $` <- round(temp$`Average household income before tax $`)
-    cols <- colorRampPalette(brewer.pal(9, 'Spectral'))(length(unique(temp$Geography)))
-    
-    # set condition for if only 1 year is chosent 
-    if(length(unique(temp$year)) == 1) {
-      temp$year <- as.factor(as.character(temp$year))
-      point_size <- 13
-    } else {
-      point_size <- 4
-    }
-    
-    # plot data
-    g <- ggplot(data = temp,
-                aes(x = year,
-                    y = round(`Average household income before tax $`, 2),
-                    group = Geography,
-                    colour = Geography,
-                    text = paste('<br>', `Average household income before tax $` , as.factor(Geography)))) +
-      geom_point(size = point_size) +
-      geom_line(size = 1, alpha = 0.8,linetype = 'dashed') +
-      geom_smooth(alpha = 0.4, size = 1) + theme_bw(base_size = 13, base_family = 'Ubuntu') +
-      scale_color_manual(name = '', 
-                         values = cols) + theme(legend.position="none") +
-      labs(x = '', y = '', title ='') + scale_y_continuous(labels=scales::comma) 
-    
-    sub_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
-      config(displayModeBar = F) %>% 
-      layout( 
-        legend = list(
-          orientation = "l",
-          x = 0,
-          y = -0.4))
-    
-    sub_plot
-    
-    
-  })
-  
-  # plot avg household income across vm status over the years
-  # income_vm_filter = 'All visible minorites' as default
-  output$income_plot_vm <- renderPlotly({
-    # subset data by inputs
-    location <- 'Ontario'
-    years <- c(2001, 2006, 2011, 2016)
-    income_vm_filter = 'All visible minorities' 
-    
-    location <- input$location
-    years <- input$years
-    income_vm_filter <- input$income_vm_filter
-    
-    # avg_years <- input$demo_chart_avg
-    demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex",
-                   "Place of Birth","Visible minority", "Aboriginal identity",
-                   "Average household income before tax $")
-    new_census <- census[ , demo_vars]
-    
-    temp <- new_census %>%
-      filter(year %in% years) %>% 
-      filter(Geography %in% location) %>%
-      filter(grepl('Total',`Age group`)) %>% 
-      filter(grepl('Total', `Sex`)) %>%
-      filter(grepl('Total', `Place of Birth`)) %>%
-      filter(!grepl('Total', `Visible minority`)) %>%
-      filter(grepl('Total', `Aboriginal identity`))
-    temp$`Age group`  <- temp$geo_code <- temp$Sex <- temp$`Aboriginal identity` <- 
-      temp$`Place of Birth` <- NULL
-    temp$`Average household income before tax $` <- round(temp$`Average household income before tax $`)
-    
-    # subet by income_vm_filter to get at least one line 
-    temp <- temp %>% filter(`Visible minority` %in% income_vm_filter)
-    
-    temp$`Average household income before tax $` <- round(temp$`Average household income before tax $`)
-    cols <- colorRampPalette(brewer.pal(9, 'Spectral'))(length(unique(temp$`Visible minority`)))
-    
-    # set condition for if only 1 year is chosent 
-    if(length(unique(temp$year)) == 1) {
-      temp$year <- as.factor(as.character(temp$year))
-      point_size <- 13
-    } else {
-      point_size <- 4
-    }
-    
-    # plot data
-    g <- ggplot(data = temp,
-                aes(x = year,
-                    y = round(`Average household income before tax $`, 2),
-                    group = `Visible minority`,
-                    colour = `Visible minority`,
-                    text = paste('<br>', `Average household income before tax $` , as.factor(`Visible minority`)))) +
-      geom_point(size = point_size) +
-      geom_line(size = 1, alpha = 0.8,linetype = 'dashed') +
-      geom_smooth(alpha = 0.4, size = 1) + theme_bw(base_size = 13, base_family = 'Ubuntu') +
-      scale_color_manual(name = '', 
-                         values = c('darkblue',cols)) + theme(legend.position="none") +
-      labs(x = '', y = '', title ='') + scale_y_continuous(labels=scales::comma) 
-    
-    sub_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
-      config(displayModeBar = F) %>% 
-      layout( 
-        legend = list(
-          orientation = "l",
-          x = 0,
-          y = -0.4))
-    
-    sub_plot
-  })
-  
-  ######## 
-  # percent low income status map 
-  # income_status_map_demo : radiobuttons = c('Age group', 'Sex', 'Visible minority', 'Aboriginal identity')
-  # income_status_map_demo_filter: uiOutput: selecInput: levels of income_status_map_demo
-  # map: income_status_map_all_geo
-  # table: income_status_table
-  
-  output$income_status_map_demo_filter_ui <- renderUI({
-    
-    if(is.null(input$income_status_map_demo)){
-      return(NULL)
-    } else {
-      income_status_map_demo <-input$income_status_map_demo
-      map_demo_levels <- as.data.frame(unique(census[, income_status_map_demo]))
-      map_demo_levels <- as.character(map_demo_levels[,1])
-      if(income_status_map_demo == 'Age group') {
-        selectInput('income_status_map_demo_filter',
-                    'Pick a sub group to map',
-                    choices = map_demo_levels,
-                    selected = "Total - 15 to 29 years",
-                    multiple = FALSE)
-      } else {
-        map_demo_levels <- map_demo_levels[!grepl('Total', map_demo_levels)]
-        selectInput('income_status_map_demo_filter',
-                    'Pick a sub group to map',
-                    choices = map_demo_levels,
-                    selected = map_demo_levels[1],
-                    multiple = FALSE)
-      }
-    }
-    
-  })
-  
-  
-  
-  
-  output$income_status_map_all_geo <- renderLeaflet({
-    # # subset data by inputs
-    # income_map_year <- c(2016)
-    # income_status_map_demo <- 'Sex'
-    # income_status_map_demo_filter <- "Male"
-    income_status_map_demo <- input$income_status_map_demo
-    income_map_year <- input$income_map_year
-    income_status_map_demo_filter <- input$income_status_map_demo_filter
-    
-    if( is.null(income_status_map_demo) | is.null(income_map_year) | is.null(income_status_map_demo_filter)){
-      return(NULL)
-    } else {
-      
-      # avg_years <- input$demo_chart_avg
-      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex",
-                     "Place of Birth","Visible minority", "Aboriginal identity",
-                     "Low income (LICO before tax)", 'Population')
-      new_census <- census[ , demo_vars]
-      
-      new_census <- new_census %>% filter(!grepl('Ontario', Geography)) %>%
-        filter(year %in% income_map_year)
-      
-      if(income_status_map_demo == 'Age group') {
-        temp <- new_census %>%
-          filter(grepl(income_status_map_demo_filter,`Age group`)) %>%
-          filter(grepl('Total', `Sex`)) %>%
-          filter(grepl('Total', `Place of Birth`)) %>%
-          filter(grepl('Total', `Visible minority`)) %>%
-          filter(grepl('Total', `Aboriginal identity`))
-        temp$Sex <- temp$`Aboriginal identity` <- temp$`Visible minority` <- temp$`Place of Birth` <-    NULL
-      }
-      
-      if(income_status_map_demo == 'Sex') {
-        temp <- new_census %>%
-          filter(grepl(income_status_map_demo_filter,`Sex`)) %>%
-          filter(grepl('Total', `Age group`)) %>%
-          filter(grepl('Total', `Place of Birth`)) %>%
-          filter(grepl('Total', `Visible minority`)) %>%
-          filter(grepl('Total', `Aboriginal identity`))
-        temp$`Age group` <- temp$`Aboriginal identity` <- temp$`Visible minority` <- temp$`Place of Birth` <-    NULL
-      }
-      
-      if(income_status_map_demo == 'Place of Birth') {
-        temp <- new_census %>%
-          filter(grepl(income_status_map_demo_filter,`Place of Birth`)) %>%
-          filter(grepl('Total', `Sex`)) %>%
-          filter(grepl('Total', `Age group`)) %>%
-          filter(grepl('Total', `Visible minority`)) %>%
-          filter(grepl('Total', `Aboriginal identity`))
-        temp$Sex <- temp$`Aboriginal identity` <- temp$`Visible minority` <- temp$`Age group` <-    NULL
-      }
-      
-      if(income_status_map_demo == 'Visible minority') {
-        temp <- new_census %>%
-          filter(grepl(income_status_map_demo_filter,`Visible minority`)) %>%
-          filter(grepl('Total', `Sex`)) %>%
-          filter(grepl('Total', `Place of Birth`)) %>%
-          filter(grepl('Total', `Age group`)) %>%
-          filter(grepl('Total', `Aboriginal identity`))
-        temp$Sex <- temp$`Aboriginal identity` <- temp$`Age group` <- temp$`Place of Birth` <-    NULL
-      }
-      
-      if(income_status_map_demo == 'Aboriginal identity') {
-        temp <- new_census %>%
-          filter(grepl(income_status_map_demo_filter,`Aboriginal identity`)) %>%
-          filter(grepl('Total', `Sex`)) %>%
-          filter(grepl('Total', `Place of Birth`)) %>%
-          filter(grepl('Total', `Visible minority`)) %>%
-          filter(grepl('Total', `Age group`))
-        temp$Sex <- temp$`Age group` <- temp$`Visible minority` <- temp$`Place of Birth` <-    NULL
-      }
-      
-      
-      # get percentage
-      temp_final <- as.data.frame(temp)
-      temp_final$`Percent low income status` <-
-        round((temp_final$`Low income (LICO before tax)`/temp_final$Population)*100,2)
-      save(temp_final, file = 'x.RData')
-      leaf_income(temp_final, income_status_map_demo_filter =  income_status_map_demo_filter )
-    }
-    
-    
-    
-  })
-  
-  
-  output$income_status_table <- DT::renderDataTable({
-    # # subset data by inputs
-    income_map_year <- input$income_map_year
-    income_status_map_demo <- input$income_status_map_demo
-    income_status_map_demo_filter <- input$income_status_map_demo_filter
-    if(is.null(income_status_map_demo_filter) |  is.null(income_status_map_demo) |is.null(income_map_year)){
-      return(NULL)
-    } else {
-      
-      
-      # avg_years <- input$demo_chart_avg
-      demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex",
-                     "Place of Birth","Visible minority", "Aboriginal identity",
-                     "Low income (LICO before tax)", 'Population')
-      new_census <- census[ , demo_vars]
-      
-      new_census <- new_census %>% filter(!grepl('Ontario', Geography)) %>%
-        filter(year %in% income_map_year)
-      
-      if(income_status_map_demo == 'Age group') {
-        temp <- new_census %>%
-          filter(grepl(income_status_map_demo_filter,`Age group`)) %>%
-          filter(grepl('Total', `Sex`)) %>%
-          filter(grepl('Total', `Place of Birth`)) %>%
-          filter(grepl('Total', `Visible minority`)) %>%
-          filter(grepl('Total', `Aboriginal identity`))
-        temp$Sex <- temp$`Aboriginal identity` <- temp$`Visible minority` <- temp$`Place of Birth` <-    NULL
-      }
-      
-      if(income_status_map_demo == 'Sex') {
-        temp <- new_census %>%
-          filter(grepl(income_status_map_demo_filter,`Sex`)) %>%
-          filter(grepl('Total', `Age group`)) %>%
-          filter(grepl('Total', `Place of Birth`)) %>%
-          filter(grepl('Total', `Visible minority`)) %>%
-          filter(grepl('Total', `Aboriginal identity`))
-        temp$`Age group` <- temp$`Aboriginal identity` <- temp$`Visible minority` <- temp$`Place of Birth` <-    NULL
-      }
-      
-      if(income_status_map_demo == 'Place of Birth') {
-        temp <- new_census %>%
-          filter(grepl(income_status_map_demo_filter,`Place of Birth`)) %>%
-          filter(grepl('Total', `Sex`)) %>%
-          filter(grepl('Total', `Age group`)) %>%
-          filter(grepl('Total', `Visible minority`)) %>%
-          filter(grepl('Total', `Aboriginal identity`))
-        temp$Sex <- temp$`Aboriginal identity` <- temp$`Visible minority` <- temp$`Age group` <-    NULL
-      }
-      
-      if(income_status_map_demo == 'Visible minority') {
-        temp <- new_census %>%
-          filter(grepl(income_status_map_demo_filter,`Visible minority`)) %>%
-          filter(grepl('Total', `Sex`)) %>%
-          filter(grepl('Total', `Place of Birth`)) %>%
-          filter(grepl('Total', `Age group`)) %>%
-          filter(grepl('Total', `Aboriginal identity`))
-        temp$Sex <- temp$`Aboriginal identity` <- temp$`Age group` <- temp$`Place of Birth` <-    NULL
-      }
-      
-      if(income_status_map_demo == 'Aboriginal identity') {
-        temp <- new_census %>%
-          filter(grepl(income_status_map_demo_filter,`Aboriginal identity`)) %>%
-          filter(grepl('Total', `Sex`)) %>%
-          filter(grepl('Total', `Place of Birth`)) %>%
-          filter(grepl('Total', `Visible minority`)) %>%
-          filter(grepl('Total', `Age group`))
-        temp$Sex <- temp$`Age group` <- temp$`Visible minority` <- temp$`Place of Birth` <-    NULL
-      }
-      #
-    }
-    # get percentage
-    temp_final <- as.data.frame(temp)
-    temp_final$`Percent low income status` <- round((temp_final$`Low income (LICO before tax)`/temp_final$Population)*100,2)
-    temp_final$geo_code <- temp_final$year <- temp_final$Population <- NULL
-    
-    if(!is.null(temp_final)){
-      if(nrow(temp_final) > 0){
-        message('temp final is')
-        print(head(temp_final))
-        prettify(temp_final, comma_numbers = TRUE,download_options = TRUE)
-      }
-    }
-    
-    
-    
-  })
-  
+  # 
+  # output$income_plot_all_geo <- renderPlotly({
+  #   
+  #   
+  #   location <- input$location
+  #   years <- input$years
+  #   add_location <- input$income_add_location
+  #   
+  #   # avg_years <- input$demo_chart_avg
+  #   demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex",
+  #                  "Place of Birth","Visible minority", "Aboriginal identity",
+  #                  "Average household income before tax $")
+  #   new_census <- census[ , demo_vars]
+  #   
+  #   # combine location and add_locaiton
+  #   location <- c(location, add_location)
+  #   
+  #   temp <- new_census %>%
+  #     filter(year %in% years) %>% 
+  #     filter(Geography %in% location) %>%
+  #     filter(grepl('Total',`Age group`)) %>% 
+  #     filter(grepl('Total', `Sex`)) %>%
+  #     filter(grepl('Total', `Place of Birth`)) %>%
+  #     filter(grepl('Total', `Visible minority`)) %>%
+  #     filter(grepl('Total', `Aboriginal identity`))
+  #   temp$`Age group`  <- temp$geo_code <- temp$Sex <- temp$`Aboriginal identity` <- 
+  #     temp$`Place of Birth` <- temp$`Visible minority` <-   NULL
+  #   temp$`Average household income before tax $` <- round(temp$`Average household income before tax $`)
+  #   
+  #   temp$`Average household income before tax $` <- round(temp$`Average household income before tax $`)
+  #   cols <- colorRampPalette(brewer.pal(9, 'Spectral'))(length(unique(temp$Geography)))
+  #   
+  #   # set condition for if only 1 year is chosent 
+  #   if(length(unique(temp$year)) == 1) {
+  #     temp$year <- as.factor(as.character(temp$year))
+  #     point_size <- 13
+  #   } else {
+  #     point_size <- 4
+  #   }
+  #   
+  #   # plot data
+  #   g <- ggplot(data = temp,
+  #               aes(x = year,
+  #                   y = round(`Average household income before tax $`, 2),
+  #                   group = Geography,
+  #                   colour = Geography,
+  #                   text = paste('<br>', `Average household income before tax $` , as.factor(Geography)))) +
+  #     geom_point(size = point_size) +
+  #     geom_line(size = 1, alpha = 0.8,linetype = 'dashed') +
+  #     geom_smooth(alpha = 0.4, size = 1) + theme_bw(base_size = 13, base_family = 'Ubuntu') +
+  #     scale_color_manual(name = '', 
+  #                        values = cols) + theme(legend.position="none") +
+  #     labs(x = '', y = '', title ='') + scale_y_continuous(labels=scales::comma) 
+  #   
+  #   sub_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
+  #     config(displayModeBar = F) %>% 
+  #     layout( 
+  #       legend = list(
+  #         orientation = "l",
+  #         x = 0,
+  #         y = -0.4))
+  #   
+  #   sub_plot
+  #   
+  #   
+  # })
+  # 
+  # # plot avg household income across vm status over the years
+  # # income_vm_filter = 'All visible minorites' as default
+  # output$income_plot_vm <- renderPlotly({
+  #   # subset data by inputs
+  #   location <- 'Ontario'
+  #   years <- c(2001, 2006, 2011, 2016)
+  #   income_vm_filter = 'All visible minorities' 
+  #   
+  #   location <- input$location
+  #   years <- input$years
+  #   income_vm_filter <- input$income_vm_filter
+  #   
+  #   # avg_years <- input$demo_chart_avg
+  #   demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex",
+  #                  "Place of Birth","Visible minority", "Aboriginal identity",
+  #                  "Average household income before tax $")
+  #   new_census <- census[ , demo_vars]
+  #   
+  #   temp <- new_census %>%
+  #     filter(year %in% years) %>% 
+  #     filter(Geography %in% location) %>%
+  #     filter(grepl('Total',`Age group`)) %>% 
+  #     filter(grepl('Total', `Sex`)) %>%
+  #     filter(grepl('Total', `Place of Birth`)) %>%
+  #     filter(!grepl('Total', `Visible minority`)) %>%
+  #     filter(grepl('Total', `Aboriginal identity`))
+  #   temp$`Age group`  <- temp$geo_code <- temp$Sex <- temp$`Aboriginal identity` <- 
+  #     temp$`Place of Birth` <- NULL
+  #   temp$`Average household income before tax $` <- round(temp$`Average household income before tax $`)
+  #   
+  #   # subet by income_vm_filter to get at least one line 
+  #   temp <- temp %>% filter(`Visible minority` %in% income_vm_filter)
+  #   
+  #   temp$`Average household income before tax $` <- round(temp$`Average household income before tax $`)
+  #   cols <- colorRampPalette(brewer.pal(9, 'Spectral'))(length(unique(temp$`Visible minority`)))
+  #   
+  #   # set condition for if only 1 year is chosent 
+  #   if(length(unique(temp$year)) == 1) {
+  #     temp$year <- as.factor(as.character(temp$year))
+  #     point_size <- 13
+  #   } else {
+  #     point_size <- 4
+  #   }
+  #   
+  #   # plot data
+  #   g <- ggplot(data = temp,
+  #               aes(x = year,
+  #                   y = round(`Average household income before tax $`, 2),
+  #                   group = `Visible minority`,
+  #                   colour = `Visible minority`,
+  #                   text = paste('<br>', `Average household income before tax $` , as.factor(`Visible minority`)))) +
+  #     geom_point(size = point_size) +
+  #     geom_line(size = 1, alpha = 0.8,linetype = 'dashed') +
+  #     geom_smooth(alpha = 0.4, size = 1) + theme_bw(base_size = 13, base_family = 'Ubuntu') +
+  #     scale_color_manual(name = '', 
+  #                        values = c('darkblue',cols)) + theme(legend.position="none") +
+  #     labs(x = '', y = '', title ='') + scale_y_continuous(labels=scales::comma) 
+  #   
+  #   sub_plot <- plotly::ggplotly(g, tooltip = 'text') %>%
+  #     config(displayModeBar = F) %>% 
+  #     layout( 
+  #       legend = list(
+  #         orientation = "l",
+  #         x = 0,
+  #         y = -0.4))
+  #   
+  #   sub_plot
+  # })
+  # 
+  # ######## 
+  # # percent low income status map 
+  # # income_status_map_demo : radiobuttons = c('Age group', 'Sex', 'Visible minority', 'Aboriginal identity')
+  # # income_status_map_demo_filter: uiOutput: selecInput: levels of income_status_map_demo
+  # # map: income_status_map_all_geo
+  # # table: income_status_table
+  # 
+  # output$income_status_map_demo_filter_ui <- renderUI({
+  #   
+  #   if(is.null(input$income_status_map_demo)){
+  #     return(NULL)
+  #   } else {
+  #     income_status_map_demo <-input$income_status_map_demo
+  #     map_demo_levels <- as.data.frame(unique(census[, income_status_map_demo]))
+  #     map_demo_levels <- as.character(map_demo_levels[,1])
+  #     if(income_status_map_demo == 'Age group') {
+  #       selectInput('income_status_map_demo_filter',
+  #                   'Pick a sub group to map',
+  #                   choices = map_demo_levels,
+  #                   selected = "Total - 15 to 29 years",
+  #                   multiple = FALSE)
+  #     } else {
+  #       map_demo_levels <- map_demo_levels[!grepl('Total', map_demo_levels)]
+  #       selectInput('income_status_map_demo_filter',
+  #                   'Pick a sub group to map',
+  #                   choices = map_demo_levels,
+  #                   selected = map_demo_levels[1],
+  #                   multiple = FALSE)
+  #     }
+  #   }
+  #   
+  # })
+  # 
+  # 
+  # 
+  # 
+  # output$income_status_map_all_geo <- renderLeaflet({
+  #   # # subset data by inputs
+  #   # income_map_year <- c(2016)
+  #   # income_status_map_demo <- 'Sex'
+  #   # income_status_map_demo_filter <- "Male"
+  #   income_status_map_demo <- input$income_status_map_demo
+  #   income_map_year <- input$income_map_year
+  #   income_status_map_demo_filter <- input$income_status_map_demo_filter
+  #   
+  #   if( is.null(income_status_map_demo) | is.null(income_map_year) | is.null(income_status_map_demo_filter)){
+  #     return(NULL)
+  #   } else {
+  #     
+  #     # avg_years <- input$demo_chart_avg
+  #     demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex",
+  #                    "Place of Birth","Visible minority", "Aboriginal identity",
+  #                    "Low income (LICO before tax)", 'Population')
+  #     new_census <- census[ , demo_vars]
+  #     
+  #     new_census <- new_census %>% filter(!grepl('Ontario', Geography)) %>%
+  #       filter(year %in% income_map_year)
+  #     
+  #     if(income_status_map_demo == 'Age group') {
+  #       temp <- new_census %>%
+  #         filter(grepl(income_status_map_demo_filter,`Age group`)) %>%
+  #         filter(grepl('Total', `Sex`)) %>%
+  #         filter(grepl('Total', `Place of Birth`)) %>%
+  #         filter(grepl('Total', `Visible minority`)) %>%
+  #         filter(grepl('Total', `Aboriginal identity`))
+  #       temp$Sex <- temp$`Aboriginal identity` <- temp$`Visible minority` <- temp$`Place of Birth` <-    NULL
+  #     }
+  #     
+  #     if(income_status_map_demo == 'Sex') {
+  #       temp <- new_census %>%
+  #         filter(grepl(income_status_map_demo_filter,`Sex`)) %>%
+  #         filter(grepl('Total', `Age group`)) %>%
+  #         filter(grepl('Total', `Place of Birth`)) %>%
+  #         filter(grepl('Total', `Visible minority`)) %>%
+  #         filter(grepl('Total', `Aboriginal identity`))
+  #       temp$`Age group` <- temp$`Aboriginal identity` <- temp$`Visible minority` <- temp$`Place of Birth` <-    NULL
+  #     }
+  #     
+  #     if(income_status_map_demo == 'Place of Birth') {
+  #       temp <- new_census %>%
+  #         filter(grepl(income_status_map_demo_filter,`Place of Birth`)) %>%
+  #         filter(grepl('Total', `Sex`)) %>%
+  #         filter(grepl('Total', `Age group`)) %>%
+  #         filter(grepl('Total', `Visible minority`)) %>%
+  #         filter(grepl('Total', `Aboriginal identity`))
+  #       temp$Sex <- temp$`Aboriginal identity` <- temp$`Visible minority` <- temp$`Age group` <-    NULL
+  #     }
+  #     
+  #     if(income_status_map_demo == 'Visible minority') {
+  #       temp <- new_census %>%
+  #         filter(grepl(income_status_map_demo_filter,`Visible minority`)) %>%
+  #         filter(grepl('Total', `Sex`)) %>%
+  #         filter(grepl('Total', `Place of Birth`)) %>%
+  #         filter(grepl('Total', `Age group`)) %>%
+  #         filter(grepl('Total', `Aboriginal identity`))
+  #       temp$Sex <- temp$`Aboriginal identity` <- temp$`Age group` <- temp$`Place of Birth` <-    NULL
+  #     }
+  #     
+  #     if(income_status_map_demo == 'Aboriginal identity') {
+  #       temp <- new_census %>%
+  #         filter(grepl(income_status_map_demo_filter,`Aboriginal identity`)) %>%
+  #         filter(grepl('Total', `Sex`)) %>%
+  #         filter(grepl('Total', `Place of Birth`)) %>%
+  #         filter(grepl('Total', `Visible minority`)) %>%
+  #         filter(grepl('Total', `Age group`))
+  #       temp$Sex <- temp$`Age group` <- temp$`Visible minority` <- temp$`Place of Birth` <-    NULL
+  #     }
+  #     
+  #     
+  #     # get percentage
+  #     temp_final <- as.data.frame(temp)
+  #     temp_final$`Percent low income status` <-
+  #       round((temp_final$`Low income (LICO before tax)`/temp_final$Population)*100,2)
+  #     save(temp_final, file = 'x.RData')
+  #     leaf_income(temp_final, income_status_map_demo_filter =  income_status_map_demo_filter )
+  #   }
+  #   
+  #   
+  #   
+  # })
+  # 
+  # 
+  # output$income_status_table <- DT::renderDataTable({
+  #   # # subset data by inputs
+  #   income_map_year <- input$income_map_year
+  #   income_status_map_demo <- input$income_status_map_demo
+  #   income_status_map_demo_filter <- input$income_status_map_demo_filter
+  #   if(is.null(income_status_map_demo_filter) |  is.null(income_status_map_demo) |is.null(income_map_year)){
+  #     return(NULL)
+  #   } else {
+  #     
+  #     
+  #     # avg_years <- input$demo_chart_avg
+  #     demo_vars <- c("Geography",  "geo_code", "year", "Age group", "Sex",
+  #                    "Place of Birth","Visible minority", "Aboriginal identity",
+  #                    "Low income (LICO before tax)", 'Population')
+  #     new_census <- census[ , demo_vars]
+  #     
+  #     new_census <- new_census %>% filter(!grepl('Ontario', Geography)) %>%
+  #       filter(year %in% income_map_year)
+  #     
+  #     if(income_status_map_demo == 'Age group') {
+  #       temp <- new_census %>%
+  #         filter(grepl(income_status_map_demo_filter,`Age group`)) %>%
+  #         filter(grepl('Total', `Sex`)) %>%
+  #         filter(grepl('Total', `Place of Birth`)) %>%
+  #         filter(grepl('Total', `Visible minority`)) %>%
+  #         filter(grepl('Total', `Aboriginal identity`))
+  #       temp$Sex <- temp$`Aboriginal identity` <- temp$`Visible minority` <- temp$`Place of Birth` <-    NULL
+  #     }
+  #     
+  #     if(income_status_map_demo == 'Sex') {
+  #       temp <- new_census %>%
+  #         filter(grepl(income_status_map_demo_filter,`Sex`)) %>%
+  #         filter(grepl('Total', `Age group`)) %>%
+  #         filter(grepl('Total', `Place of Birth`)) %>%
+  #         filter(grepl('Total', `Visible minority`)) %>%
+  #         filter(grepl('Total', `Aboriginal identity`))
+  #       temp$`Age group` <- temp$`Aboriginal identity` <- temp$`Visible minority` <- temp$`Place of Birth` <-    NULL
+  #     }
+  #     
+  #     if(income_status_map_demo == 'Place of Birth') {
+  #       temp <- new_census %>%
+  #         filter(grepl(income_status_map_demo_filter,`Place of Birth`)) %>%
+  #         filter(grepl('Total', `Sex`)) %>%
+  #         filter(grepl('Total', `Age group`)) %>%
+  #         filter(grepl('Total', `Visible minority`)) %>%
+  #         filter(grepl('Total', `Aboriginal identity`))
+  #       temp$Sex <- temp$`Aboriginal identity` <- temp$`Visible minority` <- temp$`Age group` <-    NULL
+  #     }
+  #     
+  #     if(income_status_map_demo == 'Visible minority') {
+  #       temp <- new_census %>%
+  #         filter(grepl(income_status_map_demo_filter,`Visible minority`)) %>%
+  #         filter(grepl('Total', `Sex`)) %>%
+  #         filter(grepl('Total', `Place of Birth`)) %>%
+  #         filter(grepl('Total', `Age group`)) %>%
+  #         filter(grepl('Total', `Aboriginal identity`))
+  #       temp$Sex <- temp$`Aboriginal identity` <- temp$`Age group` <- temp$`Place of Birth` <-    NULL
+  #     }
+  #     
+  #     if(income_status_map_demo == 'Aboriginal identity') {
+  #       temp <- new_census %>%
+  #         filter(grepl(income_status_map_demo_filter,`Aboriginal identity`)) %>%
+  #         filter(grepl('Total', `Sex`)) %>%
+  #         filter(grepl('Total', `Place of Birth`)) %>%
+  #         filter(grepl('Total', `Visible minority`)) %>%
+  #         filter(grepl('Total', `Age group`))
+  #       temp$Sex <- temp$`Age group` <- temp$`Visible minority` <- temp$`Place of Birth` <-    NULL
+  #     }
+  #     #
+  #   }
+  #   # get percentage
+  #   temp_final <- as.data.frame(temp)
+  #   temp_final$`Percent low income status` <- round((temp_final$`Low income (LICO before tax)`/temp_final$Population)*100,2)
+  #   temp_final$geo_code <- temp_final$year <- temp_final$Population <- NULL
+  #   
+  #   if(!is.null(temp_final)){
+  #     if(nrow(temp_final) > 0){
+  #       message('temp final is')
+  #       print(head(temp_final))
+  #       prettify(temp_final, comma_numbers = TRUE,download_options = TRUE)
+  #     }
+  #   }
+  #   
+  #   
+  #   
+  # })
+  # 
   
   
   }
