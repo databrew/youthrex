@@ -648,7 +648,7 @@ leaf_income <- function(x,
                                             style = list(
                                               "color" = "#191A1C",
                                               "box-shadow" = "3px 3px rgba(0,0,0,0.25)",
-                                              "font-size" = "18px",
+                                              "font-size" = "15px",
                                               "border-color" = "rgba(0,0,0,0.5)"
                                             ))) 
   # %>% 
