@@ -546,10 +546,10 @@ plot_age_demo <- function(location, years){
                   marker = list(color = 'rgb(44, 119, 226, 0.6)',
                                 line = list(color = 'black', width = 2))) %>%
       layout(title = '% youth aged 15 to 29',
-             yaxis = list(title = '', showgrid = FALSE, showline = FALSE, showticklabels = TRUE, domain= c(0, 0.85)),
-             xaxis = list(zeroline = FALSE, showline = FALSE, showticklabels = TRUE, showgrid = TRUE)) %>%
+             yaxis = list(title = '', showgrid = FALSE, showline = TRUE, showticklabels = TRUE, domain= c(0, 0.85)),
+             xaxis = list(title = '', zeroline = FALSE, showline = FALSE, showticklabels = TRUE, showgrid = TRUE)) %>%
       add_annotations(xref = 'x1', yref = 'y',
-                      x = temp$Percent + 2.5,  y = temp$Geography.x,
+                      x = temp$Percent + 1.5,  y = temp$Geography.x,
                       text = paste(round(temp$Percent, 2), '%'),
                       font = list(family = 'Ubuntu', size = 12, color = 'black'),
                       showarrow = FALSE)

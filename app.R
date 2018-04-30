@@ -252,18 +252,19 @@ ui <- material_page(
                                                                          material_switch('emp_age_as_table',
                                                                                          'View the table'),
                                                                          uiOutput('emp_rate_age'))
-                                                       ),
-                                                       
+                                                       )
+                                         ),
+                                         material_card(title = 'Youth unemployment rate Ontario',
                                                        material_row(
                                                          material_column(width = 12,
                                                                          material_switch('emp_rate_all_as_table',
                                                                                          'View the table'),
                                                                          uiOutput('emp_rate_all'))
-                                                        
+                                                         
                                                        )
-                                                    
+                                                       
                                                        )
-                                                        
+                                             
                                         ),
                     
                     material_tab_content(tab_id = 'housing',
@@ -750,8 +751,10 @@ server <- function(input, output) {
   
   output$fam_plot_parents <- renderPlotly({
   
+    location <- c('Toronto','Ottawa')
+    
     location <- locations()
-    years <- c('2001', '2006', '2011', '2016')
+    years <- c(2001, 2006, 2011, 2016)
     
     # years <- input$years
     fam_type <- input$fam_type
@@ -787,8 +790,8 @@ server <- function(input, output) {
                       colour = Geography,
                       text = paste0('Location: ', Geography,
                                     '<br>', (Percent)*100 , '% ', fam_type))) + ggtitle(fam_type) +
-        geom_point(size = 2, alpha = 0.6) + geom_line(size = 1, alpha = 0.8, linetype = 'dotdash') + scale_color_manual(name = '',
-                                                                                                                        values = cols) + theme_bw(base_size = 16, base_family = 'Ubuntu')  +
+        geom_point(size = 2, alpha = 0.6) + geom_line(size = 1, alpha = 0.8, linetype = 'dotdash') + 
+        scale_color_manual(name = '', values = cols) + theme_bw(base_size = 16, base_family = 'Ubuntu')  +
         labs(x = '', y = ' ') + 
         scale_y_continuous(labels = scales::percent)
       g <- g  + theme_bw(base_size = 14, base_family = 'Ubuntu')
@@ -854,7 +857,7 @@ server <- function(input, output) {
                                         '<br>', (Percent)*100 , '%', as.factor(Geography)))) + 
              scale_y_continuous(labels = scales::percent) +
              geom_bar(position = 'dodge', stat = 'identity', colour = 'darkgrey', fill = 'rgba(50, 171, 96, 0.6)', alpha = 0.8) + 
-             theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = ' ', title = fam_type_kids)
+             theme_bw(base_size = 14, base_family = 'Ubuntu') + labs(x = '', y = ' ')
            
            
            g <-  plotly::ggplotly(g, tooltip = 'text') %>%
@@ -871,11 +874,11 @@ server <- function(input, output) {
                          type = 'bar', orientation = 'h',
                          marker = list(color = 'rgba(50, 171, 96, 0.6)',
                                        line = list(color = 'black', width = 1))) %>%
-             layout(title = fam_type_kids,
+             layout(title = '',
                     yaxis = list(title = '', showgrid = FALSE, showline = FALSE, showticklabels = TRUE, domain= c(0, 0.85)),
                     xaxis = list(zeroline = FALSE, showline = FALSE, showticklabels = TRUE, showgrid = TRUE)) %>%
              add_annotations(xref = 'x1', yref = 'y',
-                             x = temp$Percent + 2.5,  y = temp$Geography,
+                             x = temp$Percent + 1.5,  y = temp$Geography,
                              text = paste(round(temp$Percent, 2), '%'),
                              font = list(family = 'Ubuntu', size = 12, color = 'black'),
                              showarrow = FALSE)
@@ -1731,8 +1734,7 @@ server <- function(input, output) {
                       group = Geography,
                       color = Geography,
                       text = paste('<br>', `Unemployment rate %` ,' % ', as.factor(Geography)))) +
-        geom_line(size = 1, alpha = 0.8) +
-        geom_smooth(method = 'gam', se = F, linetype = 'dashed') + 
+        geom_line(size = 1, alpha = 0.8, linetype = 'dashed') +
         geom_point(size = 2, alpha = 0.7)+
         theme_bw(base_size = 13, base_family = 'Ubuntu') +
         scale_color_manual(name = '', 
@@ -1828,6 +1830,10 @@ server <- function(input, output) {
       temp = cbind(temp, packing)
       temp.gg <- circleLayoutVertices(packing, npoints=50)
       
+      temp$Geography <- gsub('-', '\n', temp$Geography)
+      temp$Geography <- gsub(' / ', '\n', temp$Geography)
+      temp$Geography <- gsub(' ', '\n', temp$Geography)
+      
       
       # Make the plot with a few differences compared to the static version:
       p=ggplot() + 
@@ -1835,15 +1841,14 @@ server <- function(input, output) {
                                                      tooltip = temp$text[id], data_id = id), colour = "black", 
                                  alpha = 0.6) +
         scale_fill_viridis() +
-        geom_text(data = temp, aes(x, y, label = Geography, size=1, color="black"), color = 'black') +
+        geom_text(data = temp, aes(x, y, label = Geography, color="black"), size = 4, color = 'black') +
         theme_void() + 
-        theme(legend.position="none", plot.margin=unit(c(0,0,0,0),"cm")) +
-        ggtitle('Unemployment by location in ', years)
+        theme(legend.position="none") +
       coord_equal()
       
       
       
-     g_plot <- ggiraph(ggobj = p, width_svg = 10, height_svg = 10)
+     g_plot <- ggiraph(ggobj = p, width_svg = 10, height_svg = 10, selection_type = 'single')
       
       
     } else {
